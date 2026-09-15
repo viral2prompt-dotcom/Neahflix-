@@ -8,6 +8,7 @@ const express = require('express');
 const router = express.Router();
 const axios = require('axios');
 const cheerio = require('cheerio');
+const { chromium } = require('playwright');
 const path = require('path');
 const fsp = require('fs').promises;
 
@@ -76,6 +77,115 @@ function buildFStreamCookieHeader() {
 
 let fstreamRequestCounter = 0;
 const MAX_REQUESTS_PER_SESSION = 5;
+
+async function scrapeFStreamDynamicPlayers(pageUrl) {
+  let browser;
+
+  try {
+    browser = await chromium.launch({ headless: true });
+    const page = await browser.newPage();
+
+    const result = {};
+
+    let currentEmbed = null;
+
+    page.on("request", request => {
+      const url = request.url();
+      if (url.includes("vidzy.org/embed-") && url.includes(".html")) {
+        currentEmbed = url;
+        console.log("[FStream][Playwright] Vidzy:", url);
+      }
+    });
+
+    await page.goto(pageUrl, {
+      waitUntil: "domcontentloaded",
+      timeout: 30000
+    });
+
+    await page.waitForTimeout(3000);
+
+    // VFQ / VFF : le menu appartient au bouton VF
+    for (const version of ["VFQ", "VFF"]) {
+      currentEmbed = null;
+
+      const vfButton = page.locator(
+        '.player-option[data-player="ViDZY"]'
+      ).first();
+
+      if (!(await vfButton.count())) {
+        console.log("[FStream][Playwright] Bouton VF introuvable");
+        continue;
+      }
+
+      await vfButton.click({ force: true });
+      await page.waitForTimeout(300);
+
+      const option = page.locator(
+        '.version-option[data-version="' + version + '"]:visible'
+      ).first();
+
+      if (!(await option.count())) {
+        console.log("[FStream][Playwright] Version " + version + " non visible");
+        continue;
+      }
+
+      await option.click({ force: true });
+      await page.waitForTimeout(2500);
+
+      if (currentEmbed) {
+        result[version] = currentEmbed;
+      }
+    }
+
+    // VOSTFR : c'est un bouton player séparé
+    currentEmbed = null;
+
+    const vostfrButton = page
+      .locator('.player-option[data-player="ViDZY"]')
+      .filter({ hasText: "VOSTFR" })
+      .first();
+
+    if (await vostfrButton.count()) {
+      console.log("[FStream][Playwright] Clic VOSTFR");
+
+      await vostfrButton.click({ force: true });
+      await page.waitForTimeout(3000);
+
+      // 1. Priorité à la requête Vidzy capturée
+      if (currentEmbed) {
+        result.VOSTFR = currentEmbed;
+      }
+
+      // 2. Sécurité : lire directement le src de l'iframe
+      if (!result.VOSTFR) {
+        const iframe = page.locator('#video-iframe').first();
+
+        if (await iframe.count()) {
+          const iframeSrc = await iframe.getAttribute('src');
+
+          if (iframeSrc && iframeSrc.includes('vidzy.org/embed-')) {
+            result.VOSTFR = iframeSrc;
+            console.log("[FStream][Playwright] VOSTFR iframe:", iframeSrc);
+          }
+        }
+      }
+    } else {
+      console.log("[FStream][Playwright] Bouton VOSTFR introuvable");
+    }
+
+    console.log("[FStream][Playwright] Résultat:", JSON.stringify(result));
+
+    return result;
+
+  } catch (error) {
+    console.error("[FStream] Dynamic scraper error:", error.message);
+    return {};
+  } finally {
+    if (browser) {
+      await browser.close();
+    }
+  }
+}
 
 function extractCookieValue(cookies, name) {
   if (!cookies || !Array.isArray(cookies)) return null;
@@ -364,7 +474,7 @@ async function fetchFStreamSeasonSearchResults(tmdbId, serieTitle) {
         'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
         'X-Requested-With': 'XMLHttpRequest'
       },
-      timeout: 6000
+      timeout: 30000
     });
 
     const html = typeof response.data === 'string' ? response.data : '';
@@ -1067,21 +1177,55 @@ async function getMoviePlayersForUrl(pageUrl) {
     const uniquePlayers = [];
     const seenUrls = new Set();
     apiPlayers.forEach(player => {
-      if (!seenUrls.has(player.url)) { seenUrls.add(player.url); uniquePlayers.push(player); }
+      if (!seenUrls.has(player.url)) {
+        seenUrls.add(player.url);
+        uniquePlayers.push(player);
+      }
     });
     const organized = { VFQ: [], VFF: [], VOSTFR: [], Default: [] };
     uniquePlayers.forEach(player => {
-      const version = (player.version && organized[player.version]) ? player.version : 'Default';
-      organized[version].push({ url: player.url, type: player.type, quality: player.quality, player: player.player || 'Lecteur' });
+      const version = (player.version && organized[player.version]) ? player.version : "Default";
+      organized[version].push({
+        url: player.url,
+        type: player.type,
+        quality: player.quality,
+        player: player.player || "Lecteur"
+      });
     });
     return { organized, total: uniquePlayers.length, fromApi: true };
   }
 
-  // 2. Fallback: fetch HTML
+  // 2. Fallback HTML classique
   console.log(`[FStream] getMoviePlayersForUrl: API echouee, fallback HTML pour ${pageUrl}`);
-  const contentResponse = await axiosFStreamRequest({ method: 'get', url: pageUrl });
-  if (contentResponse.status !== 200) return { organized: { VFQ: [], VFF: [], VOSTFR: [], Default: [] }, total: 0 };
-  return await extractFStreamPlayers(contentResponse.data, false, pageUrl);
+  const contentResponse = await axiosFStreamRequest({ method: "get", url: pageUrl });
+  if (contentResponse.status === 200) {
+    const htmlResult = await extractFStreamPlayers(contentResponse.data, false, pageUrl);
+    if (htmlResult && htmlResult.total > 0) return htmlResult;
+  }
+
+  // 3. Fallback dynamique Playwright -> ViDZY
+  console.log(`[FStream] Aucun lecteur HTML. Tentative scraping dynamique ViDZY pour ${pageUrl}`);
+  const dynamicPlayers = await scrapeFStreamDynamicPlayers(pageUrl);
+
+  const organized = { VFQ: [], VFF: [], VOSTFR: [], Default: [] };
+
+  Object.entries(dynamicPlayers).forEach(([version, url]) => {
+    if (!url || !organized[version]) return;
+
+    organized[version].push({
+      url,
+      type: "embed",
+      quality: "HD",
+      player: "Vidzy"
+    });
+  });
+
+  const total = Object.values(organized).reduce(
+    (sum, list) => sum + list.length,
+    0
+  );
+
+  return { organized, total, fromDynamicScraper: true };
 }
 
 // === Player Extraction ===

@@ -236,15 +236,11 @@ process.on('SIGUSR2', () => {
 const startServer = async (retries = 3) => {
   try {
     await appReady;
+    console.log('[BOOTSTRAP] Initialisation complète');
   } catch (error) {
-    if (retries > 0) {
-      console.error(`[BOOTSTRAP] Échec avant listen: ${error.message}`);
-      console.log(`Redémarrage... (${retries} restantes)`);
-      return setTimeout(() => startServer(retries - 1), 5000);
-    }
-
-    console.error('Échec du bootstrap applicatif après plusieurs tentatives');
-    process.exit(1);
+    console.warn(
+      `[BOOTSTRAP] MySQL/Redis indisponible — démarrage du serveur HTTP sans bootstrap DB: ${error.message}`
+    );
   }
 
   try {

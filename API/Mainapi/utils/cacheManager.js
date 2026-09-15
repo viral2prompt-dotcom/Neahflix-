@@ -128,7 +128,7 @@ const saveToCache = async (cacheDir, key, data) => {
 // === CACHE EN MÉMOIRE POUR ÉVITER LES REQUÊTES DUPLIQUÉES ===
 // Map pour stocker les promesses en cours d'exécution
 const ongoingFStreamRequests = new Map();
-const FSTREAM_REQUEST_TIMEOUT = 8000;
+const FSTREAM_REQUEST_TIMEOUT = 30000;
 const FSTREAM_STALE_CLEANUP_MS = 5 * 60 * 1000; // 5 min max
 
 // Fonction pour obtenir ou créer une requête FStream partagée

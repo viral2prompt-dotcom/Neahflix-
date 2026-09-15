@@ -87,7 +87,7 @@ export function sortHostersByPriority<
   const hosterList = overrideOrder ?? cat.hosterOrder;
   const hosterRank = (type: HosterId) => {
     const idx = hosterList.indexOf(type);
-    return idx === -1 ? Number.MAX_SAFE_INTEGER : idx;
+    return idx === -1 ? hosterList.length : idx;
   };
 
   // Langue rank — uniquement pour items qui exposent `language` ou `category`.
@@ -108,7 +108,7 @@ export function sortHostersByPriority<
     if (!raw) return Number.MAX_SAFE_INTEGER - 1; // sans langue explicite = juste après toutes les activées
     const normalized = normalizeLang(String(raw));
     const idx = langOrderEnabled.indexOf(normalized);
-    return idx === -1 ? Number.MAX_SAFE_INTEGER : idx;
+    return idx === -1 ? hosterList.length : idx;
   };
 
   return [...items].sort((a, b) => {

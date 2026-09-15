@@ -40,7 +40,6 @@ const {
   limitConcurrency3,
   limitConcurrency10,
 } = require("./utils/concurrency");
-
 const {
   CPASMAL_BASE_URL,
   makeRequestWithCorsFallback,
@@ -132,7 +131,7 @@ const axiosAnimeSama = axios.create({
 const FSTREAM_BASE_URL_VAL = "https://french-stream.one/";
 const axiosFStream = axios.create({
   baseURL: FSTREAM_BASE_URL_VAL,
-  timeout: 6000,
+  timeout: 30000,
   headers: {
     "User-Agent":
       "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36",
@@ -543,6 +542,7 @@ const {
 const { ensureAccountLinksStorage } = require('./utils/accountLinks');
 const { ensureCloneLinksStorage } = require('./utils/cloneLinks');
 const { ensureOAuthStorage } = require('./utils/oauthStorage');
+const { ensureTableGroup } = require('./db/runtimeEnsure');
 
 const appReady = (async () => {
   try {
@@ -652,6 +652,9 @@ const appReady = (async () => {
           INDEX idx_dlh_link_type (link_type)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
       `);
+
+    await ensureTableGroup(pool, 'media');
+    console.log("Media schema initialized successfully");
 
       // Ensure download_links JSON column on films and series (idempotent)
       const ensureColumn = async (tableName, columnName, definitionSql) => {
