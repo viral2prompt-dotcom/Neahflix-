@@ -10255,7 +10255,14 @@ const HLSPlayer = forwardRef<HLSPlayerRef, HLSPlayerProps>(({
                                       { key: 'Default', label: t('watch.unknownLang'), emoji: '🌍' }
                                     ];
 
-                                    return categoryOrder.map((cat) => {
+                                    const orderedCategories = [
+                                      ...categoryOrder.filter((cat) => sourcesByCategory[cat.key]?.length),
+                                      ...Object.keys(sourcesByCategory)
+                                        .filter((category) => !categoryOrder.some((cat) => cat.key === category))
+                                        .map((category) => ({ key: category, label: category, emoji: '🌍' }))
+                                    ];
+
+                                    return orderedCategories.map((cat) => {
                                       const categorySources = sourcesByCategory[cat.key];
                                       if (!categorySources || categorySources.length === 0) return null;
 

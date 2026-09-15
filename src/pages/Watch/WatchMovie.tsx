@@ -88,6 +88,14 @@ interface CoflixResponse {
   }>;
 }
 
+interface FStreamPlayer {
+  url: string;
+  type: string;
+  quality: string;
+  player: string;
+  m3u8Url?: string;
+}
+
 interface FStreamResponse {
   success: boolean;
   source: string;
@@ -104,32 +112,7 @@ interface FStreamResponse {
     results: number;
     bestMatch: any;
   };
-  players: {
-    VFQ?: Array<{
-      url: string;
-      type: string;
-      quality: string;
-      player: string;
-    }>;
-    VFF?: Array<{
-      url: string;
-      type: string;
-      quality: string;
-      player: string;
-    }>;
-    VOSTFR?: Array<{
-      url: string;
-      type: string;
-      quality: string;
-      player: string;
-    }>;
-    Default?: Array<{
-      url: string;
-      type: string;
-      quality: string;
-      player: string;
-    }>;
-  };
+  players: Record<string, FStreamPlayer[]>;
   total: number;
   metadata: {
     extractedAt: string;
@@ -1290,7 +1273,7 @@ const WatchMovie: React.FC = () => {
         setFstreamData(fstreamResult);
 
         // Process all FStream categories with priority to fsvid sources
-        const categories = ['VFQ', 'VFF', 'VOSTFR', 'Default'];
+        const categories = Object.keys(fstreamResult.players);
         const otherSources: { url: string; label: string; category: string }[] = [];
 
         categories.forEach(category => {

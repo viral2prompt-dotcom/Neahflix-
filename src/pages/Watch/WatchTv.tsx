@@ -97,6 +97,14 @@ interface CoflixTvEpisodeResponse {
   };
 }
 
+interface FStreamTvPlayer {
+  url: string;
+  type: string;
+  quality: string;
+  player: string;
+  m3u8Url?: string;
+}
+
 // Interface pour FStream TV
 interface FStreamTvResponse {
   success: boolean;
@@ -118,32 +126,7 @@ interface FStreamTvResponse {
     [episodeNumber: string]: {
       number: number;
       title: string;
-      languages: {
-        VF?: Array<{
-          url: string;
-          type: string;
-          quality: string;
-          player: string;
-        }>;
-        VOSTFR?: Array<{
-          url: string;
-          type: string;
-          quality: string;
-          player: string;
-        }>;
-        VOENG?: Array<{
-          url: string;
-          type: string;
-          quality: string;
-          player: string;
-        }>;
-        Default?: Array<{
-          url: string;
-          type: string;
-          quality: string;
-          player: string;
-        }>;
-      };
+      languages: Record<string, FStreamTvPlayer[]>;
     };
   };
   total: number;
@@ -1746,7 +1729,7 @@ const WatchTv: React.FC = () => {
           const episodeData = fstreamResult.episodes[episodeNumber.toString()];
           if (episodeData && episodeData.languages) {
             // Process all FStream language categories with priority to fsvid sources
-            const categories = ['VF', 'VOSTFR', 'VOENG', 'Default'];
+            const categories = Object.keys(episodeData.languages);
             const otherSources: { url: string; label: string; category: string }[] = [];
 
             categories.forEach(category => {
