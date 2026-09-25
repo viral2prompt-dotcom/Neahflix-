@@ -6,7 +6,7 @@ import { Loader, Video, Star, Calendar, List, Check, FolderPlus, ChevronRight, A
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
 import { motion, AnimatePresence, MotionConfig } from 'framer-motion';
-import AddToListMenu from '../components/AddToListMenu';
+import AddToListButton from '../components/AddToListButton';
 import DetailsSkeleton from '../components/skeletons/DetailsSkeleton';
 
 import CustomDropdown from '../components/CustomDropdown';
@@ -1827,12 +1827,12 @@ const TVDetails: React.FC = () => {
 
   };
   const WatchButtons = () => (
-    <div className="mt-5 grid grid-cols-2 gap-3 md:grid-cols-[minmax(0,1fr)_minmax(15rem,1fr)] md:gap-5">
-      <div className="space-y-2.5 md:max-w-xl">
+    <div className="mt-5 grid grid-cols-1 gap-3 md:grid-cols-[minmax(0,1fr)_minmax(15rem,1fr)] md:gap-5">
+      <div className="flex flex-wrap gap-2.5 md:max-w-xl">
         <motion.button whileHover={{ y: -2 }} whileTap={{ scale: 0.98 }} onClick={() => setShowTrailerPopup(true)} disabled={!trailerVideo}
-          className="flex w-full items-center gap-3 rounded-2xl border border-white/20 bg-slate-950/55 px-4 py-3 text-left text-sm font-semibold text-white shadow-[0_0_20px_rgba(148,163,184,.12)] backdrop-blur-xl transition hover:border-red-300/60 disabled:opacity-40"><Video className="h-4 w-4 text-red-300" /> {t('details.bandeAnnonce')}</motion.button>
-        <AddToListMenu mediaId={Number(id)} mediaType="tv" title={tvShow?.name || ''} posterPath={tvShow?.poster_path || ''} />
-        <motion.button whileHover={{ y: -2 }} whileTap={{ scale: 0.98 }} onClick={() => updateWatchStatus('watchlist', !watchStatus.watchlist)} className={`flex w-full items-center gap-3 rounded-2xl border px-4 py-3 text-left text-sm font-semibold shadow-[0_0_20px_rgba(148,163,184,.12)] backdrop-blur-xl transition ${watchStatus.watchlist ? 'border-red-300/70 bg-red-600/35 text-white' : 'border-white/20 bg-slate-950/55 text-white hover:border-red-300/60'}`}><List className="h-4 w-4 text-red-200" /> Regarder plus tard</motion.button>
+          className="flex min-w-[10rem] flex-1 items-center gap-3 rounded-2xl border border-white/20 bg-slate-950/55 px-4 py-3 text-left text-sm font-semibold text-white shadow-[0_0_20px_rgba(148,163,184,.12)] backdrop-blur-xl transition hover:border-red-300/60 disabled:opacity-40"><Video className="h-4 w-4 text-red-300" /> {t('details.bandeAnnonce')}</motion.button>
+        <AddToListButton mediaId={Number(id)} mediaType="tv" title={tvShow?.name || ''} posterPath={tvShow?.poster_path || ''} className="flex min-w-[10rem] flex-1 items-center gap-3 rounded-2xl border border-white/20 bg-slate-950/55 px-4 py-3 text-left text-sm font-semibold text-white shadow-[0_0_20px_rgba(148,163,184,.12)] backdrop-blur-xl transition hover:border-red-300/60" />
+        <motion.button whileHover={{ y: -2 }} whileTap={{ scale: 0.98 }} onClick={() => updateWatchStatus('watchlist', !watchStatus.watchlist)} className={`flex min-w-[10rem] flex-1 items-center gap-3 rounded-2xl border px-4 py-3 text-left text-sm font-semibold shadow-[0_0_20px_rgba(148,163,184,.12)] backdrop-blur-xl transition ${watchStatus.watchlist ? 'border-red-300/70 bg-red-600/35 text-white' : 'border-white/20 bg-slate-950/55 text-white hover:border-red-300/60'}`}><List className="h-4 w-4 text-red-200" /> Regarder plus tard</motion.button>
       </div>
       <motion.button whileHover={{ scale: 1.015 }} whileTap={{ scale: 0.985 }} onClick={handleContinueWatching} className="min-h-36 rounded-2xl border border-white/35 bg-gradient-to-br from-slate-900/90 via-blue-950/85 to-red-950/75 px-5 py-6 text-lg font-black tracking-[0.18em] text-white shadow-[0_0_34px_rgba(239,68,68,.36)] backdrop-blur-xl transition animate-pulse"><span className="inline-flex items-center justify-center gap-3"><Play className="h-6 w-6 fill-current" /> REGARDER</span></motion.button>
     </div>
@@ -2982,10 +2982,13 @@ const TVDetails: React.FC = () => {
           transition={{ delay: 0.2 }}
           className="mb-8"
         >
-          <h1 className="section-title text-4xl md:text-5xl font-bold">
+          <h1 className="section-title flex flex-wrap items-baseline gap-x-2 text-4xl font-bold md:text-5xl">
             {tvShow.name}
+            {tvShow.first_air_date && !isNaN(new Date(tvShow.first_air_date).getTime()) && new Date(tvShow.first_air_date) <= new Date() && (
+              <span className="inline-flex items-center gap-1 text-sm font-medium text-emerald-300"><CheckCircle className="h-4 w-4" aria-hidden="true" />{t('details.releasedBadge')}</span>
+            )}
+            {tvShow.first_air_date && <span className="text-sm font-semibold tracking-[0.18em] text-red-200/80">{new Date(tvShow.first_air_date).getFullYear()}</span>}
           </h1>
-          {tvShow.first_air_date && <p className="mt-2 text-sm font-semibold tracking-[0.18em] text-red-200/80">{new Date(tvShow.first_air_date).getFullYear()}</p>}
         </motion.div>
         {/* Contenu principal - poster à gauche, infos à droite */}
         <div className="grid grid-cols-1 gap-5 md:grid-cols-[minmax(13rem,0.7fr)_minmax(0,2fr)] md:gap-7">

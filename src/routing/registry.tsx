@@ -27,6 +27,7 @@ export const ROUTES: RouteEntry[] = [
   { path: '/ftv',                     loader: lz(() => import('../pages/FranceTV/FranceTVBrowse')), fallback: <GridSkeleton /> },
   { path: '/top10',                   loader: lz(() => import('../pages/Top10Page')),               fallback: <GridSkeleton /> },
   { path: '/calendar',                loader: lz(() => import('../pages/CalendarPage')) },
+  { path: '/platform/:platform',      loader: lz(() => import('../pages/PlatformExperience')) },
 
   // Provider catalogs
   { path: '/provider/:providerId',                          loader: lz(() => import('../pages/ProviderContent')),       fallback: <GridSkeleton /> },

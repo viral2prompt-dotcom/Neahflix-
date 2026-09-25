@@ -1330,15 +1330,15 @@ const MovieDetails = (): JSX.Element => {
   // Convert WatchButtons to a regular function to access parent scope variables
   function WatchButtons() {
     return (
-      <div className="mt-5 grid grid-cols-2 gap-3 md:grid-cols-[minmax(0,1fr)_minmax(15rem,1fr)] md:gap-5">
-        <div className="space-y-2.5 md:max-w-xl">
+      <div className="mt-5 grid grid-cols-1 gap-3 md:grid-cols-[minmax(0,1fr)_minmax(15rem,1fr)] md:gap-5">
+        <div className="flex flex-wrap gap-2.5 md:max-w-xl">
           <motion.button whileHover={{ y: -2 }} whileTap={{ scale: 0.98 }} onClick={() => setShowTrailerPopup(true)} disabled={!trailerVideoId}
-            className="flex w-full items-center gap-3 rounded-2xl border border-white/20 bg-slate-950/55 px-4 py-3 text-left text-sm font-semibold text-white shadow-[0_0_20px_rgba(148,163,184,.12)] backdrop-blur-xl transition hover:border-red-300/60 disabled:opacity-40">
+            className="flex min-w-[10rem] flex-1 items-center gap-3 rounded-2xl border border-white/20 bg-slate-950/55 px-4 py-3 text-left text-sm font-semibold text-white shadow-[0_0_20px_rgba(148,163,184,.12)] backdrop-blur-xl transition hover:border-red-300/60 disabled:opacity-40">
             <Video className="h-4 w-4 text-red-300" /> {t('details.bandeAnnonce')}
           </motion.button>
-          <AddToListButton mediaId={Number(id)} mediaType="movie" title={movie?.title || ''} posterPath={movie?.poster_path || ''} />
+          <AddToListButton mediaId={Number(id)} mediaType="movie" title={movie?.title || ''} posterPath={movie?.poster_path || ''} className="flex min-w-[10rem] flex-1 items-center gap-3 rounded-2xl border border-white/20 bg-slate-950/55 px-4 py-3 text-left text-sm font-semibold text-white shadow-[0_0_20px_rgba(148,163,184,.12)] backdrop-blur-xl transition hover:border-red-300/60" />
           <motion.button whileHover={{ y: -2 }} whileTap={{ scale: 0.98 }} onClick={() => updateWatchStatus('watchlist', !watchStatus.watchlist)}
-            className={`flex w-full items-center gap-3 rounded-2xl border px-4 py-3 text-left text-sm font-semibold shadow-[0_0_20px_rgba(148,163,184,.12)] backdrop-blur-xl transition ${watchStatus.watchlist ? 'border-red-300/70 bg-red-600/35 text-white' : 'border-white/20 bg-slate-950/55 text-white hover:border-red-300/60'}`}>
+            className={`flex min-w-[10rem] flex-1 items-center gap-3 rounded-2xl border px-4 py-3 text-left text-sm font-semibold shadow-[0_0_20px_rgba(148,163,184,.12)] backdrop-blur-xl transition ${watchStatus.watchlist ? 'border-red-300/70 bg-red-600/35 text-white' : 'border-white/20 bg-slate-950/55 text-white hover:border-red-300/60'}`}>
             <List className="h-4 w-4 text-red-200" /> Regarder plus tard
           </motion.button>
         </div>
@@ -1789,17 +1789,17 @@ const MovieDetails = (): JSX.Element => {
           transition={{ delay: 0.2 }}
           className="mb-8"
         >
-          <h1 className="section-title text-4xl md:text-5xl font-bold">
+          <h1 className="section-title flex flex-wrap items-baseline gap-x-2 text-4xl font-bold md:text-5xl">
             {movie.title}
             {movie.release_date && !isNaN(new Date(movie.release_date).getTime()) ? (
               new Date(movie.release_date) > new Date() ?
                 <span className="ml-2 text-sm font-medium bg-yellow-600 text-white px-2 py-1 rounded-md">{t('details.upcomingBadge')}</span> :
-                <span className="ml-2 text-sm font-medium bg-green-600 text-white px-2 py-1 rounded-md">{t('details.releasedBadge')}</span>
+                <span className="inline-flex items-center gap-1 text-sm font-medium text-emerald-300"><CheckCircle className="h-4 w-4" aria-hidden="true" />{t('details.releasedBadge')}</span>
             ) : (
               <span className="ml-2 text-sm font-medium bg-yellow-600 text-white px-2 py-1 rounded-md">{t('details.notReleasedBadge')}</span>
             )}
+            {movie.release_date && <span className="text-sm font-semibold tracking-[0.18em] text-red-200/80">{new Date(movie.release_date).getFullYear()}</span>}
           </h1>
-          {movie.release_date && <p className="mt-2 text-sm font-semibold tracking-[0.18em] text-red-200/80">{new Date(movie.release_date).getFullYear()}</p>}
         </motion.div>
 
         {/* Contenu principal - poster à gauche, infos à droite */}

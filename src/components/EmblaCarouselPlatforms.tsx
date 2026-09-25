@@ -11,6 +11,7 @@ interface PlatformItem {
   video?: string;
   route?: string;
   href?: string;
+  internalRoute?: string;
   label?: string;
   brandClass?: string;
 }
@@ -99,7 +100,14 @@ const EmblaCarouselPlatforms: React.FC<EmblaCarouselPlatformsProps> = ({ title, 
           <div className="flex gap-6 pr-8 md:pr-16 py-8 pl-4 md:pl-6">
             {items.map((platform) => (
               <div key={platform.id} className="flex-none">
-                {platform.href ? (
+                {platform.internalRoute ? (
+                  <Link to={platform.internalRoute} className="platform-link block w-[250px] h-[150px] group select-none">
+                    <div className={`w-full h-full relative rounded-xl ${platform.brandClass || 'bg-white'}`}>
+                      {platform.src ? <img src={platform.src} alt={platform.alt} className="w-full h-full object-contain p-8 group-hover:opacity-0 transition-opacity duration-300" draggable="false" loading="lazy" decoding="async" /> : <span className="absolute inset-0 grid place-items-center px-6 text-center text-2xl font-black tracking-tight">{platform.alt}</span>}
+                      {platform.label && <p className="absolute bottom-2 left-0 right-0 text-center text-white text-xs font-bold bg-black/60 py-1 px-2 mx-4 rounded-lg">{platform.label}</p>}
+                    </div>
+                  </Link>
+                ) : platform.href ? (
                   <a href={platform.href} target="_blank" rel="noreferrer" className="platform-link block w-[250px] h-[150px] group select-none">
                     <div className={`w-full h-full relative rounded-xl ${platform.brandClass || 'bg-white'}`}>
                       {platform.src ? <img src={platform.src} alt={platform.alt} className="w-full h-full object-contain p-8 group-hover:opacity-0 transition-opacity duration-300" draggable="false" loading="lazy" decoding="async" /> : <span className="absolute inset-0 grid place-items-center px-6 text-center text-2xl font-black tracking-tight">{platform.alt}</span>}

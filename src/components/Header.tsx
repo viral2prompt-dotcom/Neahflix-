@@ -394,16 +394,21 @@ const Header: React.FC = () => {
     }
   };
 
-  const renderExploreCard = (item: ExploreItem) => {
+  const renderExploreCard = (item: ExploreItem, index: number) => {
     const colors = cardColors[item.color] || cardColors.gray;
     const content = (
-      <div className={`flex h-full flex-col items-center rounded-2xl border ${colors.border} bg-slate-950/65 p-5 text-center shadow-[0_12px_32px_rgba(2,6,23,0.42)] backdrop-blur-xl transition duration-300 hover:-translate-y-1 hover:bg-slate-900/85 hover:shadow-[0_16px_40px_rgba(59,130,246,0.16)] active:bg-white/[0.08]`}>
+      <motion.div
+        className={`flex h-full flex-col items-center rounded-2xl border ${colors.border} bg-slate-950/65 p-5 text-center shadow-[0_12px_32px_rgba(2,6,23,0.42)] backdrop-blur-xl transition duration-300 hover:-translate-y-1 hover:bg-slate-900/85 hover:shadow-[0_16px_40px_rgba(59,130,246,0.16)] active:scale-[0.98] active:bg-white/[0.08]`}
+        initial={{ opacity: 0, x: index % 2 === 0 ? -18 : 18, y: 18 }}
+        animate={{ opacity: 1, x: 0, y: [0, -2, 0] }}
+        transition={{ opacity: { duration: 0.38, delay: index * 0.055 }, x: { duration: 0.38, delay: index * 0.055 }, y: { duration: 4.8, delay: 0.45 + index * 0.08, repeat: Infinity, ease: 'easeInOut' } }}
+      >
         <div className={`mb-3 flex h-14 w-14 items-center justify-center rounded-2xl border ${colors.border} ${colors.bg} ${colors.text} shadow-[0_0_22px_rgba(34,197,94,0.12)]`}>
           {item.icon}
         </div>
         <span className="text-white text-sm font-semibold mb-1">{item.name}</span>
         <span className="text-white/50 text-xs leading-tight">{item.desc}</span>
-      </div>
+      </motion.div>
     );
 
     if (item.external) {
@@ -425,6 +430,11 @@ const Header: React.FC = () => {
     .map((group) => ({ ...group, items: group.items.filter((item) => !item.hiddenInNeahflixDrawer) }))
     .filter((group) => group.items.length > 0);
   const allExploreItems = visibleExploreGroups.flatMap(g => g.items);
+  const mobilePriorityPaths = ['/top10', '/cinegraph', '/watchparty/list', '/settings'];
+  const mobilePriorityItems = mobilePriorityPaths
+    .map((path) => allExploreItems.find((item) => item.path === path))
+    .filter((item): item is ExploreItem => Boolean(item));
+  const mobileSecondaryItems = allExploreItems.filter((item) => !mobilePriorityPaths.includes(item.path));
 
   return (
     <>
@@ -734,20 +744,14 @@ const Header: React.FC = () => {
                   exit={{ y: 40 }}
                   transition={{ duration: 0.3, ease: [0.32, 0.72, 0, 1] }}
                 >
-                  {/* Items principaux en haut */}
-                  <Link
-                    to="/suggestion"
-                    onClick={() => setIsExploreOpen(false)}
-                    className="mb-6 flex items-center justify-center gap-2 rounded-2xl border border-red-400/30 bg-gradient-to-r from-red-600/20 via-slate-900/80 to-blue-900/30 px-4 py-4 text-sm font-semibold text-white shadow-[0_0_28px_rgba(239,68,68,0.12)]"
-                  >
-                    <Sparkles size={18} className="text-red-300" />
-                    {t('nav.suggestions')}
-                  </Link>
-
-                  {/* Grille de cards */}
                   <div className="grid grid-cols-2 gap-4">
-                    {allExploreItems.map((item) => renderExploreCard(item))}
+                    {mobilePriorityItems.map((item, index) => renderExploreCard(item, index))}
                   </div>
+                  {mobileSecondaryItems.length > 0 && (
+                    <div className="mt-4 grid grid-cols-2 gap-3">
+                      {mobileSecondaryItems.map((item, index) => renderExploreCard(item, index + mobilePriorityItems.length))}
+                    </div>
+                  )}
                 </motion.div>
               </div>
             </motion.div>
