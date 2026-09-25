@@ -4,6 +4,7 @@ import { useParams, useNavigate } from 'react-router-dom'; // Added useNavigate
 import { useTranslation } from 'react-i18next';
 import axios from 'axios';
 import HLSPlayer from '../../components/HLSPlayer';
+import NeahflixPlaybackLoader from '../../components/NeahflixPlaybackLoader';
 import PlayerOverlayPortal from '../../components/PlayerOverlayPortal';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAdFreePopup } from '../../context/AdFreePopupContext';
@@ -3851,15 +3852,7 @@ const WatchTv: React.FC = () => {
         data-premid-source-detail={preMidSourceDetail}
       />
       {isLoading ? (
-        <div className="flex flex-col items-center justify-center h-full bg-black">
-          <div className="loading-container">
-            <div className="loading-bar"></div>
-            <div className="loading-bar"></div>
-            <div className="loading-bar"></div>
-            <div className="loading-bar"></div>
-          </div>
-          <div className="text-white text-xl font-medium mt-6">{vipRetryMessage || loadingText}</div>
-        </div>
+        <NeahflixPlaybackLoader message={vipRetryMessage || loadingText} />
       ) : onlyVostfrAvailable ? (
         <div className="h-full bg-black text-white flex flex-col items-center justify-center p-4">
           <div className="max-w-2xl w-full bg-gray-900/95 rounded-xl p-8 text-center shadow-2xl border border-gray-800">

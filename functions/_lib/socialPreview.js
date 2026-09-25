@@ -422,19 +422,19 @@ function formatRating(value) {
     : numberValue.toFixed(1);
 }
 
-function buildImageUrl(origin, payload, fallbackPath = "/movix.png") {
+function buildImageUrl(_origin, payload) {
   const imagePath =
     payload.backdrop_path || payload.poster_path || payload.profile_path;
-  if (!imagePath) return new URL(fallbackPath, origin).toString();
+  if (!imagePath) return null;
   const size = payload.backdrop_path ? "w1280" : "w780";
   return `${TMDB_IMAGE_BASE}/${size}${imagePath}`;
 }
 
-function resolveExternalImageUrl(origin, value, fallbackPath = "/movix.png") {
+function resolveExternalImageUrl(origin, value) {
   const normalized = String(value || "").trim();
 
   if (!normalized) {
-    return new URL(fallbackPath, origin).toString();
+    return null;
   }
 
   if (/^https?:\/\//i.test(normalized)) {
@@ -491,6 +491,14 @@ function stripExistingHeadTags(html) {
 }
 
 function renderHeadTags(metadata) {
+  const imageTags = metadata.imageUrl ? [
+    `<meta property="og:image" content="${escapeHtml(metadata.imageUrl)}" />`,
+    `<meta property="og:image:secure_url" content="${escapeHtml(metadata.imageUrl)}" />`,
+    `<meta property="og:image:alt" content="${escapeHtml(metadata.imageAlt)}" />`,
+    `<meta name="twitter:image" content="${escapeHtml(metadata.imageUrl)}" />`,
+    `<meta name="twitter:image:alt" content="${escapeHtml(metadata.imageAlt)}" />`,
+  ] : [];
+
   return [
     `<title>${escapeHtml(metadata.title)}</title>`,
     `<meta name="description" content="${escapeHtml(metadata.description)}" />`,
@@ -501,17 +509,13 @@ function renderHeadTags(metadata) {
     `<meta property="og:description" content="${escapeHtml(metadata.description)}" />`,
     `<meta property="og:type" content="${escapeHtml(metadata.ogType)}" />`,
     `<meta property="og:url" content="${escapeHtml(metadata.canonicalUrl)}" />`,
-    `<meta property="og:image" content="${escapeHtml(metadata.imageUrl)}" />`,
-    `<meta property="og:image:secure_url" content="${escapeHtml(metadata.imageUrl)}" />`,
-    `<meta property="og:image:alt" content="${escapeHtml(metadata.imageAlt)}" />`,
     `<meta property="og:site_name" content="${escapeHtml(SITE_NAME)}" />`,
     `<meta property="og:locale" content="${escapeHtml(metadata.ogLocale)}" />`,
     `<meta property="og:locale:alternate" content="${escapeHtml(metadata.alternateOgLocale)}" />`,
     `<meta name="twitter:card" content="summary_large_image" />`,
     `<meta name="twitter:title" content="${escapeHtml(metadata.title)}" />`,
     `<meta name="twitter:description" content="${escapeHtml(metadata.description)}" />`,
-    `<meta name="twitter:image" content="${escapeHtml(metadata.imageUrl)}" />`,
-    `<meta name="twitter:image:alt" content="${escapeHtml(metadata.imageAlt)}" />`,
+    ...imageTags,
   ].join("\n    ");
 }
 
@@ -536,8 +540,7 @@ function buildBaseMetadata(requestUrl, previewLanguage, payload) {
       260,
     ),
     canonicalUrl: requestUrl.toString(),
-    imageUrl:
-      payload.imageUrl || new URL("/movix.png", requestUrl.origin).toString(),
+    imageUrl: payload.imageUrl || null,
     imageAlt: payload.imageAlt || SITE_NAME,
     ogType: payload.ogType || "website",
     ogLocale: copy.ogLocale,

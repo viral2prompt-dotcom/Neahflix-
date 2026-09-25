@@ -10,7 +10,7 @@ const CONFIG_TIMEOUT_MS = 3000;
 // radio cellulaire qui se réveille). Si même ce ping fail, l'origine est
 // vraiment injoignable.
 const REACHABILITY_TIMEOUT_MS = 4000;
-const REACHABILITY_PROBE_PATH = '/movix.png';
+const REACHABILITY_PROBE_PATH = '/manifest.json';
 const HOSTNAME_RE = /^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$/i;
 
 // ============================================================================

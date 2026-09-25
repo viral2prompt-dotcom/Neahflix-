@@ -162,11 +162,14 @@ const ProfileMenu: React.FC = () => {
   return (
     <div className="relative z-50 flex items-center justify-center">
       {/* Desktop profile button */}
-      <motion.div
+      <motion.button
+        type="button"
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
         onClick={() => setIsOpen(!isOpen)}
         className="flex items-center gap-2 cursor-pointer md:px-0 max-md:px-0 max-md:py-0 max-md:bg-transparent"
+        aria-expanded={isOpen}
+        aria-haspopup="dialog"
       >
         <div className="flex items-center gap-1 sm:gap-2">
           <div className="relative group">
@@ -196,7 +199,7 @@ const ProfileMenu: React.FC = () => {
         </div>
         
         <ChevronDown className="w-4 h-4 hidden sm:inline md:inline transition-transform duration-300" />
-      </motion.div>
+      </motion.button>
 
       <AnimatePresence>
         {isOpen && (
@@ -337,7 +340,7 @@ const ProfileMenu: React.FC = () => {
                 </>
               ) : (
                 <div className="fixed inset-0 z-[101] flex items-center justify-center bg-black/70 p-6 backdrop-blur-md" onClick={() => setIsOpen(false)}>
-                  <motion.div initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} onClick={(event) => event.stopPropagation()} className="w-full max-w-sm rounded-3xl border border-white/15 bg-gradient-to-b from-slate-900/95 to-black p-7 text-center shadow-[0_0_60px_rgba(239,68,68,.22)]">
+                  <motion.div initial={{ opacity: 0, y: 12, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 8, scale: 0.97 }} transition={{ duration: 0.22, ease: 'easeOut' }} onClick={(event) => event.stopPropagation()} className="w-full max-w-sm rounded-3xl border border-white/15 bg-gradient-to-b from-slate-900/95 to-black p-7 text-center shadow-[0_0_60px_rgba(239,68,68,.22)]">
                     <p className="text-xs font-bold tracking-[0.28em] text-red-300">NEAHFLIX</p>
                     <h2 className="mt-3 text-2xl font-bold text-white">Votre espace commence ici</h2>
                     <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={handleGoogleLogin} className="mt-7 flex w-full items-center justify-center gap-3 rounded-2xl bg-white px-5 py-4 font-semibold text-slate-900 shadow-lg transition hover:bg-slate-100">

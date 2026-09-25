@@ -519,7 +519,7 @@ const SuggestionPage: React.FC = () => {
 
   return (
     <SquareBackground squareSize={48} borderColor="rgba(255, 0, 0, 0.18)" className="min-h-screen bg-slate-950 text-white">
-      <div className="container mx-auto min-h-screen max-w-5xl px-4 pb-28 pt-8 sm:px-6 sm:pb-12 sm:pt-12 relative z-10">
+      <div className="container relative z-10 mx-auto min-h-screen max-w-5xl overflow-x-clip px-4 pb-28 pt-8 sm:px-6 sm:pb-12 sm:pt-12">
         {/* Back Button */}
         <Link to="/" className="inline-flex items-center text-white/50 hover:text-white transition-colors mb-8">
           <ArrowLeft className="w-5 h-5 mr-2" />
@@ -608,10 +608,10 @@ const SuggestionPage: React.FC = () => {
         {mode === 'questionnaire' && !suggestion && !loading && (
           <motion.div 
             key={`question-${currentQuestion}`}
-            initial={{ x: direction === 'forward' ? 100 : -100, opacity: 0 }}
+            initial={{ x: direction === 'forward' ? 24 : -24, opacity: 0 }}
             animate={{ x: 0, opacity: 1 }}
-            exit={{ x: direction === 'forward' ? -100 : 100, opacity: 0 }}
-            transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+            exit={{ x: direction === 'forward' ? -24 : 24, opacity: 0 }}
+            transition={{ duration: 0.22, ease: 'easeOut' }}
             className="max-w-3xl mx-auto"
           >
             <AnimatedBorderCard

@@ -105,7 +105,7 @@ const EmblaCarouselPlatforms: React.FC<EmblaCarouselPlatformsProps> = ({ title, 
                       {platform.src ? <img src={platform.src} alt={platform.alt} className="w-full h-full object-contain p-8 group-hover:opacity-0 transition-opacity duration-300" draggable="false" loading="lazy" decoding="async" /> : <span className="absolute inset-0 grid place-items-center px-6 text-center text-2xl font-black tracking-tight">{platform.alt}</span>}
                     </div>
                   </a>
-                ) : (
+                ) : platform.route ? (
                 <Link to={platform.route || '/'} className="platform-link block w-[250px] h-[150px] group select-none">
                   <div
                     className={`w-full h-full relative rounded-xl ${platform.brandClass || 'bg-white'}`}
@@ -173,6 +173,13 @@ const EmblaCarouselPlatforms: React.FC<EmblaCarouselPlatformsProps> = ({ title, 
                     )}
                   </div>
                 </Link>
+                ) : (
+                  <button type="button" className="platform-link block w-[250px] h-[150px] group select-none text-left" aria-label={platform.alt}>
+                    <div className={`w-full h-full relative rounded-xl ${platform.brandClass || 'bg-white'}`}>
+                      <span className="absolute inset-0 grid place-items-center px-6 text-center text-2xl font-black tracking-tight">{platform.alt}</span>
+                      {platform.label && <p className="absolute bottom-2 left-0 right-0 text-center text-white text-xs font-bold bg-black/60 py-1 px-2 mx-4 rounded-lg">{platform.label}</p>}
+                    </div>
+                  </button>
                 )}
               </div>
             ))}
@@ -221,5 +228,4 @@ const EmblaCarouselPlatforms: React.FC<EmblaCarouselPlatformsProps> = ({ title, 
 };
 
 export default React.memo(EmblaCarouselPlatforms);
-
 
