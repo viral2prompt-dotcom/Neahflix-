@@ -9,13 +9,15 @@ interface AddToListButtonProps {
   mediaType: 'movie' | 'tv';
   title: string;
   posterPath: string;
+  className?: string;
 }
 
 const AddToListButton: React.FC<AddToListButtonProps> = ({
   mediaId,
   mediaType,
   title,
-  posterPath
+  posterPath,
+  className
 }) => {
   const { t } = useTranslation();
   const [showMenu, setShowMenu] = useState(false);
@@ -26,7 +28,7 @@ const AddToListButton: React.FC<AddToListButtonProps> = ({
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
         onClick={() => setShowMenu(true)}
-        className="flex items-center gap-2 px-4 py-2 rounded-lg bg-gray-800 hover:bg-gray-700"
+        className={className || "flex items-center gap-2 px-4 py-2 rounded-lg bg-gray-800 hover:bg-gray-700"}
       >
         <List className="w-4 h-4" />
         {t('lists.addToList')}
@@ -45,4 +47,4 @@ const AddToListButton: React.FC<AddToListButtonProps> = ({
   );
 };
 
-export default AddToListButton; 
+export default AddToListButton;
