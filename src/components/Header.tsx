@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import Snowfall from 'react-snowfall';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { PrefetchLink as Link } from '@/routing/PrefetchLink';
-import { Film, Search, Menu, X, Star, Tv2, Users, Clapperboard, Bell, Tv, Lightbulb, Network, List, Radio, Unlock, ChevronDown, ExternalLink, LayoutGrid, Settings, Dices, Sparkles, HelpCircle, Github, CalendarDays } from 'lucide-react';
+import { Film, Search, Menu, X, Star, Tv2, Users, Clapperboard, Bell, Tv, Lightbulb, Network, List, Radio, Unlock, ChevronDown, ExternalLink, LayoutGrid, Settings, Dices, Sparkles, HelpCircle, Github, CalendarDays, Home, MoreHorizontal } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import ProfileMenu from './ProfileMenu';
 import NotificationsPopup from './NotificationsPopup';
@@ -40,6 +40,7 @@ interface ExploreItem {
   color: string;
   desc: string;
   external?: boolean;
+  hiddenInNeahflixDrawer?: boolean;
 }
 
 interface ExploreGroup {
@@ -110,7 +111,7 @@ const Header: React.FC = () => {
       items: [
         { name: t('nav.collections'), path: '/collections', icon: <Film size={20} />, color: 'purple', desc: t('nav.collectionsDesc') },
         { name: t('nav.top10'), path: '/top10', icon: <Star size={20} />, color: 'yellow', desc: t('nav.top10Desc') },
-        { name: t('nav.suggestions'), path: '/suggestion', icon: <Sparkles size={20} />, color: 'pink', desc: t('nav.suggestionsDesc') },
+        { name: t('nav.suggestions'), path: '/suggestion', icon: <Sparkles size={20} />, color: 'pink', desc: t('nav.suggestionsDesc'), hiddenInNeahflixDrawer: true },
         { name: t('nav.roulette'), path: '/roulette', icon: <Dices size={20} />, color: 'red', desc: t('roulette.navDesc') },
         { name: t('nav.cinegraph'), path: '/cinegraph', icon: <Network size={20} />, color: 'blue', desc: t('nav.cinegraphDesc') },
       ]
@@ -120,7 +121,7 @@ const Header: React.FC = () => {
       title: t('nav.groupCommunity'),
       items: [
         { name: t('nav.watchParty'), path: '/watchparty/list', icon: <Users size={20} />, color: 'orange', desc: t('nav.watchPartyDesc') },
-        { name: t('nav.sharedLists'), path: '/list-catalog', icon: <List size={20} />, color: 'indigo', desc: t('nav.sharedListsDesc') },
+        { name: t('nav.sharedLists'), path: '/list-catalog', icon: <List size={20} />, color: 'indigo', desc: t('nav.sharedListsDesc'), hiddenInNeahflixDrawer: true },
         { name: t('nav.greenlight'), path: '/wishboard', icon: <Lightbulb size={20} />, color: 'green', desc: t('nav.greenlightDesc') },
       ]
     },
@@ -128,7 +129,7 @@ const Header: React.FC = () => {
       // Ce qui passe en ce moment, puis ce qui arrive bientôt.
       title: t('nav.groupLive'),
       items: [
-        { name: t('nav.liveTV'), path: '/live-tv', icon: <Tv size={20} />, color: 'red', desc: t('nav.liveTVDesc') },
+        { name: t('nav.liveTV'), path: '/live-tv', icon: <Tv size={20} />, color: 'red', desc: t('nav.liveTVDesc'), hiddenInNeahflixDrawer: true },
         ...(isVip ? [{ name: t('nav.francetv'), path: '/ftv', icon: <Radio size={20} />, color: 'sky' as const, desc: t('nav.francetvDesc') }] : []),
         { name: t('nav.calendar'), path: '/calendar', icon: <CalendarDays size={20} />, color: 'green', desc: t('nav.calendarDesc') },
       ]
@@ -140,8 +141,8 @@ const Header: React.FC = () => {
         ...(isVip ? [{ name: t('nav.debrid'), path: '/debrid', icon: <Unlock size={20} />, color: 'yellow' as const, desc: t('nav.debridDesc') }] : []),
         { name: t('nav.settings'), path: '/settings', icon: <Settings size={20} />, color: 'gray', desc: t('nav.settingsDesc') },
         { name: t('nav.helpHub'), path: '/help', icon: <HelpCircle size={20} />, color: 'indigo', desc: t('nav.helpHubDesc') },
-        { name: t('nav.github'), path: 'https://github.com/movixcorp/MovixOpenSource', icon: <Github size={20} />, color: 'gray', desc: t('nav.githubDesc'), external: true },
-        { name: t('footer.ourUrls'), path: 'https://movix.online', icon: <ExternalLink size={20} />, color: 'gray', desc: t('nav.officialLinksDesc'), external: true },
+        { name: t('nav.github'), path: 'https://github.com/movixcorp/MovixOpenSource', icon: <Github size={20} />, color: 'gray', desc: t('nav.githubDesc'), external: true, hiddenInNeahflixDrawer: true },
+        { name: t('footer.ourUrls'), path: 'https://movix.online', icon: <ExternalLink size={20} />, color: 'gray', desc: t('nav.officialLinksDesc'), external: true, hiddenInNeahflixDrawer: true },
       ]
     },
   ].filter(g => g.items.length > 0), [t, isVip]);
@@ -421,7 +422,10 @@ const Header: React.FC = () => {
   };
 
   // Toutes les items pour le fullscreen mobile
-  const allExploreItems = exploreGroups.flatMap(g => g.items);
+  const visibleExploreGroups = exploreGroups
+    .map((group) => ({ ...group, items: group.items.filter((item) => !item.hiddenInNeahflixDrawer) }))
+    .filter((group) => group.items.length > 0);
+  const allExploreItems = visibleExploreGroups.flatMap(g => g.items);
 
   return (
     <>
@@ -439,7 +443,8 @@ const Header: React.FC = () => {
               {/* Logo */}
               <Link
                 to="/"
-                className="text-2xl md:text-3xl font-extrabold flex items-center hover:scale-105 transition-transform duration-300 flex-shrink-0"
+                aria-label="Neahflix — accueil"
+                className="neahflix-logo text-xl sm:text-2xl md:text-3xl font-black flex items-center hover:scale-105 transition-transform duration-300 flex-shrink-0"
                 onClick={(e) => {
                   if (location.pathname === '/') {
                     e.preventDefault();
@@ -452,8 +457,13 @@ const Header: React.FC = () => {
                   }
                 }}
               >
-                <span className="text-red-600 tracking-wider">MOVIX</span>
+                <span className="neahflix-logo__wordmark tracking-[0.12em]">NEAHFLIX</span>
               </Link>
+
+              {/* Le profil reste au premier plan de l'expérience mobile, juste après la marque. */}
+              <div className="flex items-center cursor-pointer relative shrink-0">
+                <ProfileMenu />
+              </div>
 
               {/* Desktop Nav: 3 items principaux + Explorer */}
               <nav className="hidden lg:flex items-center gap-1">
@@ -508,6 +518,29 @@ const Header: React.FC = () => {
 
               {/* Spacer */}
               <div className="flex-1" />
+
+              <Link
+                to="/suggestion"
+                className={`hidden sm:flex items-center gap-2 rounded-xl border px-3 py-2 text-xs font-semibold transition-all duration-300 ${
+                  location.pathname === '/suggestion'
+                    ? 'border-red-400/60 bg-red-500/20 text-white shadow-[0_0_22px_rgba(239,68,68,0.22)]'
+                    : 'border-sky-300/20 bg-slate-950/55 text-slate-100 hover:border-red-400/50 hover:bg-red-500/10'
+                }`}
+              >
+                <Sparkles size={15} className="text-red-300" />
+                <span>{t('nav.suggestions')}</span>
+              </Link>
+              <Link
+                to="/suggestion"
+                aria-label={t('nav.suggestions')}
+                className={`sm:hidden flex size-9 shrink-0 items-center justify-center rounded-xl border transition-all duration-300 ${
+                  location.pathname === '/suggestion'
+                    ? 'border-red-400/60 bg-red-500/20 text-white shadow-[0_0_18px_rgba(239,68,68,0.24)]'
+                    : 'border-sky-300/20 bg-slate-950/55 text-red-200 active:bg-red-500/15'
+                }`}
+              >
+                <Sparkles size={17} />
+              </Link>
 
               {/* Desktop Search */}
               <div className="hidden md:block relative w-[14rem] lg:w-[15rem] xl:w-[20rem] 2xl:w-[22rem]">
@@ -588,11 +621,6 @@ const Header: React.FC = () => {
                   </div>
                 )}
 
-                {/* Profile */}
-                <div className="flex items-center cursor-pointer relative shrink-0">
-                  <ProfileMenu />
-                </div>
-
                 {/* Mobile/Tablet: Burger → ouvre fullscreen explore */}
                 <motion.button
                   className="lg:hidden p-1.5 text-gray-400 hover:text-white transition-colors pointer-events-auto"
@@ -626,7 +654,7 @@ const Header: React.FC = () => {
                 >
                   <div className="p-8">
                     <div className="grid grid-cols-4 gap-10">
-                      {exploreGroups.map((group) => (
+                      {visibleExploreGroups.map((group) => (
                         <div key={group.title}>
                           <h4 className="text-xs font-semibold text-white/30 uppercase tracking-wider mb-4 px-1">{group.title}</h4>
                           <div className="flex flex-col gap-3">
@@ -729,23 +757,14 @@ const Header: React.FC = () => {
                   transition={{ duration: 0.3, ease: [0.32, 0.72, 0, 1] }}
                 >
                   {/* Items principaux en haut */}
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8">
-                    {mainNavItems.map((item) => (
-                      <Link
-                        key={item.path}
-                        to={item.path}
-                        onClick={() => setIsExploreOpen(false)}
-                        className={`flex items-center justify-center gap-2 py-3.5 rounded-xl text-sm font-medium transition-all border whitespace-nowrap ${
-                          item.isActive
-                            ? 'bg-red-600/20 border-red-500/30 text-white'
-                            : 'bg-white/[0.06] border-white/[0.08] text-gray-300 active:bg-white/10'
-                        }`}
-                      >
-                        {item.icon}
-                        <span>{item.name}</span>
-                      </Link>
-                    ))}
-                  </div>
+                  <Link
+                    to="/suggestion"
+                    onClick={() => setIsExploreOpen(false)}
+                    className="mb-6 flex items-center justify-center gap-2 rounded-2xl border border-red-400/30 bg-gradient-to-r from-red-600/20 via-slate-900/80 to-blue-900/30 px-4 py-4 text-sm font-semibold text-white shadow-[0_0_28px_rgba(239,68,68,0.12)]"
+                  >
+                    <Sparkles size={18} className="text-red-300" />
+                    {t('nav.suggestions')}
+                  </Link>
 
                   {/* Grille de cards */}
                   <div className="grid grid-cols-2 gap-4">
@@ -870,6 +889,42 @@ const Header: React.FC = () => {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Navigation primaire mobile : les contenus essentiels restent accessibles sans ouvrir le drawer. */}
+      {!isExploreOpen && (
+        <nav
+          aria-label="Navigation principale"
+          className="lg:hidden fixed inset-x-3 bottom-3 z-[10990] flex items-center justify-around rounded-2xl border border-white/10 bg-slate-950/90 px-1 py-1.5 shadow-[0_12px_45px_rgba(0,0,0,0.55)] backdrop-blur-xl"
+        >
+          {[
+            { name: t('nav.home'), path: '/', icon: <Home size={18} />, active: location.pathname === '/' },
+            { name: t('nav.movies'), path: '/movies', icon: <Clapperboard size={18} />, active: location.pathname === '/movies' },
+            { name: t('nav.tvShows'), path: '/tv-shows', icon: <Tv2 size={18} />, active: location.pathname === '/tv-shows' },
+            { name: t('nav.anime'), path: '/anime', icon: <Sparkles size={18} />, active: location.pathname === '/anime' },
+          ].map((item) => (
+            <Link
+              key={item.path}
+              to={item.path}
+              className={`relative flex min-w-0 flex-1 flex-col items-center gap-1 rounded-xl px-1 py-2 text-[10px] font-semibold transition-all duration-300 ${
+                item.active ? 'bg-red-500/18 text-white shadow-[0_0_18px_rgba(239,68,68,0.28)]' : 'text-slate-400 active:bg-white/10'
+              }`}
+            >
+              {item.active && <span className="absolute inset-x-5 top-0 h-px bg-gradient-to-r from-transparent via-red-300 to-transparent" />}
+              {item.icon}
+              <span className="truncate">{item.name}</span>
+            </Link>
+          ))}
+          <button
+            type="button"
+            onClick={() => setIsExploreOpen(true)}
+            className="flex min-w-0 flex-1 flex-col items-center gap-1 rounded-xl px-1 py-2 text-[10px] font-semibold text-slate-400 transition-colors active:bg-white/10"
+            aria-label={t('nav.explore')}
+          >
+            <MoreHorizontal size={19} />
+            <span className="truncate">{t('nav.explore')}</span>
+          </button>
+        </nav>
+      )}
 
       {/* Spacer */}
       <div className="w-full h-0" aria-hidden="true" />

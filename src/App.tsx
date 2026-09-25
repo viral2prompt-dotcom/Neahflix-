@@ -1862,7 +1862,7 @@ const AppWithIntro: React.FC = () => {
   }, []);
 
   return (
-    <div id={PLAYER_FULLSCREEN_HOST_ID} className="min-h-screen bg-black text-white relative overflow-clip">
+    <div id={PLAYER_FULLSCREEN_HOST_ID} className="neahflix-app-shell min-h-screen bg-black text-white relative overflow-clip">
       {/* Intro overlay — le site charge derrière */}
       {showIntro && (
         <Suspense fallback={null}>
@@ -1891,7 +1891,7 @@ const AppWithIntro: React.FC = () => {
       {/* Ne pas afficher le Header sur les routes lecteur et Wrapped */}
       {shouldShowHeader && <Header />}
       <PersistenceManager />
-      <div className={shouldShowHeader && !isHeroHeaderPage ? 'pt-20' : ''}>
+      <div className={shouldShowHeader && !isHeroHeaderPage ? 'pt-20 pb-20 lg:pb-0' : 'pb-20 lg:pb-0'}>
         <AlertNotificationManager />
         <DefaultProfileNudge />
         <ProfileGate>

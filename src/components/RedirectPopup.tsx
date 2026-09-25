@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, MessageCircle } from 'lucide-react';
+import { X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { DEFAULT_PUBLIC_DOMAIN } from '../i18n/currentDomain';
 import { getOverlayPortalRoot } from '../utils/overlayPortal';
@@ -37,11 +37,6 @@ const RedirectPopup: React.FC<RedirectPopupProps> = ({
       setIsClosing(false);
     }, 300); // Durée de l'animation de fermeture
   };
-
-  const handleTelegram = () => {
-    window.open('https://t.me/movix_site', '_blank');
-  };
-
 
   if (!isOpen) return null;
 
@@ -87,22 +82,10 @@ const RedirectPopup: React.FC<RedirectPopupProps> = ({
                 <div className="bg-red-600/20 border-2 border-red-500 rounded-lg p-4 mb-4">
                   <p className="text-3xl font-bold text-white">{DEFAULT_PUBLIC_DOMAIN}</p>
                 </div>
-                <p className="text-gray-300 text-sm">
-                  {t('redirect.joinTelegramNews')}
-                </p>
               </div>
 
               {/* Buttons */}
-              <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={handleTelegram}
-                  className="bg-[#229ED9] hover:bg-[#1a8abf] text-white font-bold py-3 px-5 rounded-lg transition-colors flex items-center justify-center gap-2"
-                >
-                  <MessageCircle className="w-4 h-4" />
-                  Telegram
-                </motion.button>
+              <div className="flex justify-center">
                 <motion.button
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
