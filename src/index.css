@@ -414,6 +414,102 @@ body {
   animation: fadeIn 0.5s ease-out;
 }
 
+/* Identité Neahflix : trois sources lumineuses très lentes, rendues en pur
+   gradient afin de ne pas ajouter de filtre coûteux au-dessus des contenus. */
+.neahflix-app-shell {
+  isolation: isolate;
+  background:
+    radial-gradient(ellipse 70% 45% at 8% -4%, rgba(190, 22, 43, 0.18), transparent 68%),
+    radial-gradient(ellipse 58% 42% at 98% 18%, rgba(30, 75, 132, 0.18), transparent 70%),
+    radial-gradient(ellipse 48% 30% at 52% 72%, rgba(255, 255, 255, 0.035), transparent 75%),
+    #02040a;
+}
+
+.neahflix-app-shell::before,
+.neahflix-app-shell::after {
+  content: '';
+  position: fixed;
+  z-index: -1;
+  width: 56vw;
+  height: 56vw;
+  min-width: 420px;
+  min-height: 420px;
+  border-radius: 999px;
+  pointer-events: none;
+  opacity: 0.32;
+  will-change: transform;
+  animation: neahflix-ambient-drift 26s ease-in-out infinite alternate;
+}
+
+.neahflix-app-shell::before {
+  top: 14vh;
+  left: -30vw;
+  background: radial-gradient(circle, rgba(228, 40, 57, 0.18), transparent 66%);
+}
+
+.neahflix-app-shell::after {
+  right: -28vw;
+  bottom: 8vh;
+  background: radial-gradient(circle, rgba(48, 105, 176, 0.2), transparent 68%);
+  animation-delay: -13s;
+}
+
+@keyframes neahflix-ambient-drift {
+  from { transform: translate3d(0, 0, 0) scale(0.96); }
+  to { transform: translate3d(4vw, -3vh, 0) scale(1.06); }
+}
+
+.neahflix-logo {
+  position: relative;
+  overflow: hidden;
+  text-shadow: 0 0 20px rgba(234, 58, 72, 0.24);
+}
+
+.neahflix-logo__wordmark {
+  background: linear-gradient(105deg, #f7f7f8 0%, #f7f7f8 34%, #ee4a59 46%, #fff 53%, #c72035 62%, #e34252 100%);
+  background-size: 240% 100%;
+  background-position: 100% 50%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: neahflix-logo-sheen 7s ease-in-out infinite;
+}
+
+@keyframes neahflix-logo-sheen {
+  0%, 72%, 100% { background-position: 100% 50%; }
+  86% { background-position: 0% 50%; }
+}
+
+.neahflix-footer-mark {
+  color: #f4f6fb;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.24em;
+}
+
+/* Les anciens points d'entrée vers le canal Movix restent dans le code pour
+   éviter de casser les parcours historiques, mais ne font plus partie de
+   l'interface Neahflix. */
+a[href="https://t.me/movix_site"] {
+  display: none !important;
+}
+
+.embla-slide > a > .group {
+  box-shadow: 0 12px 34px rgba(0, 0, 0, 0.2);
+}
+
+@media (hover: hover) {
+  .embla-slide > a > .group:hover {
+    box-shadow: 0 18px 42px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(239, 68, 68, 0.18);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .neahflix-app-shell::before,
+  .neahflix-app-shell::after,
+  .neahflix-logo__wordmark { animation: none; }
+}
+
 #root {
   overflow-x: clip;
   width: 100%;

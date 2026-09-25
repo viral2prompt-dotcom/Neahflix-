@@ -706,7 +706,7 @@ const TVShows: React.FC = () => {
 
   useEffect(() => {
     // Simple title for TV Shows page
-    document.title = `${t('tvShows.title')} - Movix`;
+    document.title = `${t('tvShows.title')} - Neahflix`;
   }, []);
 
   // Auto-rotate featured shows

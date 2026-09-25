@@ -7,7 +7,6 @@ import { useTranslation } from 'react-i18next';
 import HeroSkeleton from '../components/skeletons/HeroSkeleton';
 import ContentRowSkeleton from '../components/skeletons/ContentRowSkeleton';
 
-import TelegramPromotion from '../components/TelegramPromotion';
 import HeroSlider from '../components/HeroSlider';
 import EmblaCarousel from '../components/EmblaCarousel';
 import EmblaCarouselPlatforms from '../components/EmblaCarouselPlatforms';
@@ -1045,20 +1044,20 @@ const Home: React.FC = () => {
 
   useEffect(() => {
     // Simple title for homepage
-    document.title = `${t('nav.home')} - Movix`;
+    document.title = `${t('nav.home')} - Neahflix`;
 
     // Add or update structured data for a WebSite
     const structuredData = {
       "@context": "https://schema.org",
       "@type": "WebSite",
-      "name": "Movix",
+      "name": "Neahflix",
       "url": SITE_URL,
       "potentialAction": {
         "@type": "SearchAction",
         "target": `${SITE_URL}/search?q={search_term_string}`,
         "query-input": "required name=search_term_string"
       },
-      "description": "Movix - Plateforme de streaming gratuite proposant des films et séries en français. Regardez en ligne sans inscription."
+      "description": "Neahflix - Plateforme de streaming gratuite proposant des films et séries en français. Regardez en ligne sans inscription."
     };
 
     // Add structured data to head
@@ -1281,10 +1280,6 @@ const Home: React.FC = () => {
             >
               {!loading && (
                 <div>
-                  <div className="home-section">
-                    <TelegramPromotion />
-                  </div>
-
                   {/* Tendances - Lazy loaded (index 3) */}
                   <div className="home-section px-4 md:px-8">
                     <LazySection index={3} immediateLoadCount={IMMEDIATE_LOAD_COUNT}>
