@@ -175,7 +175,8 @@ const homeStyles = `
   padding-bottom: 0.5rem;
   text-transform: uppercase;
   display: inline-block;
-  animation: homeFadeInTitle 0.8s ease-out forwards;
+  animation: homeTitleArrive 0.72s cubic-bezier(0.16, 1, 0.3, 1) both,
+    homeTitleFloat 5.2s ease-in-out 0.8s infinite;
   /* Ciblé plutôt que \`all\` : le dégradé de fond n'a rien à faire dans une
      transition — il est découpé sur le texte et son interpolation coûte un
      repaint à chaque frame. */
@@ -218,9 +219,15 @@ const homeStyles = `
   background: linear-gradient(90deg, #ff3333, #ff9999);
 }
 
-@keyframes homeFadeInTitle {
-  0% { opacity: 0; transform: translateY(10px); }
-  100% { opacity: 1; transform: translateY(0); }
+@keyframes homeTitleArrive {
+  0% { opacity: 0; transform: translate3d(34px, 3px, 0); }
+  72% { opacity: 1; transform: translate3d(-2px, -1px, 0); }
+  100% { opacity: 1; transform: translate3d(0, 0, 0); }
+}
+
+@keyframes homeTitleFloat {
+  0%, 100% { transform: translate3d(0, 0, 0); }
+  50% { transform: translate3d(0, -3px, 0); }
 }
 
 @keyframes homeExpandWidth {
@@ -1130,11 +1137,11 @@ const Home: React.FC = () => {
     { id: 350, src: "https://u.cubeupload.com/mystic/b2fb6956993e2ee5b4e3.png", video: "https://media.tenor.com/Oxl9xEn7kTEAAAPo/applo-tv.mp4", alt: "Apple TV+", route: "/provider/350", label: t('home.filmsAndSeries', { count: 138 }) },
     { id: 355, src: "https://u.cubeupload.com/mystic/ky0xOc5OrhzkZ1N6KyUx.png", video: "https://i.giphy.com/media/3o7TKt3pMpzozdUsus/giphy.mp4", alt: "Warner Bros", route: "/provider/355", label: t('home.filmsAndSeries', { count: 645 }) },
     { id: 356, src: "https://u.cubeupload.com/mystic/2Tc1P3Ac8M479naPp1kY.png", video: "https://media.tenor.com/ag74wyAzYkMAAAPo/dc-comics-dceu.mp4", alt: "DC Comics", route: "/provider/356", label: t('home.filmsAndSeries', { count: 98 }) },
-    { id: 9001, alt: 'YouTube', href: 'https://www.youtube.com/', brandClass: 'bg-[#ff0000] text-white', label: 'Site officiel' },
-    { id: 9002, alt: 'TikTok', href: 'https://www.tiktok.com/', brandClass: 'bg-[#010101] text-white ring-1 ring-cyan-300/40', label: 'Site officiel' },
+    { id: 9001, alt: 'YouTube', brandClass: 'bg-[#ff0000] text-white', label: 'Disponible bientôt dans Neahflix' },
+    { id: 9002, alt: 'TikTok', brandClass: 'bg-[#010101] text-white ring-1 ring-cyan-300/40', label: 'Disponible bientôt dans Neahflix' },
     { id: 9003, alt: 'Neahflix Lite', brandClass: 'bg-gradient-to-br from-amber-400 to-yellow-600 text-white', label: 'Bientôt disponible' },
     { id: 9004, alt: 'Neahplus', brandClass: 'bg-gradient-to-br from-white to-blue-500 text-blue-950', label: 'Bientôt disponible' },
-    { id: 9005, alt: 'CANAL+', href: 'https://www.canalplus.com/', brandClass: 'bg-black text-white ring-1 ring-white/60', label: 'Site officiel' },
+    { id: 9005, alt: 'CANAL+', brandClass: 'bg-black text-white ring-1 ring-white/60', label: 'Disponible bientôt dans Neahflix' },
     { id: 9006, alt: 'Anime Zora', brandClass: 'bg-black text-white ring-1 ring-white/50', label: 'Bientôt disponible' },
     { id: 9007, alt: 'Drama Aurévia', brandClass: 'bg-gradient-to-br from-pink-500 to-rose-700 text-white', label: 'Bientôt disponible' },
   ], [t]);

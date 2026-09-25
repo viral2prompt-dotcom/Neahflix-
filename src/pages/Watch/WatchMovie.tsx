@@ -4,6 +4,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import axios from 'axios';
 import HLSPlayer from '../../components/HLSPlayer';
+import NeahflixPlaybackLoader from '../../components/NeahflixPlaybackLoader';
 import PlayerOverlayPortal from '../../components/PlayerOverlayPortal';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAdFreePopup } from '../../context/AdFreePopupContext';
@@ -2818,15 +2819,7 @@ const WatchMovie: React.FC = () => {
         data-premid-source-detail={preMidSourceDetail}
       />
       {isLoading ? (
-        <div className="flex flex-col items-center justify-center h-full bg-black">
-          <div className="loading-container">
-            <div className="loading-bar"></div>
-            <div className="loading-bar"></div>
-            <div className="loading-bar"></div>
-            <div className="loading-bar"></div>
-          </div>
-          <div className="text-white text-xl font-medium mt-6">{loadingText}</div>
-        </div>
+        <NeahflixPlaybackLoader message={loadingText} />
       ) : adPopupBypass ? (
         <div className="flex flex-col items-center justify-center h-full bg-black">
           <div className="text-white text-2xl font-bold mb-4">{t('watch.mustWatchAd')}</div>

@@ -397,8 +397,8 @@ const Header: React.FC = () => {
   const renderExploreCard = (item: ExploreItem) => {
     const colors = cardColors[item.color] || cardColors.gray;
     const content = (
-      <div className={`flex flex-col items-center text-center p-5 rounded-2xl border ${colors.border} bg-white/[0.04] active:bg-white/[0.08] transition-all duration-200 cursor-pointer h-full`}>
-        <div className={`w-14 h-14 rounded-2xl ${colors.bg} ${colors.text} flex items-center justify-center mb-3 border ${colors.border}`}>
+      <div className={`flex h-full flex-col items-center rounded-2xl border ${colors.border} bg-slate-950/65 p-5 text-center shadow-[0_12px_32px_rgba(2,6,23,0.42)] backdrop-blur-xl transition duration-300 hover:-translate-y-1 hover:bg-slate-900/85 hover:shadow-[0_16px_40px_rgba(59,130,246,0.16)] active:bg-white/[0.08]`}>
+        <div className={`mb-3 flex h-14 w-14 items-center justify-center rounded-2xl border ${colors.border} ${colors.bg} ${colors.text} shadow-[0_0_22px_rgba(34,197,94,0.12)]`}>
           {item.icon}
         </div>
         <span className="text-white text-sm font-semibold mb-1">{item.name}</span>
@@ -639,8 +639,8 @@ const Header: React.FC = () => {
                             {group.items.map((item) => {
                               const colors = cardColors[item.color] || cardColors.gray;
                               const inner = (
-                                <div className={`flex items-center gap-4 px-5 py-5 rounded-xl border ${colors.border} bg-white/[0.03] hover:${colors.bg} hover:scale-[1.02] transition-all duration-200 cursor-pointer`}>
-                                  <div className={`w-12 h-12 rounded-xl ${colors.bg} ${colors.text} flex items-center justify-center flex-shrink-0 border ${colors.border}`}>
+                                <div className={`flex cursor-pointer items-center gap-4 rounded-2xl border ${colors.border} bg-slate-950/65 px-5 py-5 shadow-[0_10px_30px_rgba(2,6,23,0.38)] backdrop-blur-xl transition duration-300 hover:-translate-y-1 hover:bg-slate-900/85 hover:shadow-[0_16px_38px_rgba(59,130,246,0.14)]`}>
+                                  <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border ${colors.border} ${colors.bg} ${colors.text} shadow-[0_0_20px_rgba(34,197,94,0.12)]`}>
                                     {item.icon}
                                   </div>
                                   <div className="min-w-0">

@@ -900,7 +900,6 @@ const TVDetails: React.FC = () => {
   const [availableEpisodes, setAvailableEpisodes] = useState<Episode[]>([]);
   const [selectedSeason, setSelectedSeason] = useState<number | null>(null);
   const [selectedEpisode, setSelectedEpisode] = useState<number | null>(null);
-  // const [_trailerVideoId, _setTrailerVideoId] = useState<string | null>(null);
 
   // Refs replacing document.getElementById/querySelector lookups for season/episode UI
   const seasonsSectionRef = useRef<HTMLDivElement | null>(null);
@@ -1830,7 +1829,7 @@ const TVDetails: React.FC = () => {
   const WatchButtons = () => (
     <div className="mt-5 grid grid-cols-2 gap-3 md:grid-cols-[minmax(0,1fr)_minmax(15rem,1fr)] md:gap-5">
       <div className="space-y-2.5 md:max-w-xl">
-        <motion.button whileHover={{ y: -2 }} whileTap={{ scale: 0.98 }} onClick={() => setShowTrailerPopup(true)} disabled={!trailerVideoId}
+        <motion.button whileHover={{ y: -2 }} whileTap={{ scale: 0.98 }} onClick={() => setShowTrailerPopup(true)} disabled={!trailerVideo}
           className="flex w-full items-center gap-3 rounded-2xl border border-white/20 bg-slate-950/55 px-4 py-3 text-left text-sm font-semibold text-white shadow-[0_0_20px_rgba(148,163,184,.12)] backdrop-blur-xl transition hover:border-red-300/60 disabled:opacity-40"><Video className="h-4 w-4 text-red-300" /> {t('details.bandeAnnonce')}</motion.button>
         <AddToListMenu mediaId={Number(id)} mediaType="tv" title={tvShow?.name || ''} posterPath={tvShow?.poster_path || ''} />
         <motion.button whileHover={{ y: -2 }} whileTap={{ scale: 0.98 }} onClick={() => updateWatchStatus('watchlist', !watchStatus.watchlist)} className={`flex w-full items-center gap-3 rounded-2xl border px-4 py-3 text-left text-sm font-semibold shadow-[0_0_20px_rgba(148,163,184,.12)] backdrop-blur-xl transition ${watchStatus.watchlist ? 'border-red-300/70 bg-red-600/35 text-white' : 'border-white/20 bg-slate-950/55 text-white hover:border-red-300/60'}`}><List className="h-4 w-4 text-red-200" /> Regarder plus tard</motion.button>
