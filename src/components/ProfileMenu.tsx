@@ -215,7 +215,7 @@ const ProfileMenu: React.FC = () => {
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 10, scale: 0.95 }}
               transition={{ duration: 0.2 }}
-              className="absolute right-0 md:right-0 top-full mt-2 w-64 max-sm:w-64 sm:w-64 rounded-xl bg-gradient-to-b from-gray-900 to-gray-800 shadow-2xl border border-gray-700 overflow-hidden z-[100]"
+              className="absolute right-0 md:right-0 top-full mt-2 w-64 max-sm:w-64 sm:w-64 rounded-xl bg-gradient-to-b from-gray-900 to-gray-800 shadow-2xl border border-gray-700 z-[100]"
             >
               {/* Small triangle at the top of the menu - visible only on desktop */}
               <div className="absolute right-3 -top-2 w-4 h-4 bg-gray-900 transform rotate-45 border-t border-l border-gray-700 md:block"></div>
@@ -336,86 +336,15 @@ const ProfileMenu: React.FC = () => {
                   </div>
                 </>
               ) : (
-                <div className="p-4 max-md:p-5">
-                  <div className="text-sm max-md:text-base text-gray-400 px-2 pb-3 border-b border-gray-700/50 mb-3">
-                    {t('auth.loginPrompt')}
-                  </div>
-                  
-                  <div className="space-y-3 max-md:space-y-4">
-                    <motion.button
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                      onClick={handleLogin}
-                      className="flex items-center justify-center gap-3 w-full px-4 py-3 max-md:py-4 bg-[#5865F2] hover:bg-[#4752C4] text-white rounded-lg transition-colors shadow-md"
-                    >
-                      <div className="flex items-center justify-center w-7 h-7 max-md:w-8 max-md:h-8 bg-white rounded-full p-0.5">
-                        <img 
-                          src="https://assets-global.website-files.com/6257adef93867e50d84d30e2/636e0a6a49cf127bf92de1e2_icon_clyde_blurple_RGB.png"
-                          alt="Discord"
-                          className="w-5 h-5 max-md:w-6 max-md:h-6 object-contain"
-                        />
-                      </div>
-                      <span className="font-medium max-md:text-base">{t('auth.loginWithDiscord')}</span>
+                <div className="fixed inset-0 z-[101] flex items-center justify-center bg-black/70 p-6 backdrop-blur-md" onClick={() => setIsOpen(false)}>
+                  <motion.div initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} onClick={(event) => event.stopPropagation()} className="w-full max-w-sm rounded-3xl border border-white/15 bg-gradient-to-b from-slate-900/95 to-black p-7 text-center shadow-[0_0_60px_rgba(239,68,68,.22)]">
+                    <p className="text-xs font-bold tracking-[0.28em] text-red-300">NEAHFLIX</p>
+                    <h2 className="mt-3 text-2xl font-bold text-white">Votre espace commence ici</h2>
+                    <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={handleGoogleLogin} className="mt-7 flex w-full items-center justify-center gap-3 rounded-2xl bg-white px-5 py-4 font-semibold text-slate-900 shadow-lg transition hover:bg-slate-100">
+                      <img src="https://www.google.com/images/branding/googleg/1x/googleg_standard_color_128dp.png" alt="Google" className="h-6 w-6" />
+                      <span>{t('auth.loginWithGoogle')}</span>
                     </motion.button>
-                    
-                    <motion.button
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                      onClick={handleGoogleLogin}
-                      className="flex items-center justify-center gap-3 w-full px-4 py-3 max-md:py-4 bg-white hover:bg-gray-100 text-gray-800 rounded-lg transition-colors shadow-md"
-                    >
-                      <div className="flex items-center justify-center w-7 h-7 max-md:w-8 max-md:h-8 bg-white rounded-full shadow-sm border border-gray-200 p-0.5">
-                        <img
-                          src="https://www.google.com/images/branding/googleg/1x/googleg_standard_color_128dp.png"
-                          alt="Google"
-                          className="w-5 h-5 max-md:w-6 max-md:h-6 object-contain"
-                        />
-                      </div>
-                      <span className="font-medium max-md:text-base">{t('auth.loginWithGoogle')}</span>
-                    </motion.button>
-
-                    <motion.button
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                      onClick={() => window.location.href = '/login-bip39'}
-                      className="flex items-center justify-center gap-3 w-full px-4 py-3 max-md:py-4 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white rounded-lg transition-colors shadow-md"
-                    >
-                      <div className="flex items-center justify-center w-7 h-7 max-md:w-8 max-md:h-8 bg-white/20 rounded-full p-0.5">
-                        <svg className="w-5 h-5 max-md:w-6 max-md:h-6" fill="currentColor" viewBox="0 0 24 24">
-                          <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/>
-                        </svg>
-                      </div>
-                      <span className="font-medium max-md:text-base">{t('auth.secretPhrase')}</span>
-                    </motion.button>
-
-                    <Link
-                      to="/settings"
-                      className="flex items-center justify-center gap-3 w-full px-4 py-3 max-md:py-4 bg-gray-700/50 hover:bg-gray-700/80 text-white rounded-lg transition-colors shadow-md border border-gray-600/30"
-                      onClick={() => setIsOpen(false)}
-                    >
-                      <div className="flex items-center justify-center w-7 h-7 max-md:w-8 max-md:h-8 bg-white/10 rounded-full p-0.5">
-                        <Settings className="w-5 h-5 max-md:w-6 max-md:h-6" />
-                      </div>
-                      <span className="font-medium max-md:text-base">{t('settings.title')}</span>
-                    </Link>
-
-                    {/* Bouton VIP pour les non-connectés */}
-                    <motion.button
-                      whileHover={isVip ? undefined : { scale: 1.02 }}
-                      whileTap={isVip ? undefined : { scale: 0.98 }}
-                      onClick={isVip ? undefined : handleOpenVipModal}
-                      className={`flex items-center justify-center gap-3 w-full px-4 py-3 max-md:py-4
-                        ${isVip
-                          ? 'bg-gradient-to-r from-yellow-500 to-amber-600 text-black cursor-default opacity-80'
-                          : 'bg-gradient-to-r from-purple-600 to-blue-600 text-white cursor-pointer hover:shadow-md'
-                        } rounded-lg transition-colors`}
-                    >
-                      <Crown className="w-5 h-5 max-md:w-6 max-md:h-6" />
-                      <span className="font-medium max-md:text-base">
-                        {isVip ? t('vip.youAreVip') : t('vip.becomeVip')}
-                      </span>
-                    </motion.button>
-                  </div>
+                  </motion.div>
                 </div>
               )}
             </motion.div>

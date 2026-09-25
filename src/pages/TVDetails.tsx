@@ -474,21 +474,7 @@ const TVImagesSection = ({ tvId }: { tvId: string }) => {
 
   return (
     <div className="mb-7 rounded-3xl border border-white/10 bg-slate-950/70 px-5 py-5 shadow-[0_20px_60px_rgba(0,0,0,0.35)] backdrop-blur-md">
-      <motion.button
-        onClick={handleToggleImages}
-        className="flex items-center gap-3 text-xl font-bold text-white hover:text-blue-400 transition-colors"
-        whileHover={{ scale: 1.02 }}
-        whileTap={{ scale: 0.98 }}
-      >
-        <Image className="w-6 h-6" />
-        {t('details.imagesTab')}
-        <motion.div
-          animate={{ rotate: showImages ? 180 : 0 }}
-          transition={{ duration: 0.3 }}
-        >
-          <ChevronRight className="w-5 h-5" />
-        </motion.div>
-      </motion.button>
+
 
       <AnimatePresence>
         {showImages && (
@@ -1841,153 +1827,17 @@ const TVDetails: React.FC = () => {
     }
 
   };
-  const WatchButtons = () => {
-    return (
-      <div className="flex flex-col gap-4 mt-4">
-        {/* Première ligne avec Regarder et Bande-annonce */}
-        <div className="flex flex-wrap gap-3 w-full min-w-0">
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            transition={{ type: "spring", stiffness: 400, damping: 17 }}
-            onClick={handleContinueWatching}
-            className="flex flex-col items-center gap-2 px-4 sm:px-6 py-4 sm:py-5 bg-red-600 hover:bg-red-700 rounded-lg flex-1 min-w-0 justify-center text-xs sm:text-sm"
-          >
-            <Play className="w-5 h-5 sm:w-6 sm:h-6 flex-shrink-0" />
-            <div className="text-center">
-              {continueWatchingData.hasProgress ? (
-                <div className="flex flex-col items-center text-center w-full">
-                      <span>{t('details.resumeEpisode', { episode: continueWatchingData.episodeNumber, season: getSeasonDisplayName(continueWatchingData.seasonNumber, id, t) })}</span>
-                  <span className="text-xs bg-red-800/80 text-white px-1.5 py-0.5 rounded font-medium mt-1">
-                    {formatTime(continueWatchingData.position)}/{formatTime(continueWatchingData.duration)}
-                  </span>
-                </div>
-              ) : (availableSeasons.length > 0 && continueWatchingData.seasonNumber !== defaultStartSeason) || continueWatchingData.episodeNumber !== 1 ? (
-                      <span>{t('details.continueEpisode', { episode: continueWatchingData.episodeNumber, season: getSeasonDisplayName(continueWatchingData.seasonNumber, id, t) })}</span>
-              ) : (
-                <>
-                    {t('details.startEpisode', { season: getSeasonDisplayName(defaultStartSeason, id, t) })}
-                </>
-              )}
-            </div>
-          </motion.button>
-
-          {(!ENABLE_VIP_DOWNLOAD_CHECK || localStorage.getItem('is_vip') === 'true') && (
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              transition={{ type: "spring", stiffness: 400, damping: 17 }}
-              onClick={() => navigate(`/download/tv/${tvShow?.id}`)}
-              className="flex flex-col items-center gap-2 px-4 sm:px-6 py-4 sm:py-5 bg-green-600 hover:bg-green-700 rounded-lg flex-1 min-w-0 justify-center text-xs sm:text-sm"
-            >
-              <Download className="w-5 h-5 sm:w-6 sm:h-6 flex-shrink-0" />
-              <span className="text-center">{t('details.downloadBtn')}</span>
-            </motion.button>
-          )}
-        </div>
-
-        {/* Deuxième ligne avec les autres boutons */}
-        <div className="flex flex-wrap gap-3">
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            transition={{ type: "spring", stiffness: 400, damping: 17 }}
-            onClick={() => setShowTrailerPopup(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg"
-            disabled={!trailerVideo}
-          >
-            <Video className="w-4 h-4" />
-            {t('details.bandeAnnonce')}
-          </motion.button>
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={() => updateWatchStatus('watchlist', !watchStatus.watchlist)}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg ${watchStatus.watchlist
-              ? 'bg-red-600 text-white'
-              : 'bg-gray-800 hover:bg-gray-700'
-              }`}
-          >
-            <List className="w-4 h-4" />
-            {t('details.watchlistBtn')}
-          </motion.button>
-
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={() => updateWatchStatus('favorite', !watchStatus.favorite)}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg ${watchStatus.favorite
-              ? 'bg-red-600 text-white'
-              : 'bg-gray-800 hover:bg-gray-700'
-              }`}
-          >
-            <Star className="w-4 h-4" />
-            {t('details.favoritesBtn')}
-          </motion.button>
-
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={() => updateWatchStatus('watched', !watchStatus.watched)}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg ${watchStatus.watched
-              ? 'bg-red-600 text-white'
-              : 'bg-gray-800 hover:bg-gray-700'
-              }`}
-          >
-            <Check className="w-4 h-4" />
-            {t('details.watchedBtn')}
-          </motion.button>
-
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={() => setShowAddToList(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-gray-800 hover:bg-gray-700 rounded-lg"
-          >
-            <FolderPlus className="w-4 h-4" />
-            {t('details.addToAList')}
-          </motion.button>
-
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={() => setShowAntiSpoilerModal(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-purple-800 hover:bg-purple-700 rounded-lg"
-            title={t('details.antiSpoilConfig')}
-          >
-            <Shield className="w-4 h-4" />
-            {t('details.antiSpoil')}
-          </motion.button>
-
-          {showAddToList && (
-            <AddToListMenu
-              mediaId={Number(id)}
-              mediaType="tv"
-              title={tvShow?.name || ''}
-              posterPath={tvShow?.poster_path || ''}
-              onClose={() => setShowAddToList(false)}
-            />
-          )}
-
-          {showAntiSpoilerModal && (
-            <AntiSpoilerSettingsModal
-              isOpen={showAntiSpoilerModal}
-              onClose={() => setShowAntiSpoilerModal(false)}
-              onSettingsChange={updateAntiSpoilerSettings}
-              currentSettings={antiSpoilerSettings}
-            />
-          )}
-
-          <ShareButtons
-            title={tvShow?.name || ''}
-            description={tvShow?.overview || ''}
-            imageUrl={tvShow?.poster_path ? `https://image.tmdb.org/t/p/original${tvShow.poster_path}` : undefined}
-            url={buildSiteUrl(`/tv/${encodedId || id}`)}
-          />
-        </div>
+  const WatchButtons = () => (
+    <div className="mt-5 grid grid-cols-2 gap-3 md:grid-cols-[minmax(0,1fr)_minmax(15rem,1fr)] md:gap-5">
+      <div className="space-y-2.5 md:max-w-xl">
+        <motion.button whileHover={{ y: -2 }} whileTap={{ scale: 0.98 }} onClick={() => setShowTrailerPopup(true)} disabled={!trailerVideoId}
+          className="flex w-full items-center gap-3 rounded-2xl border border-white/20 bg-slate-950/55 px-4 py-3 text-left text-sm font-semibold text-white shadow-[0_0_20px_rgba(148,163,184,.12)] backdrop-blur-xl transition hover:border-red-300/60 disabled:opacity-40"><Video className="h-4 w-4 text-red-300" /> {t('details.bandeAnnonce')}</motion.button>
+        <AddToListMenu mediaId={Number(id)} mediaType="tv" title={tvShow?.name || ''} posterPath={tvShow?.poster_path || ''} />
+        <motion.button whileHover={{ y: -2 }} whileTap={{ scale: 0.98 }} onClick={() => updateWatchStatus('watchlist', !watchStatus.watchlist)} className={`flex w-full items-center gap-3 rounded-2xl border px-4 py-3 text-left text-sm font-semibold shadow-[0_0_20px_rgba(148,163,184,.12)] backdrop-blur-xl transition ${watchStatus.watchlist ? 'border-red-300/70 bg-red-600/35 text-white' : 'border-white/20 bg-slate-950/55 text-white hover:border-red-300/60'}`}><List className="h-4 w-4 text-red-200" /> Regarder plus tard</motion.button>
       </div>
-    );
-  };
+      <motion.button whileHover={{ scale: 1.015 }} whileTap={{ scale: 0.985 }} onClick={handleContinueWatching} className="min-h-36 rounded-2xl border border-white/35 bg-gradient-to-br from-slate-900/90 via-blue-950/85 to-red-950/75 px-5 py-6 text-lg font-black tracking-[0.18em] text-white shadow-[0_0_34px_rgba(239,68,68,.36)] backdrop-blur-xl transition animate-pulse"><span className="inline-flex items-center justify-center gap-3"><Play className="h-6 w-6 fill-current" /> REGARDER</span></motion.button>
+    </div>
+  );
 
   useEffect(() => {
     const fetchShow = async () => {
@@ -2541,8 +2391,8 @@ const TVDetails: React.FC = () => {
       } else {
         return {
           value: ep.episode_number.toString(),
-          label: shouldHide('episodeNames') 
-            ? getMaskedContent(ep.name, 'episodeNames', undefined, ep.episode_number) 
+          label: shouldHide('episodeNames')
+            ? getMaskedContent(ep.name, 'episodeNames', undefined, ep.episode_number)
             : `${ep.episode_number}. ${ep.name}`,
         };
       }
@@ -3104,7 +2954,7 @@ const TVDetails: React.FC = () => {
           0% { width: 0; }
           100% { width: 40px; }
         }
-        
+
         /* Styles pour no-scroll (copié de MovieDetails) */
         .no-scroll {
           overflow: hidden !important; /* Cache TOUT overflow, pas seulement horizontal */
@@ -3117,7 +2967,7 @@ const TVDetails: React.FC = () => {
         .no-scroll > * {
           pointer-events: auto !important;
         }
-        
+
       `}</style>
 
       <motion.div
@@ -3134,18 +2984,9 @@ const TVDetails: React.FC = () => {
           className="mb-8"
         >
           <h1 className="section-title text-4xl md:text-5xl font-bold">
-            {tvShow.name} {tvShow.first_air_date && !isNaN(new Date(tvShow.first_air_date).getTime()) ? (
-              <>({new Date(tvShow.first_air_date).getFullYear()}){' '}
-                {new Date(tvShow.first_air_date) > new Date() ? (
-                  <span className="ml-2 text-sm font-medium bg-yellow-600 text-white px-2 py-1 rounded-md">{t('details.upcomingBadge')}</span>
-                ) : (
-                  <span className="ml-2 text-sm font-medium bg-green-600 text-white px-2 py-1 rounded-md">{t('details.releasedBadge')}</span>
-                )}
-              </>
-            ) : (
-              <span className="ml-2 text-sm font-medium bg-yellow-600 text-white px-2 py-1 rounded-md">{t('details.notReleasedBadge')}</span>
-            )}
+            {tvShow.name}
           </h1>
+          {tvShow.first_air_date && <p className="mt-2 text-sm font-semibold tracking-[0.18em] text-red-200/80">{new Date(tvShow.first_air_date).getFullYear()}</p>}
         </motion.div>
         {/* Contenu principal - poster à gauche, infos à droite */}
         <div className="grid grid-cols-1 gap-5 md:grid-cols-[minmax(13rem,0.7fr)_minmax(0,2fr)] md:gap-7">
@@ -3162,6 +3003,7 @@ const TVDetails: React.FC = () => {
               alt={tvShow.name}
               className="w-full rounded-2xl border border-white/10 shadow-[0_18px_55px_rgba(0,0,0,0.55),0_0_30px_rgba(255,0,0,0.10)]"
             />
+            <motion.button whileTap={{ scale: 0.94 }} onClick={() => updateWatchStatus('favorite', !watchStatus.favorite)} aria-pressed={watchStatus.favorite} className={`-mt-14 mr-3 relative float-right z-10 inline-flex items-center gap-2 rounded-full border px-3 py-2 text-xs font-bold backdrop-blur-xl transition ${watchStatus.favorite ? 'border-yellow-200 bg-yellow-400 text-slate-950 shadow-[0_0_24px_rgba(250,204,21,.65)]' : 'border-white/35 bg-slate-950/65 text-white'}`}><Star className={`h-4 w-4 ${watchStatus.favorite ? 'fill-current' : ''}`} /> Ajouter aux favoris</motion.button>
             {/* Boutons d'action en-dessous du poster */}
             <div className="mt-6">
               <WatchButtons />
@@ -3224,7 +3066,7 @@ const TVDetails: React.FC = () => {
                   whileHover={{ backgroundColor: "rgba(255,255,255,0.05)" }}
                   whileTap={{ backgroundColor: "rgba(255,255,255,0.1)" }}
                 >
-                  {t('details.overviewTab')}
+                  Synopsis
                   {activeTab === 'overview' && (
                     <motion.div
                       className="absolute bottom-0 left-0 right-0 h-0.5 bg-red-600"
@@ -3239,7 +3081,7 @@ const TVDetails: React.FC = () => {
                   whileHover={{ backgroundColor: "rgba(255,255,255,0.05)" }}
                   whileTap={{ backgroundColor: "rgba(255,255,255,0.1)" }}
                 >
-                  {t('details.detailsTab')}
+                  Détails
                   {activeTab === 'details' && (
                     <motion.div
                       className="absolute bottom-0 left-0 right-0 h-0.5 bg-red-600"
@@ -3248,37 +3090,9 @@ const TVDetails: React.FC = () => {
                     />
                   )}
                 </motion.button>
-                <motion.button
-                  onClick={() => setActiveTab('videos')}
-                  className={`px-6 py-3 font-medium text-sm flex-shrink-0 relative ${activeTab === 'videos' ? 'text-white' : 'text-gray-400 hover:text-white'}`}
-                  whileHover={{ backgroundColor: "rgba(255,255,255,0.05)" }}
-                  whileTap={{ backgroundColor: "rgba(255,255,255,0.1)" }}
-                >
-                  {t('details.videosTab')}
-                  {activeTab === 'videos' && (
-                    <motion.div
-                      className="absolute bottom-0 left-0 right-0 h-0.5 bg-red-600"
-                      layoutId="activeTab"
-                      transition={{ type: "spring", stiffness: 400, damping: 30 }}
-                    />
-                  )}
-                </motion.button>
 
-                <motion.button
-                  onClick={() => setActiveTab('images')}
-                  className={`px-6 py-3 font-medium text-sm flex-shrink-0 relative ${activeTab === 'images' ? 'text-white' : 'text-gray-400 hover:text-white'}`}
-                  whileHover={{ backgroundColor: "rgba(255,255,255,0.05)" }}
-                  whileTap={{ backgroundColor: "rgba(255,255,255,0.1)" }}
-                >
-                  {t('details.imagesTab')}
-                  {activeTab === 'images' && (
-                    <motion.div
-                      className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600"
-                      layoutId="activeTab"
-                      transition={{ type: "spring", stiffness: 400, damping: 30 }}
-                    />
-                  )}
-                </motion.button>
+
+
 
                 <motion.button
                   onClick={() => setActiveTab('cast')}
@@ -3286,7 +3100,7 @@ const TVDetails: React.FC = () => {
                   whileHover={{ backgroundColor: "rgba(255,255,255,0.05)" }}
                   whileTap={{ backgroundColor: "rgba(255,255,255,0.1)" }}
                 >
-                  {t('details.castTab')}
+                  Distribution
                   {activeTab === 'cast' && (
                     <motion.div
                       className="absolute bottom-0 left-0 right-0 h-0.5 bg-red-600"
@@ -3302,7 +3116,7 @@ const TVDetails: React.FC = () => {
                   whileHover={{ backgroundColor: "rgba(255,255,255,0.05)" }}
                   whileTap={{ backgroundColor: "rgba(255,255,255,0.1)" }}
                 >
-                  {t('details.crewTab')}
+                  Équipe
                   {activeTab === 'crew' && (
                     <motion.div
                       className="absolute bottom-0 left-0 right-0 h-0.5 bg-red-600"
@@ -3334,20 +3148,7 @@ const TVDetails: React.FC = () => {
                 )}
 
                 {/* Bouton Commentaires (scroll vers la section) */}
-                <motion.button
-                  onClick={() => {
-                    // Scroll vers les commentaires
-                    commentsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                  }}
-                  className="px-6 py-3 font-medium text-sm flex-shrink-0 text-gray-400 hover:text-white"
-                  whileHover={{ backgroundColor: "rgba(255,255,255,0.05)" }}
-                  whileTap={{ backgroundColor: "rgba(255,255,255,0.1)" }}
-                >
-                  <div className="flex items-center gap-2">
-                    <MessageSquare className="w-4 h-4" />
-                    {t('details.commentsTab')}
-                  </div>
-                </motion.button>
+
               </div>
               {isTabsScrollable && (
                 <div className="absolute right-0 top-0 h-full w-12 bg-gradient-to-l from-black to-transparent pointer-events-none flex items-center justify-end pr-2">
@@ -3377,32 +3178,6 @@ const TVDetails: React.FC = () => {
                     animate={{ opacity: 1 }}
                     transition={{ delay: 0.1 }}
                   >
-                    <div className="mb-4">
-                      <LikeDislikeButton
-                        contentType="tv"
-                        contentId={id || ''}
-                        onStatsChange={setMovixVoteStats}
-                      />
-                    </div>
-
-                    {/* TMDB Info Box */}
-                    <div className="mb-6 p-4 border border-red-500/50 bg-red-500/10 rounded-lg flex gap-3 items-start">
-                      <AlertTriangle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
-                      <div className="text-sm text-gray-300">
-                        <p>
-                          {t('details.tmdbInfoNote')}{' '}
-                          <a
-                            href={`https://www.themoviedb.org/tv/${id}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-red-400 hover:text-red-300 underline"
-                          >
-                            TMDB
-                          </a>
-                          . {t('details.tmdbInfoDiffNote')}
-                        </p>
-                      </div>
-                    </div>
 
                     <h2 className="text-xl font-bold mb-2">{t('details.synopsisTitle')}</h2>
                     <p className="text-gray-300">
@@ -3736,7 +3511,7 @@ const TVDetails: React.FC = () => {
                   exit={{ opacity: 0, y: -20 }}
                   transition={{ duration: 0.3 }}
                 >
-                  <h3 className="text-lg font-semibold mb-4">{t('details.castTab')}</h3>
+                  <h3 className="text-lg font-semibold mb-4">Distribution</h3>
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                     {cast.map((actor, index) => (
                       <motion.div
@@ -3794,7 +3569,7 @@ const TVDetails: React.FC = () => {
                   exit={{ opacity: 0, y: -20 }}
                   transition={{ duration: 0.3 }}
                 >
-                  <h3 className="text-lg font-semibold mb-4">{t('details.crewTab')}</h3>
+                  <h3 className="text-lg font-semibold mb-4">Équipe</h3>
                   <div className="grid grid-cols-2 gap-4">
                     {crew.map((member, index) => (
                       <motion.div
@@ -5363,7 +5138,6 @@ const TVDetails: React.FC = () => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
           >
-            <CommentsSection contentType="tv" contentId={id!} />
           </motion.div>
         </LazySection>
       </div>

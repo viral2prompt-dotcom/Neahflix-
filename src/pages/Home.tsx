@@ -1083,41 +1083,41 @@ const Home: React.FC = () => {
 
   // Memoized carousel titles — must be before any early return (Rules of Hooks)
   const yourHistoryTitle = useMemo(
-    () => <CarouselTitle icon="⏯️" iconClass="text-blue-500" label={t('home.yourHistory')} />,
+    () => <CarouselTitle label="Vos séances en attente" />,
     [t]
   );
 
   const trendingTodayTitle = useMemo(
-    () => <CarouselTitle icon="🔥" iconClass="text-red-600" label={t('home.trendingToday')} />,
+    () => <CarouselTitle label="À l'affiche ce soir" />,
     [t]
   );
 
   const usersAlsoWatchedTitle = useMemo(
-    () => <CarouselTitle icon="👥" iconClass="text-green-500" label={t('home.usersAlsoWatched')} />,
+    () => <CarouselTitle label="La communauté regarde aussi" />,
     [t]
   );
 
   const becauseYouWatchedTitles = useMemo(
     () => (personalizedReco?.becauseYouWatched || []).map((group) =>
-      <CarouselTitle icon="✨" iconClass="text-purple-500" label={t('home.becauseYouWatched', { title: group.title })} />
+      <CarouselTitle label={`Dans la même lumière que ${group.title}`} />
     ),
     [personalizedReco?.becauseYouWatched, t]
   );
 
   const topGenresTitles = useMemo(
     () => (personalizedReco?.topGenres || []).map((group) =>
-      <CarouselTitle icon="🎯" iconClass="text-yellow-500" label={t('home.popularInGenre', { genre: group.genreName })} />
+      <CarouselTitle label={`L'essentiel ${group.genreName}`} />
     ),
     [personalizedReco?.topGenres, t]
   );
 
   const trendingCustomTitle = useMemo(
-    () => <span className="text-white relative z-20">{t('home.trending')}</span>,
+    () => <span className="text-white relative z-20">Les pulsations Neahflix</span>,
     [t]
   );
 
   const platformsTitle = useMemo(
-    () => <CarouselTitle icon="🎬" iconClass="text-white" label={t('home.streamingPlatforms')} />,
+    () => <CarouselTitle label="Passerelles de streaming" />,
     [t]
   );
 
@@ -1130,6 +1130,13 @@ const Home: React.FC = () => {
     { id: 350, src: "https://u.cubeupload.com/mystic/b2fb6956993e2ee5b4e3.png", video: "https://media.tenor.com/Oxl9xEn7kTEAAAPo/applo-tv.mp4", alt: "Apple TV+", route: "/provider/350", label: t('home.filmsAndSeries', { count: 138 }) },
     { id: 355, src: "https://u.cubeupload.com/mystic/ky0xOc5OrhzkZ1N6KyUx.png", video: "https://i.giphy.com/media/3o7TKt3pMpzozdUsus/giphy.mp4", alt: "Warner Bros", route: "/provider/355", label: t('home.filmsAndSeries', { count: 645 }) },
     { id: 356, src: "https://u.cubeupload.com/mystic/2Tc1P3Ac8M479naPp1kY.png", video: "https://media.tenor.com/ag74wyAzYkMAAAPo/dc-comics-dceu.mp4", alt: "DC Comics", route: "/provider/356", label: t('home.filmsAndSeries', { count: 98 }) },
+    { id: 9001, alt: 'YouTube', href: 'https://www.youtube.com/', brandClass: 'bg-[#ff0000] text-white', label: 'Site officiel' },
+    { id: 9002, alt: 'TikTok', href: 'https://www.tiktok.com/', brandClass: 'bg-[#010101] text-white ring-1 ring-cyan-300/40', label: 'Site officiel' },
+    { id: 9003, alt: 'Neahflix Lite', brandClass: 'bg-gradient-to-br from-amber-400 to-yellow-600 text-white', label: 'Bientôt disponible' },
+    { id: 9004, alt: 'Neahplus', brandClass: 'bg-gradient-to-br from-white to-blue-500 text-blue-950', label: 'Bientôt disponible' },
+    { id: 9005, alt: 'CANAL+', href: 'https://www.canalplus.com/', brandClass: 'bg-black text-white ring-1 ring-white/60', label: 'Site officiel' },
+    { id: 9006, alt: 'Anime Zora', brandClass: 'bg-black text-white ring-1 ring-white/50', label: 'Bientôt disponible' },
+    { id: 9007, alt: 'Drama Aurévia', brandClass: 'bg-gradient-to-br from-pink-500 to-rose-700 text-white', label: 'Bientôt disponible' },
   ], [t]);
 
   if (loading) {
