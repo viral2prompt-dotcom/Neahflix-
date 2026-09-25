@@ -77,6 +77,36 @@ const socialPreviewHandler = async (c) => {
 app.get('/movie/:id', socialPreviewHandler);
 app.get('/tv/:id', socialPreviewHandler);
 
+
+app.all('/api/*', async (c) => {
+  const incoming = new URL(c.req.url);
+  const target = `https://api.movix.college${incoming.pathname}${incoming.search}`;
+
+  const headers = new Headers(c.req.raw.headers);
+  headers.delete('host');
+  headers.delete('origin');
+  headers.delete('referer');
+  headers.delete('connection');
+
+  const init = {
+    method: c.req.method,
+    headers,
+  };
+
+  if (!['GET', 'HEAD'].includes(c.req.method)) {
+    init.body = await c.req.raw.arrayBuffer();
+  }
+
+  const response = await fetch(target, init);
+
+  const responseHeaders = new Headers(response.headers);
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers: responseHeaders,
+  });
+});
+
 app.use('/*', serveStatic({ root: './dist' }));
 
 app.get('*', async (c) => {

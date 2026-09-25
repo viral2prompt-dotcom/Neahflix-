@@ -112,6 +112,19 @@ export default defineConfig({
     // parallèle du premier (deux sessions d'agent, deux branches) sans se
     // disputer le port.
     port: Number(process.env.PORT) || 3000,
+    proxy: {
+    '/backend-api': {
+      target: 'http://127.0.0.1:25565',
+      changeOrigin: true,
+      secure: false,
+        rewrite: (path) => path.replace(/^\/backend-api/, ),
+    },
+      '/api': {
+        target: 'http://127.0.0.1:25565',
+        changeOrigin: true,
+        secure: false,
+      },
+    },
     hmr: true,
     watch: {
       // Polling utile sur WSL/Docker/FS réseau où inotify/FSEvents ne remontent

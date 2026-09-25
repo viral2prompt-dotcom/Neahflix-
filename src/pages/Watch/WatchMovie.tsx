@@ -39,7 +39,7 @@ import {
   resolveRenderedWatchSource,
   syncHlsActiveSource,
 } from '../../utils/hlsAutoFallbackGuard';
-const MAIN_API = import.meta.env.VITE_MAIN_API;
+const MAIN_API = import.meta.env.VITE_MAIN_API || (typeof window !== "undefined" ? window.location.origin : "");
 const TMDB_API_KEY = import.meta.env.VITE_TMDB_API_KEY || '';
 
 const normalizeUqloadEmbedUrl = (url: string): string => {
@@ -917,11 +917,21 @@ const WatchMovie: React.FC = () => {
           // Méthode serveur : clé VIP + `resolve=1` (résolution serveur des
           // m3u8). Méthode extension/userscript : liens bruts, extraction locale.
           const fstreamResponse = await axios.get(`${MAIN_API}/api/fstream/movie/${id}`, resolveRequest());
-          return fstreamResponse.data;
-        } catch (error) {
-          console.error('Error fetching FStream movie sources:', error);
-          return null;
-        }
+      const data = fstreamResponse.data;
+      if (Array.isArray(data?.players)) {
+        return { ...data, players: data.players[0] ?? {} };
+      }
+      return data;
+      } catch (error: any) {
+        console.error("[FSTREAM DEBUG] status:", error?.response?.status);
+        console.error("[FSTREAM DEBUG] url:", error?.config?.url);
+        console.error("[FSTREAM DEBUG] baseURL:", error?.config?.baseURL);
+        console.error("[FSTREAM DEBUG] params:", error?.config?.params);
+        console.error("[FSTREAM DEBUG] MAIN_API:", MAIN_API);
+        console.error("[FSTREAM DEBUG] message:", error?.message);
+        console.error("Error fetching FStream movie sources:", error);
+        return null;
+      }
       })().finally(() => setLoadingFstream(false));
 
       // =========== CHECK WIFLIX (LYNX) SOURCE ===========
