@@ -24,7 +24,7 @@ const SEO: React.FC<SEOProps> = (props) => {
     title = t('seo.defaultTitle'),
     description = t('seo.defaultDescription'),
     keywords = t('seo.defaultKeywords'),
-    ogImage = '/movix.png',
+    ogImage,
     ogUrl = SITE_URL,
     ogType = 'website',
     twitterCard = 'summary_large_image',
@@ -57,14 +57,14 @@ const SEO: React.FC<SEOProps> = (props) => {
       <meta property="og:description" content={description} />
       <meta property="og:type" content={ogType} />
       <meta property="og:url" content={ogUrl} />
-      <meta property="og:image" content={ogImage} />
+      {ogImage && <meta property="og:image" content={ogImage} />}
       <meta property="og:site_name" content={siteName} />
       
       {/* Twitter Card */}
       <meta name="twitter:card" content={twitterCard} />
       <meta name="twitter:title" content={title} />
       <meta name="twitter:description" content={description} />
-      <meta name="twitter:image" content={ogImage} />
+      {ogImage && <meta name="twitter:image" content={ogImage} />}
       
       {/* Autres balises importantes */}
       <meta name="robots" content="index, follow" />

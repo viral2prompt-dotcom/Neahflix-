@@ -6,18 +6,8 @@
   "content_security_policy": {
     "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self';"
   },
-  "icons": {
-    "16": "movix.png",
-    "48": "movix.png",
-    "128": "movix.png"
-  },
   "action": {
     "default_popup": "popup.html",
-    "default_icon": {
-      "16": "movix.png",
-      "48": "movix.png",
-      "128": "movix.png"
-    },
     "default_title": "Neahflix Extension"
   },
   "permissions": [

@@ -241,7 +241,7 @@ function renderRedirectPage(url) {
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta http-equiv="refresh" content="0; url=${safe}">
-  <title>Movix — Redirection</title>
+  <title>Neahflix — Redirection</title>
   <link rel="canonical" href="${safe}">
   <style>
     html, body { margin: 0; padding: 0; height: 100%; background: #000; color: #fff;
@@ -260,7 +260,7 @@ function renderRedirectPage(url) {
 </head>
 <body>
   <div class="wrap">
-    <div class="logo">MOVIX</div>
+    <div class="logo">NEAHFLIX</div>
     <div class="spinner"></div>
     <p>Redirection vers notre nouveau domaine…</p>
     <p><a href="${safe}">Cliquer ici si rien ne se passe</a></p>
@@ -285,7 +285,7 @@ function render503Page() {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Movix — Indisponible</title>
+  <title>Neahflix — Indisponible</title>
   <style>
     html, body { margin: 0; padding: 0; height: 100%; background: #000; color: #fff;
       font-family: system-ui, -apple-system, sans-serif; display: grid; place-items: center; }
@@ -299,7 +299,7 @@ function render503Page() {
 </head>
 <body>
   <div class="wrap">
-    <div class="logo">MOVIX</div>
+    <div class="logo">NEAHFLIX</div>
     <h1>Site temporairement indisponible</h1>
     <p>Tous nos domaines connus sont inaccessibles depuis votre connexion.</p>
     <p>Rejoins notre canal Telegram pour recevoir l'adresse du nouveau domaine.</p>
@@ -352,10 +352,9 @@ self.addEventListener('push', (event) => {
   const data = event.data.json();
   const baseUrl = self.location.origin;
   event.waitUntil(
-    self.registration.showNotification(data.title || 'Movix', {
+    self.registration.showNotification(data.title || 'Neahflix', {
       body: data.body || '',
-      icon: data.icon ? new URL(data.icon, baseUrl).href : `${baseUrl}/movix-192.png`,
-      badge: `${baseUrl}/movix-192.png`,
+      ...(data.icon ? { icon: new URL(data.icon, baseUrl).href } : {}),
       image: data.image || undefined,
       data: data.data || {},
     })
