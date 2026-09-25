@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "Movix Proxy Extension",
+  "name": "Neahflix Proxy Extension",
   "version": "1.4.4",
-  "description": "Extension proxy pour Live TV Movix - Contourne CORS, injecte les headers et extrait les sources Nexus",
+  "description": "Extension proxy pour Live TV Neahflix - Contourne CORS, injecte les headers et extrait les sources Nexus",
   "content_security_policy": {
     "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self';"
   },
@@ -18,7 +18,7 @@
       "48": "movix.png",
       "128": "movix.png"
     },
-    "default_title": "Movix Extension"
+    "default_title": "Neahflix Extension"
   },
   "permissions": [
     "declarativeNetRequest",

@@ -6,11 +6,13 @@ import { useTranslation } from 'react-i18next';
 
 interface PlatformItem {
   id: number;
-  src: string;
+  src?: string;
   alt: string;
   video?: string;
-  route: string;
+  route?: string;
+  href?: string;
   label?: string;
+  brandClass?: string;
 }
 
 interface EmblaCarouselPlatformsProps {
@@ -97,9 +99,16 @@ const EmblaCarouselPlatforms: React.FC<EmblaCarouselPlatformsProps> = ({ title, 
           <div className="flex gap-6 pr-8 md:pr-16 py-8 pl-4 md:pl-6">
             {items.map((platform) => (
               <div key={platform.id} className="flex-none">
-                <Link to={platform.route} className="platform-link block w-[250px] h-[150px] group select-none">
+                {platform.href ? (
+                  <a href={platform.href} target="_blank" rel="noreferrer" className="platform-link block w-[250px] h-[150px] group select-none">
+                    <div className={`w-full h-full relative rounded-xl ${platform.brandClass || 'bg-white'}`}>
+                      {platform.src ? <img src={platform.src} alt={platform.alt} className="w-full h-full object-contain p-8 group-hover:opacity-0 transition-opacity duration-300" draggable="false" loading="lazy" decoding="async" /> : <span className="absolute inset-0 grid place-items-center px-6 text-center text-2xl font-black tracking-tight">{platform.alt}</span>}
+                    </div>
+                  </a>
+                ) : (
+                <Link to={platform.route || '/'} className="platform-link block w-[250px] h-[150px] group select-none">
                   <div
-                    className="w-full h-full relative bg-white rounded-xl"
+                    className={`w-full h-full relative rounded-xl ${platform.brandClass || 'bg-white'}`}
                     onMouseEnter={() => {
                       if (!platform.video?.endsWith('.gif')) {
                         const video = document.getElementById(`video-${platform.id}`) as HTMLVideoElement | null;
@@ -164,6 +173,7 @@ const EmblaCarouselPlatforms: React.FC<EmblaCarouselPlatformsProps> = ({ title, 
                     )}
                   </div>
                 </Link>
+                )}
               </div>
             ))}
             <div className="flex-none w-8 md:w-24" aria-hidden="true" />
