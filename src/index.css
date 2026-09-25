@@ -462,11 +462,11 @@ body {
 .neahflix-logo {
   position: relative;
   overflow: hidden;
-  text-shadow: 0 0 20px rgba(234, 58, 72, 0.24);
+  text-shadow: 0 0 22px rgba(255, 0, 0, 0.58), 0 0 46px rgba(255, 0, 0, 0.22);
 }
 
 .neahflix-logo__wordmark {
-  background: linear-gradient(105deg, #f7f7f8 0%, #f7f7f8 34%, #ee4a59 46%, #fff 53%, #c72035 62%, #e34252 100%);
+  background: linear-gradient(105deg, #ff0000 0%, #ff3030 34%, #ffffff 47%, #ff0000 57%, #9d0000 70%, #ff2020 100%);
   background-size: 240% 100%;
   background-position: 100% 50%;
   -webkit-background-clip: text;

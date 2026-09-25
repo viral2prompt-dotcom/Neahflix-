@@ -7,7 +7,7 @@ const ApparencePage: React.FC = () => {
   const { t } = useTranslation();
 
   useEffect(() => {
-    document.title = `${t('help.apparence.title')} — Movix`;
+    document.title = `${t('help.apparence.title')} — Neahflix`;
   }, [t]);
 
   const sections: TutoSection[] = [

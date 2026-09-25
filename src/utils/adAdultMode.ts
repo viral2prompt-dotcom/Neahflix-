@@ -1,6 +1,5 @@
-// Toggle that controls whether the ad popup opens the +18 ad creative or the
-// SFW one. Default = true (+18) per product decision. Users can opt out via
-// settings, which writes 'false' to localStorage. Absent key = default (on).
+// Legacy compatibility preference. Advertising is disabled application-wide;
+// the preference is OFF by default and cannot produce a redirect.
 
 export const AD_POPUP_ADULT_KEY = 'settings_ad_popup_adult';
 export const AD_POPUP_ADULT_CHANGED_EVENT = 'ad_popup_adult_changed';
@@ -21,10 +20,9 @@ export const AD_URL_SFW = readEnvUrl(import.meta.env.VITE_AD_DIRECT_URL_SFW);
 
 export const isAdultAdsEnabled = (): boolean => {
   try {
-    // Default on: only an explicit 'false' opts out.
-    return localStorage.getItem(AD_POPUP_ADULT_KEY) !== 'false';
+    return localStorage.getItem(AD_POPUP_ADULT_KEY) === 'true';
   } catch {
-    return true;
+    return false;
   }
 };
 
@@ -49,5 +47,5 @@ export const subscribeToAdultAdsChanges = (cb: (enabled: boolean) => void): (() 
   };
 };
 
-export const getAdTargetUrls = (): string[] =>
-  isAdultAdsEnabled() ? AD_URLS_ADULT : [AD_URL_SFW].filter(Boolean);
+// No caller may open advertising destinations, including legacy callers.
+export const getAdTargetUrls = (): string[] => [];

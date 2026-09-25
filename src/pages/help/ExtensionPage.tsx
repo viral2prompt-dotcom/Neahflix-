@@ -10,7 +10,7 @@ const ExtensionPage: React.FC = () => {
   const { t } = useTranslation();
 
   useEffect(() => {
-    document.title = `${t('help.extension.title')} — Movix`;
+    document.title = `${t('help.extension.title')} — Neahflix`;
   }, [t]);
 
   const sections: TutoSection[] = [

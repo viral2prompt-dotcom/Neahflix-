@@ -7,7 +7,7 @@ import {
   ArrowLeft, Settings, Shield, Monitor, Smartphone, Tablet,
   Copy, X, Snowflake, Activity, Trash2, Crown, Volume2,
   Database, Key, Lock, Palette, Eye, Download, Upload, Globe, AlertTriangle, History, CalendarClock, FlaskConical, Link2, MessageCircle, BellOff, Sparkles,
-  Zap, RefreshCw, ChevronDown, ListOrdered, Gauge, Megaphone, Square, Captions
+  Zap, RefreshCw, ChevronDown, ListOrdered, Gauge, Square, Captions
 } from 'lucide-react';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
@@ -54,17 +54,6 @@ import {
   setRememberLastPlayer,
   subscribeToLastPlayerChanges,
 } from '../utils/lastPlayerPref';
-import {
-  getAdPopupMode,
-  setAdPopupMode,
-  subscribeToAdPopupModeChanges,
-  type AdPopupMode,
-} from '../utils/adPopupMode';
-import {
-  isAdultAdsEnabled,
-  setAdultAdsEnabled,
-  subscribeToAdultAdsChanges,
-} from '../utils/adAdultMode';
 import { isLowLatencyEnabled, setLowLatencyEnabled, type LowLatencyScope } from '../utils/lowLatencyPref';
 import { BgColorPickerPanel } from '../components/Settings/BgColorPickerPanel';
 import { useLightMode } from '../context/LightModeContext';
@@ -177,7 +166,6 @@ const SECTIONS = [
   { id: 'accounts', labelKey: 'settings.sections.accounts', icon: Link2 },
   { id: 'privacy', labelKey: 'settings.sections.privacy', icon: Shield },
   { id: 'source-priority', labelKey: 'settings.sections.sourcePriority', icon: ListOrdered },
-  { id: 'intermission', labelKey: 'settings.sections.adPopup', icon: Megaphone },
   { id: 'extractions', labelKey: 'settings.sections.extractions', icon: Zap },
   { id: 'data', labelKey: 'settings.sections.data', icon: Database },
 ] as const;
@@ -422,23 +410,6 @@ const SettingsPage: React.FC = () => {
     const next = !rememberLastPlayer;
     setRememberLastPlayerState(next);
     setRememberLastPlayer(next);
-  };
-
-  // Mode popup pub (normal / auto / click-anywhere).
-  const [adPopupMode, setAdPopupModeState] = useState<AdPopupMode>(() => getAdPopupMode());
-  useEffect(() => subscribeToAdPopupModeChanges(setAdPopupModeState), []);
-  const handleAdPopupModeChange = (mode: AdPopupMode) => {
-    setAdPopupModeState(mode);
-    setAdPopupMode(mode);
-  };
-
-  // Toggle publicités +18.
-  const [adultAds, setAdultAdsState] = useState<boolean>(() => isAdultAdsEnabled());
-  useEffect(() => subscribeToAdultAdsChanges(setAdultAdsState), []);
-  const handleAdultAdsToggle = () => {
-    const next = !adultAds;
-    setAdultAdsState(next);
-    setAdultAdsEnabled(next);
   };
 
   const [bgMode, setBgMode] = useState<'combined' | 'static' | 'animated'>(() => {
@@ -3206,72 +3177,6 @@ const SettingsPage: React.FC = () => {
               <div className="rounded-xl border border-white/10 bg-white/5 p-5">
                 <SourcePriorityPanel />
               </div>
-            </section>
-
-            {/* ════════════════════════════════════════════════════════ */}
-            {/* SECTION: Popup pub                                      */}
-            {/* ════════════════════════════════════════════════════════ */}
-            <section id="intermission" className="scroll-mt-24">
-              <div className="flex items-center gap-3 mb-6">
-                <div className="p-2 rounded-xl bg-gradient-to-br from-amber-600/20 to-orange-600/20 border border-amber-500/20">
-                  <Megaphone className="w-5 h-5 text-amber-400" />
-                </div>
-                <div>
-                  <h2 className="text-xl font-semibold text-white">{t('settings.adPopup.title')}</h2>
-                  <p className="text-sm text-gray-500">{t('settings.adPopup.description')}</p>
-                </div>
-              </div>
-
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="p-4 bg-gray-800/30 rounded-xl border border-gray-700/40"
-              >
-                <div className="mb-3">
-                  <h4 className="font-medium text-white mb-0.5 text-sm">{t('settings.adPopup.modeTitle')}</h4>
-                  <p className="text-xs text-gray-500 leading-relaxed">{t('settings.adPopup.modeDesc')}</p>
-                </div>
-                <div className="flex gap-2 flex-wrap">
-                  {([
-                    { id: 'normal',          labelKey: 'settings.adPopup.modes.normal.label',         descKey: 'settings.adPopup.modes.normal.desc' },
-                    { id: 'auto',            labelKey: 'settings.adPopup.modes.auto.label',           descKey: 'settings.adPopup.modes.auto.desc' },
-                    { id: 'click-anywhere',  labelKey: 'settings.adPopup.modes.clickAnywhere.label',  descKey: 'settings.adPopup.modes.clickAnywhere.desc' },
-                  ] as const).map((opt) => {
-                    const active = adPopupMode === opt.id;
-                    return (
-                      <button
-                        key={opt.id}
-                        type="button"
-                        onClick={() => handleAdPopupModeChange(opt.id)}
-                        className={`flex-1 min-w-[140px] p-3 rounded-xl text-left transition-colors border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/60 ${
-                          active
-                            ? 'bg-amber-600/10 border-amber-500/40 text-white'
-                            : 'bg-gray-700/20 border-gray-700/40 text-gray-400 hover:bg-gray-700/40 hover:text-white'
-                        }`}
-                      >
-                        <div className="text-xs font-semibold">{t(opt.labelKey)}</div>
-                        <div className="text-[10px] text-gray-500 mt-0.5">{t(opt.descKey)}</div>
-                      </button>
-                    );
-                  })}
-                </div>
-              </motion.div>
-
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.05 }}
-                className="flex items-center justify-between p-4 mt-4 bg-gray-800/30 rounded-xl border border-gray-700/40 hover:border-gray-600/50 transition-colors group"
-              >
-                <div className="flex-1 mr-4">
-                  <div className="flex items-center gap-2 mb-0.5">
-                    <AlertTriangle className="w-3.5 h-3.5 text-rose-400" />
-                    <h4 className="font-medium text-white text-sm">{t('settings.adPopup.adultTitle')}</h4>
-                  </div>
-                  <p className="text-xs text-gray-500 leading-relaxed">{t('settings.adPopup.adultDesc')}</p>
-                </div>
-                {renderToggle(adultAds, handleAdultAdsToggle, 'red')}
-              </motion.div>
             </section>
 
             {/* ════════════════════════════════════════════════════════ */}

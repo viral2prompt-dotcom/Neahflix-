@@ -473,7 +473,7 @@ const TVImagesSection = ({ tvId }: { tvId: string }) => {
   }, [tvId]);
 
   return (
-    <div className="mb-8">
+    <div className="mb-7 rounded-3xl border border-white/10 bg-slate-950/70 px-5 py-5 shadow-[0_20px_60px_rgba(0,0,0,0.35)] backdrop-blur-md">
       <motion.button
         onClick={handleToggleImages}
         className="flex items-center gap-3 text-xl font-bold text-white hover:text-blue-400 transition-colors"
@@ -497,7 +497,7 @@ const TVImagesSection = ({ tvId }: { tvId: string }) => {
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
             transition={{ duration: 0.3 }}
-            className="mt-6"
+            className="mt-4 rounded-2xl border border-white/10 bg-slate-950/75 p-3 shadow-xl backdrop-blur-sm"
             style={{ overflow: 'visible' }}
           >
             {loading ? (
@@ -2940,7 +2940,7 @@ const TVDetails: React.FC = () => {
   const tvSocialImage = tvShow.backdrop_path || tvShow.poster_path
     ? `https://image.tmdb.org/t/p/original${tvShow.backdrop_path || tvShow.poster_path}`
     : undefined;
-  const tvDescription = tvShow.overview?.trim() || `Découvrez ${tvShow.name} sur Movix.`;
+  const tvDescription = tvShow.overview?.trim() || `Découvrez ${tvShow.name} sur Neahflix.`;
 
   return (
     <MotionConfig reducedMotion="user">
@@ -3124,7 +3124,7 @@ const TVDetails: React.FC = () => {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.5 }}
-        className="text-white px-4 md:px-8 lg:px-16 py-6"
+        className="text-white px-4 pb-28 pt-8 md:px-8 lg:px-16 lg:pb-10"
       >
         {/* Header avec titre et année */}
         <motion.div
@@ -3148,7 +3148,7 @@ const TVDetails: React.FC = () => {
           </h1>
         </motion.div>
         {/* Contenu principal - poster à gauche, infos à droite */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 gap-5 md:grid-cols-[minmax(13rem,0.7fr)_minmax(0,2fr)] md:gap-7">
           {/* Colonne gauche - Poster */}
           <motion.div
             initial={{ opacity: 0, x: -20 }}
@@ -3160,7 +3160,7 @@ const TVDetails: React.FC = () => {
               transition={{ type: "spring", stiffness: 300, damping: 10 }}
               src={tvShow.poster_path ? `https://image.tmdb.org/t/p/original${tvShow.poster_path}` : DEFAULT_IMAGE}
               alt={tvShow.name}
-              className="w-full rounded-lg shadow-lg"
+              className="w-full rounded-2xl border border-white/10 shadow-[0_18px_55px_rgba(0,0,0,0.55),0_0_30px_rgba(255,0,0,0.10)]"
             />
             {/* Boutons d'action en-dessous du poster */}
             <div className="mt-6">
@@ -3204,13 +3204,13 @@ const TVDetails: React.FC = () => {
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 0.4 }}
-            className="md:col-span-2"
+            className="rounded-3xl border border-white/10 bg-slate-950/75 p-4 shadow-[0_20px_60px_rgba(0,0,0,0.3)] backdrop-blur-md md:col-span-2 md:p-6"
           >
             {/* Tabs */}
             <div className="relative">
               <div
                 ref={tabsContainerRef}
-                className="flex overflow-x-auto scrollbar-hide touch-pan-x border-b border-gray-700 mb-6"
+                className="flex overflow-x-auto scrollbar-hide touch-pan-x rounded-xl border border-white/10 bg-black/25 px-1 mb-6"
                 style={{
                   scrollbarWidth: 'none',
                   msOverflowStyle: 'none',
