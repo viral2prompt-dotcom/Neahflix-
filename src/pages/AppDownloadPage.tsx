@@ -400,7 +400,7 @@ const AppDownloadPage: React.FC = () => {
             className="p-8 backdrop-blur-sm"
           >
             <Smartphone className="w-10 h-10 text-indigo-500 mx-auto mb-4" />
-            <h3 className="text-xl font-bold text-white mb-2">Prêt à installer Movix ?</h3>
+            <h3 className="text-xl font-bold text-white mb-2">Prêt à installer Neahflix ?</h3>
             <p className="text-white/50 text-sm mb-6 max-w-md mx-auto">
               Téléchargez l'application Android dès maintenant et profitez d'une
               expérience optimale sur votre smartphone.

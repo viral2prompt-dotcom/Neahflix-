@@ -117,7 +117,7 @@ class ErrorBoundary extends React.Component<React.PropsWithChildren, ErrorBounda
 
     const embeds = [
       {
-        title: ':rotating_light: Crash Report — Movix',
+        title: ':rotating_light: Crash Report — Neahflix',
         color: 0xdc2626,
         fields: [
           { name: 'Erreur', value: '```\n' + truncate(error?.message ?? 'Erreur inconnue', 900) + '\n```', inline: false },
@@ -142,7 +142,7 @@ class ErrorBoundary extends React.Component<React.PropsWithChildren, ErrorBounda
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          username: 'Movix Crash Reporter',
+          username: 'Neahflix Crash Reporter',
           embeds,
         }),
       });
@@ -168,7 +168,7 @@ class ErrorBoundary extends React.Component<React.PropsWithChildren, ErrorBounda
     if (this.state.recoverable) {
       const { error, reloadScheduled } = this.state;
       const isChunk = isChunkLoadError(error);
-      const title = isChunk ? 'Mise à jour de Movix' : 'Rechargement';
+      const title = isChunk ? 'Mise à jour de Neahflix' : 'Rechargement';
       const body = reloadScheduled
         ? isChunk
           ? 'Une nouvelle version est disponible. Rechargement en cours…'
@@ -177,7 +177,7 @@ class ErrorBoundary extends React.Component<React.PropsWithChildren, ErrorBounda
       return (
         <div style={{ minHeight: '100vh', backgroundColor: '#000', color: '#f3f4f6', fontFamily: 'ui-sans-serif, system-ui, sans-serif', padding: 24, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <div style={{ maxWidth: 420, width: '100%', textAlign: 'center' }}>
-            <div style={{ fontSize: 32, fontWeight: 900, color: '#dc2626', letterSpacing: '0.1em', marginBottom: 24 }}>MOVIX</div>
+            <div style={{ fontSize: 32, fontWeight: 900, color: '#dc2626', letterSpacing: '0.1em', marginBottom: 24 }}>NEAHFLIX</div>
             {reloadScheduled && (
               <div style={{ width: 40, height: 40, margin: '0 auto 24px', border: '3px solid rgba(255,255,255,0.1)', borderTopColor: '#dc2626', borderRadius: '50%', animation: 'movix-eb-spin 0.8s linear infinite' }} />
             )}
@@ -207,7 +207,7 @@ class ErrorBoundary extends React.Component<React.PropsWithChildren, ErrorBounda
               <line x1="12" y1="16" x2="12.01" y2="16" />
             </svg>
             <div>
-              <h1 style={{ margin: 0, fontSize: 24, fontWeight: 700, color: '#fff' }}>Movix a rencontré une erreur</h1>
+              <h1 style={{ margin: 0, fontSize: 24, fontWeight: 700, color: '#fff' }}>Neahflix a rencontré une erreur</h1>
               <p style={{ margin: '4px 0 0', fontSize: 14, color: '#9ca3af' }}>Une erreur inattendue s'est produite. Les détails sont affichés ci-dessous.</p>
             </div>
           </div>

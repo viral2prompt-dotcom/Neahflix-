@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import Snowfall from 'react-snowfall';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { PrefetchLink as Link } from '@/routing/PrefetchLink';
-import { Film, Search, Menu, X, Star, Tv2, Users, Clapperboard, Bell, Tv, Lightbulb, Network, List, Radio, Unlock, ChevronDown, ExternalLink, LayoutGrid, Settings, Dices, Sparkles, HelpCircle, Github, CalendarDays, Home, MoreHorizontal } from 'lucide-react';
+import { Film, Search, X, Star, Tv2, Users, Clapperboard, Bell, Tv, Lightbulb, Network, List, Radio, Unlock, Settings, Dices, Sparkles, ExternalLink, Github, CalendarDays, Home, MoreHorizontal } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import ProfileMenu from './ProfileMenu';
 import NotificationsPopup from './NotificationsPopup';
@@ -140,7 +140,6 @@ const Header: React.FC = () => {
       items: [
         ...(isVip ? [{ name: t('nav.debrid'), path: '/debrid', icon: <Unlock size={20} />, color: 'yellow' as const, desc: t('nav.debridDesc') }] : []),
         { name: t('nav.settings'), path: '/settings', icon: <Settings size={20} />, color: 'gray', desc: t('nav.settingsDesc') },
-        { name: t('nav.helpHub'), path: '/help', icon: <HelpCircle size={20} />, color: 'indigo', desc: t('nav.helpHubDesc') },
         { name: t('nav.github'), path: 'https://github.com/movixcorp/MovixOpenSource', icon: <Github size={20} />, color: 'gray', desc: t('nav.githubDesc'), external: true, hiddenInNeahflixDrawer: true },
         { name: t('footer.ourUrls'), path: 'https://movix.online', icon: <ExternalLink size={20} />, color: 'gray', desc: t('nav.officialLinksDesc'), external: true, hiddenInNeahflixDrawer: true },
       ]
@@ -500,20 +499,7 @@ const Header: React.FC = () => {
                   </Link>
                 )}
 
-                {/* Bouton Explorer */}
-                <button
-                  data-explore-trigger
-                  onClick={() => setIsExploreOpen(!isExploreOpen)}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm transition-all duration-200 border ${
-                    isExploreOpen
-                      ? 'text-white bg-white/10 border-white/20'
-                      : 'text-gray-400 hover:text-white border-white/10 hover:border-white/20 hover:bg-white/5'
-                  }`}
-                >
-                  <LayoutGrid size={15} />
-                  <span>{t('nav.explore')}</span>
-                  <ChevronDown size={14} className={`transition-transform duration-200 ${isExploreOpen ? 'rotate-180' : ''}`} />
-                </button>
+
               </nav>
 
               {/* Spacer */}
@@ -572,7 +558,7 @@ const Header: React.FC = () => {
                   <Link
                     to={APRIL_FOOLS_ADMIN_PATH}
                     aria-label={t('aprilAdmin.mobileAriaLabel')}
-                    className={`relative flex items-center justify-center rounded-xl border p-2 transition-colors lg:hidden ${
+                    className={`hidden relative flex items-center justify-center rounded-xl border p-2 transition-colors lg:hidden ${
                       location.pathname === APRIL_FOOLS_ADMIN_PATH
                         ? 'border-amber-300/35 bg-amber-300/15 text-white'
                         : 'border-amber-300/20 bg-amber-300/10 text-amber-100 hover:border-amber-300/35 hover:bg-amber-300/15 hover:text-white'
@@ -597,7 +583,7 @@ const Header: React.FC = () => {
                   <div className="relative" ref={notificationsRef}>
                     <motion.button
                       data-notification-button
-                      className="relative flex items-center justify-center p-2 text-gray-400 hover:text-white transition-colors"
+                      className="hidden relative flex items-center justify-center p-2 text-gray-400 hover:text-white transition-colors"
                       whileTap={{ scale: 0.9 }}
                       onClick={() => setShowNotifications(!showNotifications)}
                     >
@@ -621,15 +607,7 @@ const Header: React.FC = () => {
                   </div>
                 )}
 
-                {/* Mobile/Tablet: Burger → ouvre fullscreen explore */}
-                <motion.button
-                  className="lg:hidden p-1.5 text-gray-400 hover:text-white transition-colors pointer-events-auto"
-                  whileTap={{ scale: 0.9 }}
-                  onClick={() => setIsExploreOpen(!isExploreOpen)}
-                  data-explore-trigger
-                >
-                  {isExploreOpen ? <X size={22} /> : <Menu size={22} />}
-                </motion.button>
+
               </div>
             </div>
           </div>
@@ -891,7 +869,7 @@ const Header: React.FC = () => {
       </AnimatePresence>
 
       {/* Navigation primaire mobile : les contenus essentiels restent accessibles sans ouvrir le drawer. */}
-      {!isExploreOpen && (
+      {!isExploreOpen && location.pathname !== '/settings' && (
         <nav
           aria-label="Navigation principale"
           className="lg:hidden fixed inset-x-3 bottom-3 z-[10990] flex items-center justify-around rounded-2xl border border-white/10 bg-slate-950/90 px-1 py-1.5 shadow-[0_12px_45px_rgba(0,0,0,0.55)] backdrop-blur-xl"

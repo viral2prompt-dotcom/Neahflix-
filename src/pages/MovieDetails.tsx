@@ -458,7 +458,7 @@ const ImagesSection = ({ movieId, images, loading }: { movieId: string; images: 
   }, [movieId]);
 
   return (
-    <div className="mb-8">
+    <div className="mb-7 rounded-3xl border border-white/10 bg-slate-950/70 px-5 py-5 shadow-[0_20px_60px_rgba(0,0,0,0.35)] backdrop-blur-md">
       <motion.button
         onClick={handleToggleImages}
         className="flex items-center gap-3 text-xl font-bold text-white hover:text-blue-400 transition-colors"
@@ -482,7 +482,7 @@ const ImagesSection = ({ movieId, images, loading }: { movieId: string; images: 
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
             transition={{ duration: 0.3 }}
-            className="mt-6"
+            className="mt-4 rounded-2xl border border-white/10 bg-slate-950/75 p-3 shadow-xl backdrop-blur-sm"
             style={{ overflow: 'visible' }}
           >
             {loading ? (
@@ -1737,7 +1737,7 @@ const MovieDetails = (): JSX.Element => {
   const movieSocialImage = movie.backdrop_path || movie.poster_path
     ? `https://image.tmdb.org/t/p/original${movie.backdrop_path || movie.poster_path}`
     : undefined;
-  const movieDescription = movie.overview?.trim() || `Découvrez ${movie.title} sur Movix.`;
+  const movieDescription = movie.overview?.trim() || `Découvrez ${movie.title} sur Neahflix.`;
 
   return (
     <MotionConfig reducedMotion="user">
@@ -1926,7 +1926,7 @@ const MovieDetails = (): JSX.Element => {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.5 }}
-        className="relative z-10 min-h-screen text-white px-4 md:px-8 lg:px-16 py-6"
+        className="relative z-10 min-h-screen text-white px-4 pb-28 pt-8 md:px-8 lg:px-16 lg:pb-10"
       >
         {/* Header avec titre et année */}
         <motion.div
@@ -1948,7 +1948,7 @@ const MovieDetails = (): JSX.Element => {
         </motion.div>
 
         {/* Contenu principal - poster à gauche, infos à droite */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 gap-5 md:grid-cols-[minmax(13rem,0.7fr)_minmax(0,2fr)] md:gap-7">
           {/* Colonne gauche - Poster */}
           <motion.div
             initial={{ opacity: 0, x: -20 }}
@@ -1960,7 +1960,7 @@ const MovieDetails = (): JSX.Element => {
               transition={{ type: "spring", stiffness: 300, damping: 10 }}
               src={movie.poster_path ? `https://image.tmdb.org/t/p/original${movie.poster_path}` : DEFAULT_IMAGE}
               alt={movie.title}
-              className="w-full rounded-lg shadow-lg"
+              className="w-full rounded-2xl border border-white/10 shadow-[0_18px_55px_rgba(0,0,0,0.55),0_0_30px_rgba(255,0,0,0.10)]"
             />
 
             {/* Boutons d'action en-dessous du poster */}
@@ -1974,13 +1974,13 @@ const MovieDetails = (): JSX.Element => {
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 0.4 }}
-            className="md:col-span-2"
+            className="rounded-3xl border border-white/10 bg-slate-950/75 p-4 shadow-[0_20px_60px_rgba(0,0,0,0.3)] backdrop-blur-md md:col-span-2 md:p-6"
           >
             {/* Tabs */}
             <div className="relative">
               <div
                 ref={tabsContainerRef}
-                className="flex overflow-x-auto scrollbar-hide touch-pan-x border-b border-gray-700 mb-6"
+                className="flex overflow-x-auto scrollbar-hide touch-pan-x rounded-xl border border-white/10 bg-black/25 px-1 mb-6"
                 style={{
                   scrollbarWidth: 'none',
                   msOverflowStyle: 'none',
@@ -3158,7 +3158,7 @@ const MovieDetails = (): JSX.Element => {
                                     onError={(e) => {
                                       const target = e.target as HTMLImageElement;
                                       target.onerror = null;
-                                      target.src = 'data:image/svg+xml;utf8,<svg width="500" height="750" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 750" preserveAspectRatio="xMidYMid meet"><rect width="100%" height="100%" fill="%23333"/><text x="50%" y="50%" fill="%23ccc" font-size="50" font-family="Arial, sans-serif" text-anchor="middle" dy=".3em">MOVIX</text></svg>';
+                                      target.src = 'data:image/svg+xml;utf8,<svg width="500" height="750" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 750" preserveAspectRatio="xMidYMid meet"><rect width="100%" height="100%" fill="%23333"/><text x="50%" y="50%" fill="%23ccc" font-size="50" font-family="Arial, sans-serif" text-anchor="middle" dy=".3em">NEAHFLIX</text></svg>';
                                     }}
                                   />
 
@@ -3173,7 +3173,7 @@ const MovieDetails = (): JSX.Element => {
                                         onError={(e) => {
                                           const target = e.target as HTMLImageElement;
                                           target.onerror = null;
-                                          target.src = 'data:image/svg+xml;utf8,<svg width="500" height="281" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 281" preserveAspectRatio="xMidYMid meet"><rect width="100%" height="100%" fill="%23333"/><text x="50%" y="50%" fill="%23ccc" font-size="30" font-family="Arial, sans-serif" text-anchor="middle" dy=".3em">MOVIX</text></svg>';
+                                          target.src = 'data:image/svg+xml;utf8,<svg width="500" height="281" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 281" preserveAspectRatio="xMidYMid meet"><rect width="100%" height="100%" fill="%23333"/><text x="50%" y="50%" fill="%23ccc" font-size="30" font-family="Arial, sans-serif" text-anchor="middle" dy=".3em">NEAHFLIX</text></svg>';
                                         }}
                                       />
 

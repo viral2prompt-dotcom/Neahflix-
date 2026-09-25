@@ -518,8 +518,8 @@ const SuggestionPage: React.FC = () => {
   };
 
   return (
-    <SquareBackground squareSize={48} borderColor="rgba(168, 85, 247, 0.15)" className="min-h-screen bg-black text-white">
-      <div className="container mx-auto px-4 sm:px-6 py-8 sm:py-12 relative z-10 h-full overflow-y-auto">
+    <SquareBackground squareSize={48} borderColor="rgba(255, 0, 0, 0.18)" className="min-h-screen bg-slate-950 text-white">
+      <div className="container mx-auto min-h-screen max-w-5xl px-4 pb-28 pt-8 sm:px-6 sm:pb-12 sm:pt-12 relative z-10">
         {/* Back Button */}
         <Link to="/" className="inline-flex items-center text-white/50 hover:text-white transition-colors mb-8">
           <ArrowLeft className="w-5 h-5 mr-2" />
@@ -527,18 +527,18 @@ const SuggestionPage: React.FC = () => {
         </Link>
 
         {/* Hero Section */}
-        <div className="max-w-4xl mx-auto text-center mb-12">
+        <div className="mx-auto mb-10 max-w-4xl rounded-[2rem] border border-red-500/20 bg-gradient-to-br from-red-950/35 via-slate-950/80 to-blue-950/30 px-5 py-8 text-center shadow-[0_24px_80px_rgba(0,0,0,0.4)] sm:px-10">
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             className="mb-6 relative"
           >
-            <div className="inline-flex items-center justify-center p-3 bg-purple-500/10 rounded-full mb-4 ring-1 ring-purple-500/50">
-              <Sparkles className="w-8 h-8 text-purple-500" />
+            <div className="inline-flex items-center justify-center p-3 bg-red-500/10 rounded-full mb-4 ring-1 ring-red-500/50 shadow-[0_0_28px_rgba(255,0,0,0.22)]">
+              <Sparkles className="w-8 h-8 text-red-500" />
             </div>
             <h1 className="text-4xl md:text-6xl font-black tracking-tight mb-4">
-              <ShinyText text={t('suggestionPage.findYourNext')} speed={3} color="#ffffff" shineColor="#a855f7" className="block" />
-              <ShinyText text={t('suggestionPage.obsession')} speed={2} color="#a855f7" shineColor="#ffffff" className="block mt-2" />
+              <ShinyText text={t('suggestionPage.findYourNext')} speed={3} color="#ffffff" shineColor="#ff0000" className="block" />
+              <ShinyText text={t('suggestionPage.obsession')} speed={2} color="#ff0000" shineColor="#ffffff" className="block mt-2" />
             </h1>
             <BlurText
               text={t('suggestionPage.letUsGuide')}
@@ -556,7 +556,7 @@ const SuggestionPage: React.FC = () => {
             className="max-w-2xl mx-auto"
           >
             <AnimatedBorderCard
-              highlightColor="168 85 247"
+              highlightColor="255 0 0"
               backgroundColor="10 10 10"
               className="p-6 sm:p-8 text-center space-y-6 backdrop-blur-sm"
             >
@@ -783,7 +783,7 @@ const SuggestionPage: React.FC = () => {
             className="max-w-4xl mx-auto"
           >
             <AnimatedBorderCard
-              highlightColor="168 85 247"
+              highlightColor="255 0 0"
               backgroundColor="10 10 10"
               className="p-6 sm:p-8 backdrop-blur-sm"
             >
@@ -831,7 +831,7 @@ const SuggestionPage: React.FC = () => {
                       text={suggestion.title || suggestion.name}
                       speed={3}
                       color="#ffffff"
-                      shineColor="#a855f7"
+                      shineColor="#ff0000"
                       className="text-2xl sm:text-3xl md:text-4xl font-bold mb-4"
                     />
                   </motion.div>

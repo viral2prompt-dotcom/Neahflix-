@@ -87,7 +87,7 @@ const VipPage: React.FC = () => {
               <Crown className="w-8 h-8 text-yellow-500" />
             </div>
             <BlurText
-              text={t("vip.becomeVip") + " Movix"}
+              text={t("vip.becomeVip") + " Neahflix"}
               delay={300}
               animateBy="words"
               direction="top"
