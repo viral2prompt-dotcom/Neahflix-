@@ -170,6 +170,72 @@ const SECTIONS = [
   { id: 'data', labelKey: 'settings.sections.data', icon: Database },
 ] as const;
 
+interface SettingsAccordionProps {
+  id: string;
+  title: string;
+  description?: string;
+  icon: React.ElementType;
+  isOpen: boolean;
+  onToggle: () => void;
+  children: React.ReactNode;
+}
+
+/** Enveloppe calme à section unique ouverte autour des contrôles existants. */
+const SettingsAccordion: React.FC<SettingsAccordionProps> = ({
+  id,
+  title,
+  description,
+  icon: Icon,
+  isOpen,
+  onToggle,
+  children,
+}) => (
+  <motion.div
+    layout
+    initial={{ opacity: 0, y: 10 }}
+    animate={{ opacity: 1, y: 0 }}
+    transition={{ duration: 0.24, ease: 'easeOut' }}
+    className="overflow-hidden rounded-3xl border border-white/[0.09] bg-slate-950/55 shadow-[0_12px_40px_rgba(0,0,0,0.16)] backdrop-blur-xl"
+  >
+    <button
+      type="button"
+      aria-expanded={isOpen}
+      aria-controls={`${id}-settings-content`}
+      onClick={onToggle}
+      className="group flex w-full items-center gap-4 px-5 py-5 text-left transition-colors hover:bg-sky-400/[0.045] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300/60"
+    >
+      <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border transition-colors ${isOpen ? 'border-sky-300/25 bg-sky-400/10 text-sky-200' : 'border-white/[0.08] bg-white/[0.035] text-slate-300 group-hover:border-sky-300/20'}`}>
+        <Icon className="h-5 w-5" />
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="block text-base font-semibold tracking-[-0.01em] text-white">{title}</span>
+        {description && <span className="mt-0.5 block text-sm leading-relaxed text-slate-400">{description}</span>}
+      </span>
+      <motion.span
+        animate={{ rotate: isOpen ? 180 : 0 }}
+        transition={{ duration: 0.22, ease: 'easeOut' }}
+        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-white/[0.08] bg-white/[0.035] text-slate-400"
+      >
+        <ChevronDown className="h-4 w-4" />
+      </motion.span>
+    </button>
+    <AnimatePresence initial={false}>
+      {isOpen && (
+        <motion.div
+          id={`${id}-settings-content`}
+          initial={{ height: 0, opacity: 0 }}
+          animate={{ height: 'auto', opacity: 1 }}
+          exit={{ height: 0, opacity: 0 }}
+          transition={{ duration: 0.28, ease: 'easeInOut' }}
+          className="settings-accordion-content overflow-hidden border-t border-white/[0.07] px-5 pb-6 pt-5"
+        >
+          {children}
+        </motion.div>
+      )}
+    </AnimatePresence>
+  </motion.div>
+);
+
 // ─── Polled subcomponents ────────────────────────────────────────────────────
 //
 // Audit #9 : ces blocs sont extraits du SettingsPage (67 useStates) parce que
@@ -381,6 +447,13 @@ const SettingsPage: React.FC = () => {
     const hash = location.hash.replace('#', '');
     return hash || 'appearance';
   });
+  const [expandedSection, setExpandedSection] = useState<string>(() => {
+    const hash = location.hash.replace('#', '');
+    return hash || 'appearance';
+  });
+  // Indépendant des mécanismes VIP ci-dessous : masque seulement la carte
+  // Paramètres, sans désactiver les droits ou la gestion des clés.
+  const showVipSettings = false;
   // ─── Appearance settings state ───────────────────────────────────────────
 
   const [disableAutoScroll, setDisableAutoScroll] = useState(() => {
@@ -513,10 +586,10 @@ const SettingsPage: React.FC = () => {
   });
 
   const [screensaverEnabled, setScreensaverEnabled] = useState(() => {
-    return localStorage.getItem('screensaver_enabled') === 'true';
+    return localStorage.getItem('screensaver_enabled') !== 'false';
   });
   const [screensaverTimeout, setScreensaverTimeout] = useState(() => {
-    return parseInt(localStorage.getItem('screensaver_timeout') || '60', 10);
+    return parseInt(localStorage.getItem('screensaver_timeout') || '30', 10);
   });
   const [screensaverMode, setScreensaverMode] = useState(() => {
     return localStorage.getItem('screensaver_mode') || 'backdrop';
@@ -626,8 +699,9 @@ const SettingsPage: React.FC = () => {
   const extensionPresent = isExtensionAvailable();
 
   const visibleSections = React.useMemo(() => {
-    if (isAuthenticated) return SECTIONS;
-    return SECTIONS.filter(s => !['sessions', 'accounts', 'privacy', 'data'].includes(s.id));
+    const hiddenSections = ['vip'];
+    if (!isAuthenticated) hiddenSections.push('sessions', 'accounts', 'privacy', 'data');
+    return SECTIONS.filter((section) => !hiddenSections.includes(section.id));
   }, [isAuthenticated]);
 
   // ─── Désactive Lenis sur la page Settings ───────────────────────────────
@@ -1559,6 +1633,7 @@ const SettingsPage: React.FC = () => {
    * Lenis via l'intensité configurée dans Apparence.
    */
   const scrollToSection = useCallback((sectionId: string) => {
+    setExpandedSection(sectionId);
     const el = document.getElementById(sectionId);
     if (!el) return;
 
@@ -1608,6 +1683,7 @@ const SettingsPage: React.FC = () => {
     const highlightClasses = ['rounded-lg', 'ring-2', 'ring-red-500/70', 'ring-offset-4', 'ring-offset-[#0a0a0f]'];
     const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     setActiveSection(sectionId);
+    setExpandedSection(sectionId);
     programmaticScrollLockRef.current = true;
     target.scrollIntoView({ behavior: reducedMotion ? 'auto' : 'smooth', block: 'center' });
     target.tabIndex = -1;
@@ -1800,6 +1876,14 @@ const SettingsPage: React.FC = () => {
             {/* SECTION: Apparence                                      */}
             {/* ════════════════════════════════════════════════════════ */}
             <section id="appearance" className="scroll-mt-24">
+              <SettingsAccordion
+                id="appearance"
+                title={t('settings.appearance')}
+                description={t('settings.appearanceDesc')}
+                icon={Palette}
+                isOpen={expandedSection === 'appearance'}
+                onToggle={() => { setExpandedSection((current) => current === 'appearance' ? '' : 'appearance'); setActiveSection('appearance'); }}
+              >
               <div className="flex items-center gap-3 mb-6">
                 <div className="p-2 rounded-xl bg-gradient-to-br from-purple-600/20 to-pink-600/20 border border-purple-500/20">
                   <Palette className="w-5 h-5 text-purple-400" />
@@ -2206,6 +2290,7 @@ const SettingsPage: React.FC = () => {
                                 { value: 120, label: '2 min' },
                                 { value: 300, label: '5 min' },
                                 { value: 600, label: '10 min' },
+                                { value: 1200, label: '20 min' },
                               ].map((opt) => (
                                 <button
                                   key={opt.value}
@@ -2270,12 +2355,22 @@ const SettingsPage: React.FC = () => {
                   </div>
                 </motion.div>
               </div>
+
+              </SettingsAccordion>
             </section>
 
             {/* ════════════════════════════════════════════════════════ */}
             {/* SECTION: Sous-titres                                    */}
             {/* ════════════════════════════════════════════════════════ */}
             <section id="subtitles" className="scroll-mt-36">
+              <SettingsAccordion
+                id="subtitles"
+                title={t('settings.subtitles.title')}
+                description={t('settings.subtitles.description')}
+                icon={Captions}
+                isOpen={expandedSection === 'subtitles'}
+                onToggle={() => { setExpandedSection((current) => current === 'subtitles' ? '' : 'subtitles'); setActiveSection('subtitles'); }}
+              >
               <div data-settings-search-title className="mb-6 flex items-center gap-3">
                 <div className="rounded-xl border border-cyan-500/20 bg-cyan-600/15 p-2">
                   <Captions className="h-5 w-5 text-cyan-300" />
@@ -2308,12 +2403,22 @@ const SettingsPage: React.FC = () => {
                   />
                 </div>
               </div>
+
+              </SettingsAccordion>
             </section>
 
             {/* ════════════════════════════════════════════════════════ */}
             {/* SECTION: Performance                                    */}
             {/* ════════════════════════════════════════════════════════ */}
             <section id="performance" className="scroll-mt-24">
+              <SettingsAccordion
+                id="performance"
+                title={t('settings.sections.performance')}
+                description={t('settings.performanceDesc')}
+                icon={Gauge}
+                isOpen={expandedSection === 'performance'}
+                onToggle={() => { setExpandedSection((current) => current === 'performance' ? '' : 'performance'); setActiveSection('performance'); }}
+              >
               <div className="flex items-center gap-3 mb-6">
                 <div className="p-2 rounded-xl bg-gradient-to-br from-emerald-600/20 to-teal-600/20 border border-emerald-500/20">
                   <Gauge className="w-5 h-5 text-emerald-400" />
@@ -2521,12 +2626,22 @@ const SettingsPage: React.FC = () => {
                   })}
                 </div>
               </motion.div>
+
+              </SettingsAccordion>
             </section>
 
             {/* ════════════════════════════════════════════════════════ */}
             {/* SECTION: Langue                                         */}
             {/* ════════════════════════════════════════════════════════ */}
             <section id="language" className="scroll-mt-24">
+              <SettingsAccordion
+                id="language"
+                title={t('settings.language')}
+                description={t('settings.languageDesc')}
+                icon={Globe}
+                isOpen={expandedSection === 'language'}
+                onToggle={() => { setExpandedSection((current) => current === 'language' ? '' : 'language'); setActiveSection('language'); }}
+              >
               <div className="flex items-center gap-3 mb-6">
                 <div className="p-2 rounded-xl bg-gradient-to-br from-sky-600/20 to-blue-600/20 border border-sky-500/20">
                   <Globe className="w-5 h-5 text-sky-400" />
@@ -2569,12 +2684,23 @@ const SettingsPage: React.FC = () => {
                   })}
                 </div>
               </motion.div>
+
+              </SettingsAccordion>
             </section>
 
             {/* ════════════════════════════════════════════════════════ */}
             {/* SECTION: VIP                                            */}
             {/* ════════════════════════════════════════════════════════ */}
+            {showVipSettings && (
             <section id="vip" className="scroll-mt-24">
+              <SettingsAccordion
+                id="vip"
+                title={t('vip.title')}
+                description={t('settings.vipDesc')}
+                icon={Crown}
+                isOpen={expandedSection === 'vip'}
+                onToggle={() => { setExpandedSection((current) => current === 'vip' ? '' : 'vip'); setActiveSection('vip'); }}
+              >
               <div className="flex items-center gap-3 mb-6">
                 <div className="p-2 rounded-xl bg-gradient-to-br from-yellow-600/20 to-amber-600/20 border border-yellow-500/20">
                   <Crown className="w-5 h-5 text-yellow-400" />
@@ -2681,13 +2807,24 @@ const SettingsPage: React.FC = () => {
                   </div>
                 )}
               </motion.div>
+
+              </SettingsAccordion>
             </section>
+            )}
 
             {/* ════════════════════════════════════════════════════════ */}
             {/* SECTION: Sessions                                       */}
             {/* ════════════════════════════════════════════════════════ */}
             {isAuthenticated && (
             <section id="sessions" className="scroll-mt-24">
+              <SettingsAccordion
+                id="sessions"
+                title={t('settings.activeSessions')}
+                description={t('settings.sessionsDesc')}
+                icon={Monitor}
+                isOpen={expandedSection === 'sessions'}
+                onToggle={() => { setExpandedSection((current) => current === 'sessions' ? '' : 'sessions'); setActiveSection('sessions'); }}
+              >
               <div className="flex items-center gap-3 mb-6">
                 <div className="p-2 rounded-xl bg-gradient-to-br from-green-600/20 to-emerald-600/20 border border-green-500/20">
                   <Monitor className="w-5 h-5 text-green-400" />
@@ -2795,6 +2932,8 @@ const SettingsPage: React.FC = () => {
                   );
                 })()}
               </motion.div>
+
+              </SettingsAccordion>
             </section>
             )}
 
@@ -2803,6 +2942,14 @@ const SettingsPage: React.FC = () => {
             {/* ════════════════════════════════════════════════════════ */}
             {isAuthenticated && (
             <section id="accounts" className="scroll-mt-24">
+              <SettingsAccordion
+                id="accounts"
+                title={t('settings.linkedAccounts')}
+                description={t('settings.linkedAccountsDesc')}
+                icon={Link2}
+                isOpen={expandedSection === 'accounts'}
+                onToggle={() => { setExpandedSection((current) => current === 'accounts' ? '' : 'accounts'); setActiveSection('accounts'); }}
+              >
               <div className="flex items-center gap-3 mb-6">
                 <div className="p-2 rounded-xl bg-gradient-to-br from-indigo-600/20 to-blue-600/20 border border-indigo-500/20">
                   <Link2 className="w-5 h-5 text-indigo-400" />
@@ -2977,11 +3124,21 @@ const SettingsPage: React.FC = () => {
                   );
                 })}
               </div>
+
+              </SettingsAccordion>
             </section>
             )}
 
             {isAuthenticated && (
             <section id="privacy" className="scroll-mt-24">
+              <SettingsAccordion
+                id="privacy"
+                title={t('settings.privacy')}
+                description={t('settings.privacyDesc')}
+                icon={Shield}
+                isOpen={expandedSection === 'privacy'}
+                onToggle={() => { setExpandedSection((current) => current === 'privacy' ? '' : 'privacy'); setActiveSection('privacy'); }}
+              >
               <div className="flex items-center gap-3 mb-6">
                 <div className="p-2 rounded-xl bg-gradient-to-br from-blue-600/20 to-cyan-600/20 border border-blue-500/20">
                   <Shield className="w-5 h-5 text-blue-400" />
@@ -3145,6 +3302,8 @@ const SettingsPage: React.FC = () => {
                   </motion.div>
                 )}
               </AnimatePresence>
+
+              </SettingsAccordion>
             </section>
             )}
 
@@ -3152,6 +3311,14 @@ const SettingsPage: React.FC = () => {
             {/* SECTION: Priorité des sources (Milestone 5)            */}
             {/* ════════════════════════════════════════════════════════ */}
             <section id="source-priority" className="scroll-mt-24">
+              <SettingsAccordion
+                id="source-priority"
+                title={t('settings.sourcePriority.title')}
+                description={t('settings.sourcePriority.description')}
+                icon={ListOrdered}
+                isOpen={expandedSection === 'source-priority'}
+                onToggle={() => { setExpandedSection((current) => current === 'source-priority' ? '' : 'source-priority'); setActiveSection('source-priority'); }}
+              >
               <div className="flex items-center gap-3 mb-6">
                 <div className="p-2 rounded-xl bg-gradient-to-br from-indigo-600/20 to-violet-600/20 border border-indigo-500/20">
                   <ListOrdered className="w-5 h-5 text-indigo-400" />
@@ -3177,6 +3344,8 @@ const SettingsPage: React.FC = () => {
               <div className="rounded-xl border border-white/10 bg-white/5 p-5">
                 <SourcePriorityPanel />
               </div>
+
+              </SettingsAccordion>
             </section>
 
             {/* ════════════════════════════════════════════════════════ */}
@@ -3185,6 +3354,14 @@ const SettingsPage: React.FC = () => {
             {/* M9 : data-settings-section="extractors" (en) alias of id=#extractions (fr)
                 for the "Aller à Extracteurs" scroll from SourcePriorityPanel. */}
             <section id="extractions" data-settings-section="extractors" className="scroll-mt-24">
+              <SettingsAccordion
+                id="extractions"
+                title={t('settings.extractions.title')}
+                description={t('settings.extractions.description')}
+                icon={Zap}
+                isOpen={expandedSection === 'extractions'}
+                onToggle={() => { setExpandedSection((current) => current === 'extractions' ? '' : 'extractions'); setActiveSection('extractions'); }}
+              >
               <div className="flex items-center gap-3 mb-6">
                 <div className="p-2 rounded-xl bg-gradient-to-br from-indigo-600/20 to-purple-600/20 border border-indigo-500/20">
                   <Zap className="w-5 h-5 text-indigo-400" />
@@ -3385,6 +3562,8 @@ const SettingsPage: React.FC = () => {
               >
                 <RefreshCw className="w-4 h-4" /> {t('settings.extractions.reset')}
               </button>
+
+              </SettingsAccordion>
             </section>
 
             {/* ════════════════════════════════════════════════════════ */}
@@ -3392,6 +3571,14 @@ const SettingsPage: React.FC = () => {
             {/* ════════════════════════════════════════════════════════ */}
             {isAuthenticated && (
             <section id="data" className="scroll-mt-24">
+              <SettingsAccordion
+                id="data"
+                title={t('settings.data')}
+                description={t('settings.dataDesc')}
+                icon={Database}
+                isOpen={expandedSection === 'data'}
+                onToggle={() => { setExpandedSection((current) => current === 'data' ? '' : 'data'); setActiveSection('data'); }}
+              >
               <div className="flex items-center gap-3 mb-6">
                 <div className="p-2 rounded-xl bg-gradient-to-br from-orange-600/20 to-red-600/20 border border-orange-500/20">
                   <Database className="w-5 h-5 text-orange-400" />
@@ -3479,6 +3666,8 @@ const SettingsPage: React.FC = () => {
                   </div>
                 </button>
               </motion.div>
+
+              </SettingsAccordion>
             </section>
             )}
           </div>

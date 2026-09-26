@@ -2,6 +2,12 @@
 @tailwind components;
 @tailwind utilities;
 
+/* L'accordéon fournit son propre en-tête compact : ne pas répéter l'ancien
+   titre de section lorsque les contrôles sont ouverts. */
+.settings-accordion-content > div:first-child {
+  display: none;
+}
+
 google-cast-launcher {
   display: inline-flex !important;
   max-width: 24px;
