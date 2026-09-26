@@ -1722,10 +1722,10 @@ const AppWithIntro: React.FC = () => {
   const isScreensaverDisabledRoute = isWatchRoute || location.pathname.startsWith('/live-tv');
 
   // Screensaver logic
-  const [screensaverEnabled, setScreensaverEnabled] = useState(() => localStorage.getItem('screensaver_enabled') === 'true');
+  const [screensaverEnabled, setScreensaverEnabled] = useState(() => localStorage.getItem('screensaver_enabled') !== 'false');
   const [screensaverTimeout, setScreensaverTimeout] = useState(() => {
     const saved = localStorage.getItem('screensaver_timeout');
-    return saved ? parseInt(saved, 10) : 60;
+    return saved ? parseInt(saved, 10) : 30;
   });
 
   const shouldEnableScreensaver = screensaverEnabled && !isScreensaverDisabledRoute;
@@ -1734,9 +1734,9 @@ const AppWithIntro: React.FC = () => {
   // Listen for settings changes from Profile page
   React.useEffect(() => {
     const handleSettingsChange = () => {
-      setScreensaverEnabled(localStorage.getItem('screensaver_enabled') === 'true');
+      setScreensaverEnabled(localStorage.getItem('screensaver_enabled') !== 'false');
       const t = localStorage.getItem('screensaver_timeout');
-      setScreensaverTimeout(t ? parseInt(t, 10) : 60);
+      setScreensaverTimeout(t ? parseInt(t, 10) : 30);
     };
     window.addEventListener('screensaver_settings_changed', handleSettingsChange);
     return () => window.removeEventListener('screensaver_settings_changed', handleSettingsChange);
