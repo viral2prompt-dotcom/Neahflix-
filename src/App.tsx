@@ -42,6 +42,7 @@ import { motion, AnimatePresence, MotionConfig } from 'framer-motion';
 import { IntroProvider, useIntro } from './context/IntroContext';
 import { APRIL_FOOLS_ADMIN_PATH, isAprilFoolsAdminEnabled } from './utils/aprilFools';
 import { PLAYER_FULLSCREEN_HOST_ID, releaseHostFullscreen } from './utils/playerFullscreenPersistence';
+import { getPageBackgroundPreferences, loadBackgroundImage, PAGE_BACKGROUND_CHANGED, routeBackgroundPage } from './utils/pageBackgroundPreferences';
 import {
   pushPriorityToExtension,
   subscribeToPriorityChanges,
@@ -1753,6 +1754,37 @@ const AppWithIntro: React.FC = () => {
   const shouldShowHeader = !isWatchRoute && !isWrappedRoute;
   const isAprilFoolsAdminRouteEnabled = isAprilFoolsAdminEnabled(location.search);
   const isNoFooterPage = isWatchRoute;
+
+  // Fonds personnalisés : les réglages restent sur l'appareil. Les images sont
+  // conservées dans IndexedDB et chargées seulement pour les cinq routes ciblées.
+  React.useEffect(() => {
+    const page = routeBackgroundPage(currentPath);
+    const host = document.getElementById(PLAYER_FULLSCREEN_HOST_ID);
+    let objectUrl: string | undefined;
+    let cancelled = false;
+    const apply = async () => {
+      if (!page || !host) {
+        host?.classList.remove('has-page-background');
+        return;
+      }
+      const prefs = getPageBackgroundPreferences();
+      const background = prefs.mode === 'global' ? prefs.global : prefs.pages[page];
+      host.style.setProperty('--page-background-color', background.color);
+      host.style.removeProperty('--page-background-image');
+      host.classList.toggle('has-page-background', Boolean(background.color || background.imageId));
+      const image = await loadBackgroundImage(background.imageId).catch(() => undefined);
+      if (cancelled || !host || !image) return;
+      objectUrl = image;
+      host.style.setProperty('--page-background-image', `url("${image}")`);
+    };
+    void apply();
+    window.addEventListener(PAGE_BACKGROUND_CHANGED, apply);
+    return () => {
+      cancelled = true;
+      window.removeEventListener(PAGE_BACKGROUND_CHANGED, apply);
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [currentPath]);
 
   // Le plein écran du lecteur est porté par le conteneur racine de l'app (voir
   // `PLAYER_FULLSCREEN_HOST_ID`), pour qu'il survive au remontage du lecteur

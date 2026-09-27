@@ -104,3 +104,9 @@ body.embla-scrolling .embla-slide {
     text-stroke: 2px rgba(239, 68, 68, 0.6);
   }
 }
+
+/* Point focal réel du carrousel : la carte active gagne juste assez de
+   présence sans faire sauter la mise en page. */
+.platform-slide { transform: scale(.94); transition: transform 260ms cubic-bezier(.2,.8,.2,1), filter 260ms ease; }
+.platform-slide.is-focal { transform: scale(1); filter: drop-shadow(0 12px 20px rgba(28, 113, 153, .22)); }
+@media (prefers-reduced-motion: reduce) { .platform-slide { transition: none; } }

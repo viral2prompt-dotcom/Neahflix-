@@ -9,7 +9,6 @@ import ContentRowSkeleton from '../components/skeletons/ContentRowSkeleton';
 import LazySection from '../components/LazySection';
 import CarouselTitle from '../components/CarouselTitle';
 
-import TelegramPromotion from '../components/TelegramPromotion';
 import { useWrappedTracker } from '../hooks/useWrappedTracker';
 import { getTmdbLanguage } from '../i18n';
 import { getMinimumCarouselCategoryItems, makeExclusiveCategories } from '../utils/exclusiveCategories';
@@ -869,7 +868,6 @@ const TVShows: React.FC = () => {
           </div>
         ))}
 
-        <TelegramPromotion />
       </div>
 
       {/* Spacer div to maintain structure */}

@@ -9,7 +9,6 @@ import ContentRowSkeleton from '../components/skeletons/ContentRowSkeleton';
 import LazySection from '../components/LazySection';
 import CarouselTitle from '../components/CarouselTitle';
 
-import TelegramPromotion from '../components/TelegramPromotion';
 import { useWrappedTracker } from '../hooks/useWrappedTracker';
 import { getTmdbLanguage } from '../i18n';
 import { getMinimumCarouselCategoryItems, makeExclusiveCategories } from '../utils/exclusiveCategories';
@@ -979,7 +978,6 @@ const Movies: React.FC = () => {
           </div>
         ))}
 
-        <TelegramPromotion />
 
         {/* Movie Category Rows - replaced by unified EmblaCarousel above */}
       </div>

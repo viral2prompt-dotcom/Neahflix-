@@ -7,7 +7,6 @@ import HeroSkeleton from '../components/skeletons/HeroSkeleton';
 import ContentRowSkeleton from '../components/skeletons/ContentRowSkeleton';
 import EmblaCarouselGenres from '../components/EmblaCarouselGenres';
 import LazySection from '../components/LazySection';
-import TelegramPromotion from '../components/TelegramPromotion';
 import { useWrappedTracker } from '../hooks/useWrappedTracker';
 import { getTmdbLanguage } from '../i18n';
 import { getNumericAge } from '../utils/certificationUtils';
@@ -573,7 +572,6 @@ const Anime: React.FC = () => {
           </div>
         ))}
 
-        <TelegramPromotion />
       </div>
     </div>
   );

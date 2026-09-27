@@ -424,11 +424,11 @@ const HeroSliderInner: React.FC<HeroSliderProps> = ({ items }) => {
                             </p>
 
                             {/* Buttons */}
-                            <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+                            <div className="hero-actions flex w-full items-start gap-1.5 sm:gap-2">
                               <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}>
                                 <Link
                                   to={`/${item.media_type}/${encodeId(item.id)}`}
-                                  className="inline-flex items-center justify-center gap-2 bg-red-600 hover:bg-red-500 text-white px-5 sm:px-6 md:px-7 py-3 sm:py-3 min-h-[48px] rounded-xl sm:rounded-2xl text-sm sm:text-base font-semibold transition-colors shadow-lg shadow-red-600/30 touch-manipulation"
+                                  className="hero-watch-action inline-flex min-h-[76px] w-[46%] items-center justify-center gap-2 rounded-l-[1.35rem] rounded-r-[.7rem] border border-sky-200/35 bg-gradient-to-b from-sky-400 to-blue-700 px-4 py-4 text-sm font-semibold text-slate-950 shadow-[0_14px_32px_rgba(14,116,144,.28)] transition-[transform,filter] sm:text-base touch-manipulation"
                                 >
                                   <Play className="w-4 h-4 sm:w-5 sm:h-5 fill-current" />
                                   {t('home.hero.play')}
@@ -437,7 +437,7 @@ const HeroSliderInner: React.FC<HeroSliderProps> = ({ items }) => {
                               <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}>
                                 <Link
                                   to={`/${item.media_type}/${encodeId(item.id)}`}
-                                  className="inline-flex items-center justify-center gap-2 bg-white/15 hover:bg-white/25 text-white px-5 sm:px-6 md:px-7 py-3 sm:py-3 min-h-[48px] rounded-xl sm:rounded-2xl text-sm sm:text-base font-medium border border-white/20 transition-colors touch-manipulation"
+                                  className="hero-info-action inline-flex min-h-[60px] w-[52%] items-center justify-center gap-2 rounded-l-[.7rem] rounded-r-[1.35rem] border border-white/25 bg-slate-950/55 px-4 py-3 text-sm font-medium text-white backdrop-blur-md transition-[transform,background-color] sm:text-base touch-manipulation"
                                 >
                                   <Info className="w-4 h-4 sm:w-5 sm:h-5" />
                                   {t('home.hero.moreInfo')}

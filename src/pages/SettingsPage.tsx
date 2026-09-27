@@ -75,6 +75,7 @@ import {
   type SessionDeviceType,
 } from '../utils/sessionDevice';
 import { getOverlayPortalRoot } from '@/utils/overlayPortal';
+import { getPageBackgroundPreferences, saveBackgroundImage, savePageBackgroundPreferences, type BackgroundPage, type PageBackgroundPreferences } from '../utils/pageBackgroundPreferences';
 
 const API_URL = import.meta.env.VITE_MAIN_API;
 
@@ -195,6 +196,7 @@ const SettingsAccordion: React.FC<SettingsAccordionProps> = ({
     initial={{ opacity: 0, y: 10 }}
     animate={{ opacity: 1, y: 0 }}
     transition={{ duration: 0.24, ease: 'easeOut' }}
+    data-settings-accordion
     className="overflow-hidden rounded-3xl border border-white/[0.09] bg-slate-950/55 shadow-[0_12px_40px_rgba(0,0,0,0.16)] backdrop-blur-xl"
   >
     <button
@@ -447,10 +449,43 @@ const SettingsPage: React.FC = () => {
     const hash = location.hash.replace('#', '');
     return hash || 'appearance';
   });
-  const [expandedSection, setExpandedSection] = useState<string>(() => {
-    const hash = location.hash.replace('#', '');
-    return hash || 'appearance';
-  });
+  const [expandedSection, setExpandedSection] = useState<string>('');
+  // Les accordéons démarrent tous fermés. Un tap hors de la carte referme
+  // l'option ouverte, sans intercepter le défilement tactile.
+  useEffect(() => {
+    const closeOutside = (event: PointerEvent) => {
+      if (expandedSection && event.target instanceof Element && !event.target.closest('[data-settings-accordion]')) setExpandedSection('');
+    };
+    document.addEventListener('pointerdown', closeOutside);
+    return () => document.removeEventListener('pointerdown', closeOutside);
+  }, [expandedSection]);
+
+  const [pageBackgrounds, setPageBackgrounds] = useState<PageBackgroundPreferences>(() => getPageBackgroundPreferences());
+  const [backgroundTarget, setBackgroundTarget] = useState<BackgroundPage>('home');
+  const commitPageBackgrounds = (next: PageBackgroundPreferences) => {
+    setPageBackgrounds(next);
+    savePageBackgroundPreferences(next);
+  };
+  const updateBackgroundColor = (color: string) => {
+    const target = pageBackgrounds.mode === 'global' ? 'global' : backgroundTarget;
+    const next = target === 'global'
+      ? { ...pageBackgrounds, global: { ...pageBackgrounds.global, color } }
+      : { ...pageBackgrounds, pages: { ...pageBackgrounds.pages, [target]: { ...pageBackgrounds.pages[target], color } } };
+    commitPageBackgrounds(next);
+  };
+  const handleBackgroundImage = async (file?: File) => {
+    if (!file || !file.type.startsWith('image/')) return;
+    const imageId = `page-background-${Date.now()}`;
+    try {
+      await saveBackgroundImage(imageId, file);
+      const target = pageBackgrounds.mode === 'global' ? 'global' : backgroundTarget;
+      const next = target === 'global'
+        ? { ...pageBackgrounds, global: { ...pageBackgrounds.global, imageId } }
+        : { ...pageBackgrounds, pages: { ...pageBackgrounds.pages, [target]: { ...pageBackgrounds.pages[target], imageId } } };
+      commitPageBackgrounds(next);
+    } catch { /* IndexedDB indisponible : la couleur reste utilisable. */ }
+  };
+
   // Indépendant des mécanismes VIP ci-dessous : masque seulement la carte
   // Paramètres, sans désactiver les droits ou la gestion des clés.
   const showVipSettings = false;
@@ -1891,6 +1926,22 @@ const SettingsPage: React.FC = () => {
                 <div>
                   <h2 className="text-xl font-semibold text-white">{t('settings.appearance')}</h2>
                   <p className="text-sm text-gray-500">{t('settings.appearanceDesc')}</p>
+                </div>
+              </div>
+
+              <div className="mb-5 rounded-2xl border border-sky-200/15 bg-slate-900/60 p-4 shadow-inner shadow-sky-950/30">
+                <div className="mb-4 flex items-center gap-2">
+                  <Palette className="h-4 w-4 text-sky-200" />
+                  <div><h3 className="text-sm font-semibold text-white">Arrière-plans</h3><p className="text-xs text-slate-400">Une couleur ou image locale, appliquée immédiatement.</p></div>
+                </div>
+                <div className="mb-4 flex gap-2">
+                  {(['global', 'custom'] as const).map((mode) => <button key={mode} type="button" onClick={() => commitPageBackgrounds({ ...pageBackgrounds, mode })} className={`rounded-xl px-3 py-2 text-xs font-medium transition-colors ${pageBackgrounds.mode === mode ? 'bg-sky-300 text-slate-950' : 'bg-white/5 text-slate-300 hover:bg-white/10'}`}>{mode === 'global' ? 'Appliquer à toutes les pages' : 'Personnaliser les pages'}</button>)}
+                </div>
+                {pageBackgrounds.mode === 'custom' && <div className="mb-4 flex flex-wrap gap-2">{([['home', 'Accueil'], ['movies', 'Films'], ['series', 'Séries'], ['anime', 'Anime'], ['settings', 'Paramètres']] as [BackgroundPage, string][]).map(([id, label]) => <button key={id} type="button" onClick={() => setBackgroundTarget(id)} className={`rounded-lg px-2.5 py-1.5 text-xs ${backgroundTarget === id ? 'bg-white text-slate-950' : 'bg-white/5 text-slate-300'}`}>{label}</button>)}</div>}
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                  <label className="flex items-center gap-2 text-xs text-slate-300">Couleur <input aria-label="Couleur d'arrière-plan" type="color" value={(pageBackgrounds.mode === 'global' ? pageBackgrounds.global : pageBackgrounds.pages[backgroundTarget]).color} onChange={(e) => updateBackgroundColor(e.target.value)} className="h-9 w-12 cursor-pointer rounded border border-white/15 bg-transparent p-1" /></label>
+                  <label className="cursor-pointer rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-xs text-slate-200 transition-colors hover:bg-white/10">Choisir une image <input className="sr-only" type="file" accept="image/*" onChange={(e) => void handleBackgroundImage(e.target.files?.[0])} /></label>
+                  <span className="text-[11px] text-slate-500">Image conservée uniquement sur cet appareil.</span>
                 </div>
               </div>
 
