@@ -1636,3 +1636,24 @@ body,
   -webkit-text-fill-color: #ffffff;
   background: rgba(239, 68, 68, 0.45);
 }
+
+/* Fonds locaux choisis dans Paramètres : teinte de secours + voile sombre pour
+   préserver le contraste des pages cinéma, sans asset versionné. */
+.neahflix-app-shell.has-page-background {
+  background-color: var(--page-background-color, #020b1d) !important;
+  background-image: linear-gradient(rgba(2, 11, 29, .72), rgba(2, 11, 29, .82)), var(--page-background-image) !important;
+  background-size: cover !important;
+  background-position: center !important;
+  background-attachment: fixed !important;
+}
+@media (max-width: 768px), (prefers-reduced-motion: reduce) {
+  .neahflix-app-shell.has-page-background { background-attachment: scroll !important; }
+}
+
+.hero-watch-action:hover { filter: brightness(1.08); transform: translateY(-2px); }
+.hero-info-action:hover { background-color: rgba(148, 163, 184, .18); transform: translateY(-1px); }
+.neahflix-lightfall { background: linear-gradient(135deg, rgba(4, 17, 39, .96), rgba(11, 42, 69, .72), rgba(3, 13, 32, .96)); isolation: isolate; }
+.neahflix-lightfall__ray { position: absolute; inset: -55% -15%; opacity: .24; background: linear-gradient(105deg, transparent 42%, rgba(199,236,255,.52) 50%, transparent 58%); transform: rotate(9deg); animation: neahflix-lightfall 14s ease-in-out infinite alternate; }
+.neahflix-lightfall__ray--two { animation-delay: -7s; transform: rotate(-12deg) translateX(-22%); opacity: .14; }
+@keyframes neahflix-lightfall { to { transform: rotate(9deg) translateX(20%); } }
+@media (prefers-reduced-motion: reduce) { .neahflix-lightfall__ray { animation: none; } }

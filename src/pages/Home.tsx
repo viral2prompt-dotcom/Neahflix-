@@ -19,6 +19,7 @@ import { encodeId } from '../utils/idEncoder';
 import { getPersonalizedRecommendations, isRecommendationsEnabled, PersonalizedRecommendations } from '../services/recommendationService';
 import CarouselTitle from '../components/CarouselTitle';
 import ConfirmDialog from '../components/ui/confirm-dialog';
+import { Lightfall } from '../components/Lightfall';
 
 // Nombre de sections à charger immédiatement (les premières sont prioritaires)
 const IMMEDIATE_LOAD_COUNT = 3;
@@ -163,20 +164,20 @@ const homeStyles = `
 }
 
 .section-title {
-  font-size: 1.5rem;
-  font-weight: 700;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: clamp(1rem, 3.5vw, 1.45rem);
+  font-weight: 600;
   position: relative;
-  background: linear-gradient(90deg, #ffffff, #e2e2e2);
+  background: linear-gradient(90deg, #ffffff, #b9d4e8);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
   text-shadow: 0px 2px 4px rgba(0, 0, 0, 0.3);
-  letter-spacing: 0.5px;
+  letter-spacing: 0.12em;
   padding-bottom: 0.5rem;
   text-transform: uppercase;
   display: inline-block;
-  animation: homeTitleArrive 0.72s cubic-bezier(0.16, 1, 0.3, 1) both,
-    homeTitleFloat 5.2s ease-in-out 0.8s infinite;
+  animation: homeTitleArrive 0.52s cubic-bezier(0.16, 1, 0.3, 1) both;
   /* Ciblé plutôt que \`all\` : le dégradé de fond n'a rien à faire dans une
      transition — il est découpé sur le texte et son interpolation coûte un
      repaint à chaque frame. */
@@ -184,11 +185,11 @@ const homeStyles = `
 }
 
 .section-title:hover {
-  background: linear-gradient(90deg, #ff3333, #ff9999);
+  background: linear-gradient(90deg, #ffffff, #82b5d3);
   -webkit-background-clip: text;
   background-clip: text;
   transform: translateY(-2px);
-  text-shadow: 0px 4px 8px rgba(255, 51, 51, 0.4);
+  text-shadow: 0px 4px 14px rgba(104, 181, 222, 0.28);
 }
 
 .section-title::after {
@@ -198,7 +199,7 @@ const homeStyles = `
   bottom: 0;
   width: 40px;
   height: 3px;
-  background: linear-gradient(90deg, #f11 0%, #f66 100%);
+  background: linear-gradient(90deg, #d8f2ff 0%, #4b89ad 100%);
   border-radius: 3px;
   transform-origin: left;
   /* \`backwards\` et non \`forwards\`. Une valeur figée par une animation
@@ -216,7 +217,7 @@ const homeStyles = `
      « PARCE QUE VOUS AVEZ REGARDÉ … » en capitales, le trait devenait une
      barre rouge démesurée. */
   width: 72px;
-  background: linear-gradient(90deg, #ff3333, #ff9999);
+  background: linear-gradient(90deg, #ffffff, #82b5d3);
 }
 
 @keyframes homeTitleArrive {
@@ -1436,6 +1437,16 @@ const Home: React.FC = () => {
                 </div>
               )}
             </motion.div>
+            <section className="neahflix-lightfall relative mx-4 mb-10 mt-12 overflow-hidden rounded-3xl border border-sky-100/15 px-6 py-10 text-center shadow-2xl shadow-sky-950/30 md:mx-8 md:px-12" aria-label="Crédits Neahflix">
+              <Lightfall />
+              <div className="relative z-10 mx-auto max-w-2xl">
+                <p className="font-serif text-xs tracking-[0.42em] text-sky-100/70">NEAHFLIX</p>
+                <p className="mt-4 font-serif text-2xl text-white sm:text-3xl">« Le plaisir du cinéma à un prix juste. »</p>
+                <p className="mt-5 text-sm leading-relaxed text-slate-300">Merci à Mysticsaba pour son soutien et sa confiance dans l'aventure Neahflix.</p>
+                <p className="mt-7 text-xs font-medium tracking-[0.14em] text-sky-100">@NGWilson.B — Créateur de Neahflix</p>
+                <p className="mt-2 font-mono text-[11px] tracking-[0.22em] text-slate-400">Code 242.CG//100%</p>
+              </div>
+            </section>
           </>
         )}
       </motion.div>

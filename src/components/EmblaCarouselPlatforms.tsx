@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import useEmblaCarousel from 'embla-carousel-react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { PrefetchLink as Link } from '@/routing/PrefetchLink';
@@ -34,6 +34,8 @@ const EmblaCarouselPlatforms: React.FC<EmblaCarouselPlatformsProps> = ({ title, 
   });
   const [canScrollPrev, setCanScrollPrev] = useState(false);
   const [canScrollNext, setCanScrollNext] = useState(false);
+  const [focalId, setFocalId] = useState<number | null>(null);
+  const rootRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     if (!emblaApi) return;
@@ -53,6 +55,41 @@ const EmblaCarouselPlatforms: React.FC<EmblaCarouselPlatformsProps> = ({ title, 
       emblaApi.off('reInit', updateArrows);
     };
   }, [emblaApi]);
+
+  // Le contenu le plus proche du point focal est le seul autorisé à lire sa
+  // bande-annonce. Le recalcul suit le scroll Embla dans les deux directions.
+  useEffect(() => {
+    if (!emblaApi) return;
+    const root = emblaApi.rootNode();
+    const updateFocal = () => {
+      const center = root.getBoundingClientRect().left + root.getBoundingClientRect().width / 2;
+      let closest: { id: number; distance: number } | null = null;
+      root.querySelectorAll<HTMLElement>('[data-platform-id]').forEach((node) => {
+        const rect = node.getBoundingClientRect();
+        if (rect.right < 0 || rect.left > window.innerWidth) return;
+        const candidate = { id: Number(node.dataset.platformId), distance: Math.abs((rect.left + rect.right) / 2 - center) };
+        if (!closest || candidate.distance < closest.distance) closest = candidate;
+      });
+      setFocalId(closest?.id ?? null);
+    };
+    updateFocal();
+    emblaApi.on('scroll', updateFocal);
+    emblaApi.on('settle', updateFocal);
+    window.addEventListener('resize', updateFocal);
+    return () => { emblaApi.off('scroll', updateFocal); emblaApi.off('settle', updateFocal); window.removeEventListener('resize', updateFocal); };
+  }, [emblaApi]);
+
+  useEffect(() => {
+    const root = rootRef.current;
+    if (!root) return;
+    root.querySelectorAll<HTMLVideoElement>('video[data-platform-video]').forEach((video) => {
+      const active = Number(video.dataset.platformVideo) === focalId;
+      if (active) {
+        if (!video.dataset.loaded) { video.dataset.loaded = 'true'; video.load(); }
+        void video.play().catch(() => undefined);
+      } else { video.pause(); video.currentTime = 0; }
+    });
+  }, [focalId]);
 
   const getStep = useCallback(() => {
     const w = typeof window !== 'undefined' ? window.innerWidth : 1024;
@@ -89,7 +126,7 @@ const EmblaCarouselPlatforms: React.FC<EmblaCarouselPlatformsProps> = ({ title, 
   }, [emblaApi, getStep]);
 
   return (
-    <div className="w-full relative group/carousel -mx-3 md:-mx-4">
+    <div ref={rootRef} className="w-full relative group/carousel -mx-3 md:-mx-4">
       {title && (
         <div className="flex justify-between items-center mb-2 px-4 md:px-6 relative z-10">
           <h2 className="section-title">{title}</h2>
@@ -99,56 +136,29 @@ const EmblaCarouselPlatforms: React.FC<EmblaCarouselPlatformsProps> = ({ title, 
         <div className="overflow-visible" ref={emblaRef}>
           <div className="flex gap-6 pr-8 md:pr-16 py-8 pl-4 md:pl-6">
             {items.map((platform) => (
-              <div key={platform.id} className="flex-none">
+              <div key={platform.id} data-platform-id={platform.id} className={`flex-none platform-slide ${focalId === platform.id ? 'is-focal' : ''}`}>
                 {platform.internalRoute ? (
                   <Link to={platform.internalRoute} className="platform-link block w-[250px] h-[150px] group select-none">
                     <div className={`w-full h-full relative rounded-xl ${platform.brandClass || 'bg-white'}`}>
-                      {platform.src ? <img src={platform.src} alt={platform.alt} className="w-full h-full object-contain p-8 group-hover:opacity-0 transition-opacity duration-300" draggable="false" loading="lazy" decoding="async" /> : <span className="absolute inset-0 grid place-items-center px-6 text-center text-2xl font-black tracking-tight">{platform.alt}</span>}
+                      {platform.src ? <img src={platform.src} alt={platform.alt} className={`w-full h-full object-contain p-8 transition-opacity duration-300 ${focalId === platform.id ? 'opacity-0' : 'opacity-100'}`} draggable="false" loading="lazy" decoding="async" /> : <span className="absolute inset-0 grid place-items-center px-6 text-center text-2xl font-black tracking-tight">{platform.alt}</span>}
                       {platform.label && <p className="absolute bottom-2 left-0 right-0 text-center text-white text-xs font-bold bg-black/60 py-1 px-2 mx-4 rounded-lg">{platform.label}</p>}
                     </div>
                   </Link>
                 ) : platform.href ? (
                   <a href={platform.href} target="_blank" rel="noreferrer" className="platform-link block w-[250px] h-[150px] group select-none">
                     <div className={`w-full h-full relative rounded-xl ${platform.brandClass || 'bg-white'}`}>
-                      {platform.src ? <img src={platform.src} alt={platform.alt} className="w-full h-full object-contain p-8 group-hover:opacity-0 transition-opacity duration-300" draggable="false" loading="lazy" decoding="async" /> : <span className="absolute inset-0 grid place-items-center px-6 text-center text-2xl font-black tracking-tight">{platform.alt}</span>}
+                      {platform.src ? <img src={platform.src} alt={platform.alt} className={`w-full h-full object-contain p-8 transition-opacity duration-300 ${focalId === platform.id ? 'opacity-0' : 'opacity-100'}`} draggable="false" loading="lazy" decoding="async" /> : <span className="absolute inset-0 grid place-items-center px-6 text-center text-2xl font-black tracking-tight">{platform.alt}</span>}
                     </div>
                   </a>
                 ) : platform.route ? (
                 <Link to={platform.route || '/'} className="platform-link block w-[250px] h-[150px] group select-none">
                   <div
                     className={`w-full h-full relative rounded-xl ${platform.brandClass || 'bg-white'}`}
-                    onMouseEnter={() => {
-                      if (!platform.video?.endsWith('.gif')) {
-                        const video = document.getElementById(`video-${platform.id}`) as HTMLVideoElement | null;
-                        if (video) {
-                          try {
-                            // preload="none" : rien n'est téléchargé au mount (~2,4 Mo
-                            // économisés sur la Home). On ne déclenche le chargement
-                            // qu'au tout premier survol, une seule fois (dataset flag
-                            // pour ne pas relancer un fetch réseau aux survols suivants).
-                            if (!video.dataset.loaded) {
-                              video.dataset.loaded = 'true';
-                              video.load();
-                            }
-                            video.currentTime = 0;
-                            video.play().catch(() => {});
-                          } catch (_) {}
-                        }
-                      }
-                    }}
-                    onMouseLeave={() => {
-                      if (!platform.video?.endsWith('.gif')) {
-                        const video = document.getElementById(`video-${platform.id}`) as HTMLVideoElement | null;
-                        if (video) {
-                          try { video.pause(); video.currentTime = 0; } catch (_) {}
-                        }
-                      }
-                    }}
                   >
                     <img
                       src={platform.src}
                       alt={platform.alt}
-                      className="w-full h-full object-contain p-8 group-hover:opacity-0 transition-opacity duration-300"
+                      className={`w-full h-full object-contain p-8 transition-opacity duration-300 ${focalId === platform.id ? 'opacity-0' : 'opacity-100'}`}
                       draggable="false"
                       loading="lazy"
                       decoding="async"
@@ -164,12 +174,13 @@ const EmblaCarouselPlatforms: React.FC<EmblaCarouselPlatformsProps> = ({ title, 
                           id={`video-${platform.id}`}
                           src={platform.video}
                           alt={platform.alt}
-                          className="absolute inset-0 w-full h-full object-cover opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-xl"
+                          className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-300 rounded-xl ${focalId === platform.id ? 'opacity-100' : 'opacity-0'}`}
                         />
                       ) : (
                         <video
                           id={`video-${platform.id}`}
-                          className="absolute inset-0 w-full h-full object-cover opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-xl"
+                          data-platform-video={platform.id}
+                          className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-300 rounded-xl ${focalId === platform.id ? 'opacity-100' : 'opacity-0'}`}
                           loop
                           muted
                           playsInline
