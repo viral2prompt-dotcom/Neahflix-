@@ -428,7 +428,7 @@ const HeroSliderInner: React.FC<HeroSliderProps> = ({ items }) => {
                               <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}>
                                 <Link
                                   to={`/${item.media_type}/${encodeId(item.id)}`}
-                                  className="hero-watch-action inline-flex min-h-[76px] w-[46%] items-center justify-center gap-2 rounded-l-[1.35rem] rounded-r-[.7rem] border border-sky-200/35 bg-gradient-to-b from-sky-400 to-blue-700 px-4 py-4 text-sm font-semibold text-slate-950 shadow-[0_14px_32px_rgba(14,116,144,.28)] transition-[transform,filter] sm:text-base touch-manipulation"
+                                  className="hero-watch-action inline-flex min-h-[60px] w-[46%] items-center justify-center gap-2 rounded-[1rem] border border-red-200/35 bg-gradient-to-b from-red-500 via-red-600 to-rose-800 px-4 py-3 text-sm font-semibold text-white shadow-[0_10px_24px_rgba(127,29,29,.34)] transition-[transform,filter,box-shadow] sm:text-base touch-manipulation"
                                 >
                                   <Play className="w-4 h-4 sm:w-5 sm:h-5 fill-current" />
                                   {t('home.hero.play')}
@@ -437,7 +437,7 @@ const HeroSliderInner: React.FC<HeroSliderProps> = ({ items }) => {
                               <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}>
                                 <Link
                                   to={`/${item.media_type}/${encodeId(item.id)}`}
-                                  className="hero-info-action inline-flex min-h-[60px] w-[52%] items-center justify-center gap-2 rounded-l-[.7rem] rounded-r-[1.35rem] border border-white/25 bg-slate-950/55 px-4 py-3 text-sm font-medium text-white backdrop-blur-md transition-[transform,background-color] sm:text-base touch-manipulation"
+                                  className="hero-info-action inline-flex min-h-[60px] w-[52%] items-center justify-center gap-2 rounded-[1.35rem] border border-sky-100/30 bg-slate-950/55 px-4 py-3 text-sm font-medium text-white shadow-[0_8px_20px_rgba(2,6,23,.28)] backdrop-blur-md transition-[transform,background-color,box-shadow] sm:text-base touch-manipulation"
                                 >
                                   <Info className="w-4 h-4 sm:w-5 sm:h-5" />
                                   {t('home.hero.moreInfo')}

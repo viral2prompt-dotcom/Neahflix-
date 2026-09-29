@@ -1763,11 +1763,17 @@ const AppWithIntro: React.FC = () => {
     let objectUrl: string | undefined;
     let cancelled = false;
     const apply = async () => {
-      if (!page || !host) {
+      if (!host) {
         host?.classList.remove('has-page-background');
         return;
       }
       const prefs = getPageBackgroundPreferences();
+      // Le mode global couvre aussi les routes qui n'ont pas de profil dédié.
+      // En mode personnalisé, ces routes conservent le fond Neahflix d'origine.
+      if (!page && prefs.mode === 'custom') {
+        host.classList.remove('has-page-background');
+        return;
+      }
       const background = prefs.mode === 'global' ? prefs.global : prefs.pages[page];
       host.style.setProperty('--page-background-color', background.color);
       host.style.removeProperty('--page-background-image');

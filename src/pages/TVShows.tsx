@@ -806,7 +806,7 @@ const TVShows: React.FC = () => {
 
   if (loading && tvShows.length === 0) {
     return (
-      <div className="min-h-screen bg-black text-white">
+      <div className="min-h-screen bg-transparent text-white">
         <div className="relative w-full pt-16 md:pt-20 lg:pt-24">
           <HeroSkeleton />
         </div>
@@ -820,7 +820,7 @@ const TVShows: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-black text-white">
+    <div className="min-h-screen bg-transparent text-white">
       <style>{heroSliderStyles}</style>
 
       {/* Hero Section */}

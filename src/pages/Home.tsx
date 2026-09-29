@@ -1149,7 +1149,7 @@ const Home: React.FC = () => {
 
   if (loading) {
     return (
-      <SquareBackground squareSize={48} borderColor="rgba(239, 68, 68, 0.10)" className="w-full min-h-screen bg-black text-white">
+      <SquareBackground squareSize={48} borderColor="rgba(239, 68, 68, 0.10)" className="w-full min-h-screen bg-transparent text-white">
         <HeroSkeleton />
         <div className="container mx-auto px-4 py-8 space-y-8">
           <ContentRowSkeleton />
@@ -1161,7 +1161,7 @@ const Home: React.FC = () => {
   }
 
   return (
-    <SquareBackground squareSize={48} borderColor="rgba(239, 68, 68, 0.10)" className="w-full min-h-screen bg-black text-white">
+    <SquareBackground squareSize={48} borderColor="rgba(239, 68, 68, 0.10)" className="w-full min-h-screen bg-transparent text-white">
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}

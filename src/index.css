@@ -45,6 +45,29 @@ body.embla-scrolling .embla-slide {
       "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif,
       "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
   }
+
+  /* L'identité Neahflix s'applique aux niveaux de lecture, pas aux textes
+     courants : navigation, formulaires et résumés restent très lisibles. */
+  main :where(h1, h2, h3),
+  .section-title,
+  .neahflix-title {
+    font-family: Georgia, "Times New Roman", ui-serif, serif;
+    font-weight: 700;
+    letter-spacing: 0.015em;
+    text-wrap: balance;
+  }
+
+  main h1,
+  .neahflix-title--primary {
+    letter-spacing: 0.025em;
+    color: #f8fcff;
+  }
+
+  main h2,
+  .section-title,
+  .neahflix-title--section {
+    color: #d7f3ff;
+  }
 }
 
 @keyframes animated-border-spin {
@@ -1645,13 +1668,17 @@ body,
   background-size: cover !important;
   background-position: center !important;
   background-attachment: fixed !important;
+  background-repeat: no-repeat !important;
+  isolation: isolate;
 }
 @media (max-width: 768px), (prefers-reduced-motion: reduce) {
   .neahflix-app-shell.has-page-background { background-attachment: scroll !important; }
 }
 
-.hero-watch-action:hover { filter: brightness(1.08); transform: translateY(-2px); }
-.hero-info-action:hover { background-color: rgba(148, 163, 184, .18); transform: translateY(-1px); }
+.hero-watch-action:hover { filter: brightness(1.08); transform: translateY(-1px); box-shadow: 0 14px 28px rgba(127,29,29,.42); }
+.hero-watch-action:active { transform: scale(.975); filter: brightness(.94); }
+.hero-info-action:hover { background-color: rgba(148, 163, 184, .18); transform: translateY(-1px); box-shadow: 0 12px 24px rgba(2,6,23,.34); }
+.hero-info-action:active { transform: scale(.98); }
 .neahflix-lightfall { background: linear-gradient(135deg, rgba(4, 17, 39, .96), rgba(11, 42, 69, .72), rgba(3, 13, 32, .96)); isolation: isolate; }
 .neahflix-lightfall__ray { position: absolute; inset: -55% -15%; opacity: .24; background: linear-gradient(105deg, transparent 42%, rgba(199,236,255,.52) 50%, transparent 58%); transform: rotate(9deg); animation: neahflix-lightfall 14s ease-in-out infinite alternate; }
 .neahflix-lightfall__ray--two { animation-delay: -7s; transform: rotate(-12deg) translateX(-22%); opacity: .14; }
