@@ -35,7 +35,16 @@ const EmblaCarouselPlatforms: React.FC<EmblaCarouselPlatformsProps> = ({ title, 
   const [canScrollPrev, setCanScrollPrev] = useState(false);
   const [canScrollNext, setCanScrollNext] = useState(false);
   const [focalId, setFocalId] = useState<number | null>(null);
+  const [motionAllowed, setMotionAllowed] = useState(true);
   const rootRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    const media = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const update = () => setMotionAllowed(!media.matches);
+    update();
+    media.addEventListener('change', update);
+    return () => media.removeEventListener('change', update);
+  }, []);
 
   useEffect(() => {
     if (!emblaApi) return;
@@ -73,23 +82,24 @@ const EmblaCarouselPlatforms: React.FC<EmblaCarouselPlatformsProps> = ({ title, 
       setFocalId(closest?.id ?? null);
     };
     updateFocal();
-    emblaApi.on('scroll', updateFocal);
+    // Le changement est validé à l'arrêt du geste : aucune vidéo ne démarre
+    // pendant le défilement ou simplement parce qu'elle frôle le viewport.
     emblaApi.on('settle', updateFocal);
     window.addEventListener('resize', updateFocal);
-    return () => { emblaApi.off('scroll', updateFocal); emblaApi.off('settle', updateFocal); window.removeEventListener('resize', updateFocal); };
+    return () => { emblaApi.off('settle', updateFocal); window.removeEventListener('resize', updateFocal); };
   }, [emblaApi]);
 
   useEffect(() => {
     const root = rootRef.current;
     if (!root) return;
     root.querySelectorAll<HTMLVideoElement>('video[data-platform-video]').forEach((video) => {
-      const active = Number(video.dataset.platformVideo) === focalId;
+      const active = motionAllowed && document.visibilityState === 'visible' && Number(video.dataset.platformVideo) === focalId;
       if (active) {
         if (!video.dataset.loaded) { video.dataset.loaded = 'true'; video.load(); }
         void video.play().catch(() => undefined);
       } else { video.pause(); video.currentTime = 0; }
     });
-  }, [focalId]);
+  }, [focalId, motionAllowed]);
 
   const getStep = useCallback(() => {
     const w = typeof window !== 'undefined' ? window.innerWidth : 1024;
@@ -169,19 +179,11 @@ const EmblaCarouselPlatforms: React.FC<EmblaCarouselPlatformsProps> = ({ title, 
                       </p>
                     )}
                     {platform.video && (
-                      platform.video.endsWith('.gif') ? (
-                        <img
-                          id={`video-${platform.id}`}
-                          src={platform.video}
-                          alt={platform.alt}
-                          className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-300 rounded-xl ${focalId === platform.id ? 'opacity-100' : 'opacity-0'}`}
-                        />
-                      ) : (
+                      !platform.video.endsWith('.gif') && motionAllowed && (
                         <video
                           id={`video-${platform.id}`}
                           data-platform-video={platform.id}
                           className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-300 rounded-xl ${focalId === platform.id ? 'opacity-100' : 'opacity-0'}`}
-                          loop
                           muted
                           playsInline
                           preload="none"
@@ -247,4 +249,3 @@ const EmblaCarouselPlatforms: React.FC<EmblaCarouselPlatformsProps> = ({ title, 
 };
 
 export default React.memo(EmblaCarouselPlatforms);
-

@@ -400,8 +400,8 @@ const Header: React.FC = () => {
       <motion.div
         className={`flex h-full flex-col items-center rounded-2xl border ${colors.border} bg-slate-950/65 p-5 text-center shadow-[0_12px_32px_rgba(2,6,23,0.42)] backdrop-blur-xl transition duration-300 hover:-translate-y-1 hover:bg-slate-900/85 hover:shadow-[0_16px_40px_rgba(59,130,246,0.16)] active:scale-[0.98] active:bg-white/[0.08]`}
         initial={{ opacity: 0, x: index % 2 === 0 ? -18 : 18, y: 18 }}
-        animate={{ opacity: 1, x: 0, y: [0, -2, 0] }}
-        transition={{ opacity: { duration: 0.38, delay: index * 0.055 }, x: { duration: 0.38, delay: index * 0.055 }, y: { duration: 4.8, delay: 0.45 + index * 0.08, repeat: Infinity, ease: 'easeInOut' } }}
+        animate={{ opacity: 1, x: 0, y: 0 }}
+        transition={{ duration: 0.38, delay: index * 0.055, ease: 'easeOut' }}
       >
         <div className={`mb-3 flex h-14 w-14 items-center justify-center rounded-2xl border ${colors.border} ${colors.bg} ${colors.text} shadow-[0_0_22px_rgba(34,197,94,0.12)]`}>
           {item.icon}
@@ -744,11 +744,11 @@ const Header: React.FC = () => {
                   exit={{ y: 40 }}
                   transition={{ duration: 0.3, ease: [0.32, 0.72, 0, 1] }}
                 >
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-2 gap-4 [&>a]:min-h-[210px]">
                     {mobilePriorityItems.map((item, index) => renderExploreCard(item, index))}
                   </div>
                   {mobileSecondaryItems.length > 0 && (
-                    <div className="mt-4 grid grid-cols-2 gap-3">
+                    <div className="mt-4 grid grid-cols-2 gap-3 [&>a]:min-h-[158px]">
                       {mobileSecondaryItems.map((item, index) => renderExploreCard(item, index + mobilePriorityItems.length))}
                     </div>
                   )}

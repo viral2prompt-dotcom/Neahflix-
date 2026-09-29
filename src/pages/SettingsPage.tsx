@@ -485,6 +485,13 @@ const SettingsPage: React.FC = () => {
       commitPageBackgrounds(next);
     } catch { /* IndexedDB indisponible : la couleur reste utilisable. */ }
   };
+  const resetPageBackground = () => {
+    const target = pageBackgrounds.mode === 'global' ? 'global' : backgroundTarget;
+    const next = target === 'global'
+      ? { ...pageBackgrounds, global: { color: '#020b1d' } }
+      : { ...pageBackgrounds, pages: { ...pageBackgrounds.pages, [target]: { color: '#020b1d' } } };
+    commitPageBackgrounds(next);
+  };
 
   // Indépendant des mécanismes VIP ci-dessous : masque seulement la carte
   // Paramètres, sans désactiver les droits ou la gestion des clés.
@@ -1941,6 +1948,7 @@ const SettingsPage: React.FC = () => {
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
                   <label className="flex items-center gap-2 text-xs text-slate-300">Couleur <input aria-label="Couleur d'arrière-plan" type="color" value={(pageBackgrounds.mode === 'global' ? pageBackgrounds.global : pageBackgrounds.pages[backgroundTarget]).color} onChange={(e) => updateBackgroundColor(e.target.value)} className="h-9 w-12 cursor-pointer rounded border border-white/15 bg-transparent p-1" /></label>
                   <label className="cursor-pointer rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-xs text-slate-200 transition-colors hover:bg-white/10">Choisir une image <input className="sr-only" type="file" accept="image/*" onChange={(e) => void handleBackgroundImage(e.target.files?.[0])} /></label>
+                  <button type="button" onClick={resetPageBackground} className="rounded-xl border border-white/15 bg-white/[0.03] px-3 py-2 text-xs text-slate-300 transition-colors hover:bg-white/10 hover:text-white">Réinitialiser l’arrière-plan</button>
                   <span className="text-[11px] text-slate-500">Image conservée uniquement sur cet appareil.</span>
                 </div>
               </div>

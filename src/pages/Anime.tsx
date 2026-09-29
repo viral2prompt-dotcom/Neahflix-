@@ -502,7 +502,7 @@ const Anime: React.FC = () => {
 
   if (loading && animeShows.length === 0) {
     return (
-      <div className="min-h-screen bg-black text-white">
+      <div className="min-h-screen bg-transparent text-white">
         <div className="relative w-full pt-16 md:pt-20 lg:pt-24">
           <HeroSkeleton />
         </div>
@@ -516,7 +516,7 @@ const Anime: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-black text-white">
+    <div className="min-h-screen bg-transparent text-white">
       <style>{pageStyles}</style>
 
       <div className="relative w-full pt-16 md:pt-20 lg:pt-24">
