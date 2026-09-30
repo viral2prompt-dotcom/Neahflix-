@@ -2976,21 +2976,18 @@ const TVDetails: React.FC = () => {
         className="text-white px-4 pb-28 pt-8 md:px-8 lg:px-16 lg:pb-10"
       >
         {/* Header avec titre et année */}
-        <motion.div
-          initial={{ y: 20, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: 0.2 }}
-          className="mb-8"
-        >
-          <h1 className="section-title flex flex-wrap items-baseline gap-x-2 text-4xl font-bold md:text-5xl">
-            {tvShow.name}
-            {tvShow.first_air_date && !isNaN(new Date(tvShow.first_air_date).getTime()) && new Date(tvShow.first_air_date) <= new Date() && (
-              <span className="inline-flex items-center gap-1 text-sm font-medium text-emerald-300"><CheckCircle className="h-4 w-4" aria-hidden="true" />{t('details.releasedBadge')}</span>
-            )}
-            {tvShow.first_air_date && <span className="text-sm font-semibold tracking-[0.18em] text-red-200/80">{new Date(tvShow.first_air_date).getFullYear()}</span>}
-          </h1>
-        </motion.div>
-        {/* Contenu principal - poster à gauche, infos à droite */}
+      <motion.div
+        initial={{ y: 20, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ delay: 0.2 }}
+        className="mb-8"
+      >
+        <h1 className="section-title text-4xl md:text-5xl font-bold">
+          {tvShow.name}
+        </h1>
+        {tvShow.first_air_date && <p className="mt-2 text-sm font-semibold tracking-[0.18em] text-red-200/80">{new Date(tvShow.first_air_date).getFullYear()}</p>}
+      </motion.div>
+      {/* Contenu principal - poster à gauche, infos à droite */}
         <div className="grid grid-cols-1 gap-5 md:grid-cols-[minmax(13rem,0.7fr)_minmax(0,2fr)] md:gap-7">
           {/* Colonne gauche - Poster */}
           <motion.div
