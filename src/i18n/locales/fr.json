@@ -7222,5 +7222,11 @@
       "thanks": "Merci pour ton retour — c'est ce qui nous aide à améliorer le hub.",
       "error": "L'envoi a échoué. Réessaie dans un instant."
     }
+  },
+  "platformGateway": {
+    "back": "Retour",
+    "unavailable": "Cette passerelle reste dans Neahflix, mais le service ne fournit pas d’intégration web autorisée. Aucun contournement ni redirection externe n’est utilisé.",
+    "youtubeUnavailable": "YouTube autorise l’intégration de vidéos ou de playlists précises via son lecteur officiel, mais pas de son site complet comme un navigateur. Cette passerelle ne redirige pas hors de Neahflix.",
+    "noRedirect": "L’URL du service n’est pas affichée et aucun nouvel onglet n’est ouvert."
   }
 }
