@@ -3305,7 +3305,8 @@ const MovieDetails = (): JSX.Element => {
                   </div>
                   <div className="aspect-w-16 aspect-h-9">
                     <iframe
-                      src={`https://www.youtube.com/embed/${selectedVideo.key}?autoplay=1`}
+                      src={`https://www.youtube.com/embed/${selectedVideo.key}?autoplay=1&enablejsapi=1&origin=${encodeURIComponent(window.location.origin)}`}
+                      data-screensaver-youtube-player="true"
                       title={selectedVideo.name}
                       className="w-full h-[300px] sm:h-[400px] md:h-[500px] lg:h-[600px]"
                       allowFullScreen
@@ -3352,7 +3353,8 @@ const MovieDetails = (): JSX.Element => {
                   <div className="aspect-w-16 aspect-h-9">
                     {trailerVideoId ? (
                       <iframe
-                        src={`https://www.youtube.com/embed/${trailerVideoId}?autoplay=1`}
+                        src={`https://www.youtube.com/embed/${trailerVideoId}?autoplay=1&enablejsapi=1&origin=${encodeURIComponent(window.location.origin)}`}
+                        data-screensaver-youtube-player="true"
                         title={`${t('details.bandeAnnonce')} - ${movie?.title}`}
                         className="w-full h-[300px] sm:h-[400px] md:h-[500px] lg:h-[600px]"
                         allowFullScreen
