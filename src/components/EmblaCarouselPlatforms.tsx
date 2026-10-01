@@ -183,6 +183,7 @@ const EmblaCarouselPlatforms: React.FC<EmblaCarouselPlatformsProps> = ({ title, 
                         <video
                           id={`video-${platform.id}`}
                           data-platform-video={platform.id}
+                          data-screensaver-ignore="true"
                           className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-300 rounded-xl ${focalId === platform.id ? 'opacity-100' : 'opacity-0'}`}
                           muted
                           playsInline

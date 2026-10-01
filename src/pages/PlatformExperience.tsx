@@ -1,60 +1,50 @@
-import { ArrowLeft, ExternalLink } from 'lucide-react';
-import { useParams } from 'react-router-dom';
-import { PrefetchLink as Link } from '@/routing/PrefetchLink';
+import { ArrowLeft, ShieldCheck } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import { useNavigate, useParams } from 'react-router-dom';
 
 const PLATFORMS = {
-  youtube: {
-    name: 'YouTube',
-    url: 'https://www.youtube.com/',
-    embedUrl: 'https://www.youtube.com/embed?listType=user_uploads&list=YouTube',
-  },
-  tiktok: {
-    name: 'TikTok',
-    url: 'https://www.tiktok.com/',
-  },
-  canal: {
-    name: 'CANAL+',
-    url: 'https://www.canalplus.com/',
-  },
+  youtube: { brand: 'YouTube', officialEmbedding: 'player' },
+  neahlite: { brand: 'NEAHLITE', officialEmbedding: 'none' },
+  neahplus: { brand: 'neahplus', officialEmbedding: 'none' },
+  'anime-zora': { brand: 'Anime Zora', officialEmbedding: 'none' },
+  // Existing cards also remain internal: they are not silently redirected.
+  tiktok: { brand: 'TikTok', officialEmbedding: 'none' },
+  canal: { brand: 'CANAL+', officialEmbedding: 'none' },
 } as const;
 
 const PlatformExperience = () => {
+  const { t } = useTranslation();
+  const navigate = useNavigate();
   const { platform } = useParams<{ platform: keyof typeof PLATFORMS }>();
   const service = platform ? PLATFORMS[platform] : undefined;
 
   if (!service) return null;
 
   return (
-    <main className="min-h-screen bg-slate-950 px-4 pb-24 pt-28 text-white md:px-8">
-      <div className="mx-auto max-w-6xl">
-        <Link to="/" className="mb-6 inline-flex items-center gap-2 text-sm font-semibold text-white/70 transition hover:text-white">
-          <ArrowLeft className="h-4 w-4" /> Retour à Neahflix
-        </Link>
-        <section className="overflow-hidden rounded-3xl border border-white/10 bg-slate-900/65 shadow-[0_24px_70px_rgba(2,6,23,0.55)] backdrop-blur-xl">
-          <header className="border-b border-white/10 px-6 py-5">
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-300">Expérience Neahflix</p>
-            <h1 className="mt-1 text-3xl font-black">{service.name}</h1>
-          </header>
-          {'embedUrl' in service ? (
-            <iframe
-              className="aspect-video w-full bg-black"
-              src={service.embedUrl}
-              title={`${service.name} dans Neahflix`}
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-              allowFullScreen
-            />
-          ) : (
-            <div className="px-6 py-16 text-center">
-              <p className="mx-auto max-w-xl text-white/70">
-                {service.name} ne permet pas l’intégration complète de son site dans une iframe. Neahflix conserve donc cette étape de navigation et votre retour à la plateforme.
-              </p>
-              <a href={service.url} target="_blank" rel="noopener noreferrer" className="mt-6 inline-flex items-center gap-2 rounded-xl border border-white/20 bg-white/10 px-5 py-3 font-semibold transition hover:bg-white/15">
-                Ouvrir {service.name} <ExternalLink className="h-4 w-4" />
-              </a>
-            </div>
-          )}
-        </section>
-      </div>
+    <main className="min-h-[calc(100vh-5rem)] bg-slate-950 px-3 pb-3 pt-3 text-white sm:px-5 sm:pb-5">
+      <section className="mx-auto flex min-h-[calc(100vh-6.5rem)] w-full max-w-[1920px] flex-col overflow-hidden rounded-2xl border border-white/10 bg-slate-900 shadow-[0_24px_70px_rgba(2,6,23,0.55)]">
+        <header className="flex min-h-16 shrink-0 items-center justify-between border-b border-white/10 bg-slate-950/95 px-4 backdrop-blur sm:px-6">
+          <button type="button" onClick={() => navigate(-1)} className="inline-flex items-center gap-2 rounded-lg px-2 py-2 text-sm font-semibold text-white/75 transition hover:bg-white/10 hover:text-white">
+            <ArrowLeft className="h-4 w-4" />
+            <span className="hidden sm:inline">{t('platformGateway.back')}</span>
+          </button>
+          <div className="absolute left-1/2 -translate-x-1/2 text-lg font-black tracking-tight sm:text-xl">NEAHFLIX</div>
+          <div className="min-w-16 text-right text-sm font-black sm:min-w-28 sm:text-base">{service.brand}</div>
+        </header>
+
+        <div className="flex flex-1 items-center justify-center p-5 sm:p-10">
+          <div className="max-w-2xl text-center">
+            <ShieldCheck className="mx-auto h-12 w-12 text-emerald-300" aria-hidden="true" />
+            <h1 className="mt-5 text-3xl font-black sm:text-4xl">{service.brand}</h1>
+            <p className="mx-auto mt-4 text-sm leading-6 text-white/70 sm:text-base">
+              {service.officialEmbedding === 'player'
+                ? t('platformGateway.youtubeUnavailable')
+                : t('platformGateway.unavailable')}
+            </p>
+            <p className="mx-auto mt-3 text-xs leading-5 text-white/45 sm:text-sm">{t('platformGateway.noRedirect')}</p>
+          </div>
+        </div>
+      </section>
     </main>
   );
 };

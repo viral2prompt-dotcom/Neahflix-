@@ -7222,5 +7222,11 @@
       "thanks": "Thanks for the feedback — this is what helps us improve the hub.",
       "error": "Submission failed. Try again in a moment."
     }
+  },
+  "platformGateway": {
+    "back": "Back",
+    "unavailable": "This gateway stays in Neahflix, but the service does not provide an authorized web integration. No bypass or external redirect is used.",
+    "youtubeUnavailable": "YouTube authorizes embedding specific videos or playlists through its official player, not its complete website as a browser. This gateway does not redirect outside Neahflix.",
+    "noRedirect": "The service URL is not displayed and no new tab is opened."
   }
 }
