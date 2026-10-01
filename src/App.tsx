@@ -33,6 +33,7 @@ import { DelayedSuspense } from './components/DelayedSuspense';
 import { RouteProgressBar } from './components/RouteProgressBar';
 import ScreenSaver from './components/ScreenSaver';
 import { useIdleTimer } from './hooks/useIdleTimer';
+import { useVideoPlaybackActivity } from './hooks/useVideoPlaybackActivity';
 import { startVipVerification } from './utils/vipUtils';
 import { broadcastAuthChange, clearStoredAuthSession, getResolvedAccountContext } from './utils/accountAuth';
 import { isSyncableStorageKey, SYNC_OUTBOX_STORAGE_KEY } from './utils/syncStorage';
@@ -1729,7 +1730,11 @@ const AppWithIntro: React.FC = () => {
     return saved ? parseInt(saved, 10) : 30;
   });
 
-  const shouldEnableScreensaver = screensaverEnabled && !isScreensaverDisabledRoute;
+  const { isVideoPlaybackActive } = useVideoPlaybackActivity();
+  // Routes de lecture connues et tous les éléments <video> des lecteurs déjà
+  // montés suspendent l'économiseur. Les événements sont centralisés dans le
+  // hook afin de ne pas modifier les implémentations HLS/FStream/proxy.
+  const shouldEnableScreensaver = screensaverEnabled && !isScreensaverDisabledRoute && !isVideoPlaybackActive;
   const { isIdle, wake } = useIdleTimer(screensaverTimeout * 1000, shouldEnableScreensaver);
 
   // Listen for settings changes from Profile page
