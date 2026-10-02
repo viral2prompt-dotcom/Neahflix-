@@ -89,6 +89,29 @@ function injectPublicConfig(): Plugin {
   }
 }
 
+// Quand VITE_MAIN_API est vide, les appels frontend restent relatifs à
+// l'origine Vite. Le serveur de développement et `vite preview` doivent donc
+// tous les deux transmettre ces chemins au Main API local. Sans la règle
+// NEAHLITE, le fallback SPA de Preview renvoyait index.html dans l'iframe.
+const mainApiProxy = {
+  '/backend-api': {
+    target: 'http://127.0.0.1:25565',
+    changeOrigin: true,
+    secure: false,
+    rewrite: (path: string) => path.replace(/^\/backend-api/, ''),
+  },
+  '/api': {
+    target: 'http://127.0.0.1:25565',
+    changeOrigin: true,
+    secure: false,
+  },
+  '/neahlite': {
+    target: 'http://127.0.0.1:25565',
+    changeOrigin: true,
+    secure: false,
+  },
+}
+
 export default defineConfig({
   logLevel: 'warn',
   plugins: [
@@ -112,19 +135,7 @@ export default defineConfig({
     // parallèle du premier (deux sessions d'agent, deux branches) sans se
     // disputer le port.
     port: Number(process.env.PORT) || 3000,
-    proxy: {
-    '/backend-api': {
-      target: 'http://127.0.0.1:25565',
-      changeOrigin: true,
-      secure: false,
-        rewrite: (path) => path.replace(/^\/backend-api/, ),
-    },
-      '/api': {
-        target: 'http://127.0.0.1:25565',
-        changeOrigin: true,
-        secure: false,
-      },
-    },
+    proxy: mainApiProxy,
     hmr: true,
     watch: {
       // Polling utile sur WSL/Docker/FS réseau où inotify/FSEvents ne remontent
@@ -165,6 +176,7 @@ export default defineConfig({
   preview: {
     host: true,
     port: 3000,
+    proxy: mainApiProxy,
   },
   build: {
     target: 'es2020', // explicit, was implicit es2020 in Vite 5
