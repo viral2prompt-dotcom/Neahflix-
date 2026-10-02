@@ -1756,6 +1756,7 @@ const AppWithIntro: React.FC = () => {
     currentPath === '/tv-shows' ||
     currentPath.startsWith('/provider/');
   const isWrappedRoute = currentPath === '/wrapped' || currentPath.startsWith('/wrapped/');
+  const isPlatformGatewayRoute = currentPath === '/platform/neahplus' || currentPath === '/platform/anime-zora';
   const shouldShowHeader = !isWatchRoute && !isWrappedRoute;
   const isAprilFoolsAdminRouteEnabled = isAprilFoolsAdminEnabled(location.search);
   const isNoFooterPage = isWatchRoute;
@@ -1934,7 +1935,7 @@ const AppWithIntro: React.FC = () => {
       {/* Ne pas afficher le Header sur les routes lecteur et Wrapped */}
       {shouldShowHeader && <Header />}
       <PersistenceManager />
-      <div className={shouldShowHeader && !isHeroHeaderPage ? 'pt-20 pb-20 lg:pb-0' : 'pb-20 lg:pb-0'}>
+      <div className={isPlatformGatewayRoute ? 'pb-20 lg:pb-0' : shouldShowHeader && !isHeroHeaderPage ? 'pt-20 pb-20 lg:pb-0' : 'pb-20 lg:pb-0'}>
         <AlertNotificationManager />
         <DefaultProfileNudge />
         <ProfileGate>
