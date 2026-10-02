@@ -78,9 +78,9 @@ app.get('/movie/:id', socialPreviewHandler);
 app.get('/tv/:id', socialPreviewHandler);
 
 
-app.all('/api/*', async (c) => {
+const proxyRequest = async (c, targetOrigin) => {
   const incoming = new URL(c.req.url);
-  const target = `https://api.movix.college${incoming.pathname}${incoming.search}`;
+  const target = `${targetOrigin}${incoming.pathname}${incoming.search}`;
 
   const headers = new Headers(c.req.raw.headers);
   headers.delete('host');
@@ -105,7 +105,18 @@ app.all('/api/*', async (c) => {
     statusText: response.statusText,
     headers: responseHeaders,
   });
-});
+};
+
+app.all('/api/*', (c) => proxyRequest(c, 'https://api.movix.college'));
+
+// Firebase Studio lance `npm start`, donc ce serveur Hono sert le Preview (et
+// non `vite preview`). La configuration `preview.proxy` de Vite ne s'applique
+// alors pas : sans cette route, serveStatic puis le fallback SPA renvoient
+// index.html pour l'iframe NEAHLITE. La passerelle #13 n'est donc jamais
+// atteinte. On garde le chemin tel quel pour que le Main API applique son
+// reverse proxy Vrizov allowlisté.
+const MAIN_API_ORIGIN = (process.env.MAIN_API_ORIGIN || 'http://127.0.0.1:25565').replace(/\/+$/, '');
+app.all('/neahlite/*', (c) => proxyRequest(c, MAIN_API_ORIGIN));
 
 app.use('/*', serveStatic({ root: './dist' }));
 
