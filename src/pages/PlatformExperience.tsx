@@ -1,14 +1,15 @@
 import { ArrowLeft, ShieldCheck } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams } from 'react-router-dom';
+import { MAIN_API } from '@/config/runtime';
 
 const PLATFORMS = {
   // The YouTube homepage cannot be framed. Its official embed API needs a
   // concrete video or playlist, which this gateway intentionally does not invent.
   youtube: { brand: 'YouTube', officialEmbedding: 'player' },
-  // These services are loaded directly, without a proxy or a security-policy bypass.
-  // If their framing policy changes, the browser keeps the Neahflix shell intact.
-  neahlite: { brand: 'NEAHLITE', source: 'https://vrizov.com/3d69b18/home/vrizov' },
+  // Vrizov blocks direct framing. NEAHLITE uses the allowlisted HTML bridge
+  // exposed by the main API, so its internal navigation stays framed.
+  neahlite: { brand: 'NEAHLITE', source: `${MAIN_API}/neahlite/3d69b18/home/vrizov` },
   neahplus: { brand: 'neahplus', source: 'https://oha.to/#/channels?src=oha-live%2Fchannels' },
   'anime-zora': { brand: 'Anime Zora', source: 'https://franime.fr/' },
   // Existing cards also remain internal: they are not silently redirected.

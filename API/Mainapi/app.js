@@ -526,6 +526,10 @@ app.use('/api/kisskh', kisskhRouter);
 // d'extraction en direct, il passe par ici avec sa clé VIP (cf. routes/mediaExtract.js).
 app.use('/api/media', require('./routes/mediaExtract'));
 
+// Passerelle HTML allowlistée pour NEAHLITE/Vrizov. Elle reste distincte du
+// proxy de flux, qui ne réécrit ni navigation ni politiques d'iframe.
+app.use('/neahlite', require('./routes/neahliteBridge'));
+
 const downloadLinksLeaderboardRouter = require('./routes/downloadLinksLeaderboard');
 app.use('/api/download-links', downloadLinksLeaderboardRouter);
 
