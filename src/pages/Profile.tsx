@@ -41,6 +41,7 @@ import { useAuth } from '../context/AuthContext';
 import { useProfile } from '../context/ProfileContext';
 import { broadcastAuthChange, clearStoredAuthSession, getResolvedAccountContext } from '../utils/accountAuth';
 import { isUserVip } from '../utils/authUtils';
+import { getScreensaverTimeout } from '../utils/screensaverSettings';
 import NewListModal from '../components/NewListModal';
 import AvatarSelector from '../components/AvatarSelector';
 import FilterSystem, { type FilterItemType, type FilterOptions } from '../components/FilterSystem';
@@ -404,9 +405,7 @@ const Profile: React.FC = () => {
   const [screensaverEnabled, setScreensaverEnabled] = useState(() => {
     return localStorage.getItem('screensaver_enabled') === 'true';
   });
-  const [screensaverTimeout, setScreensaverTimeout] = useState(() => {
-    return parseInt(localStorage.getItem('screensaver_timeout') || '60', 10);
-  });
+  const [screensaverTimeout, setScreensaverTimeout] = useState(getScreensaverTimeout);
   const [screensaverMode, setScreensaverMode] = useState(() => {
     return localStorage.getItem('screensaver_mode') || 'backdrop';
   });

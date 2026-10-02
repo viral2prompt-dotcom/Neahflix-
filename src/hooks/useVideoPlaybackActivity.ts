@@ -92,6 +92,14 @@ export function useVideoPlaybackActivity() {
         sync();
       }
     };
+    const handleIntegrationLoad = (event: Event) => {
+      const frame = event.target;
+      if (!(frame instanceof HTMLIFrameElement) || frame.dataset.screensaverIntegration !== 'true') return;
+
+      // A navigation replaces the document that sent the previous message.
+      // Its old playback state must not keep the screen saver suspended.
+      if (activeIntegrationFrames.delete(frame)) sync();
+    };
 
     // A player can already be playing when this hook is mounted after a route
     // transition, so seed the set from the current document as well.
@@ -109,6 +117,7 @@ export function useVideoPlaybackActivity() {
     });
     observer.observe(document.body, { childList: true, subtree: true });
     document.addEventListener('playing', handlePlaying, true);
+    document.addEventListener('load', handleIntegrationLoad, true);
     window.addEventListener('message', handleYoutubeStateChange);
     window.addEventListener('message', handleIntegrationPlaybackChange);
     ['pause', 'ended', 'abort', 'emptied'].forEach((eventName) => {
@@ -118,6 +127,7 @@ export function useVideoPlaybackActivity() {
     return () => {
       observer.disconnect();
       document.removeEventListener('playing', handlePlaying, true);
+      document.removeEventListener('load', handleIntegrationLoad, true);
       ['pause', 'ended', 'abort', 'emptied'].forEach((eventName) => {
         document.removeEventListener(eventName, handleStopped, true);
       });

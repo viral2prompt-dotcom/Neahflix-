@@ -34,6 +34,7 @@ import { RouteProgressBar } from './components/RouteProgressBar';
 import ScreenSaver from './components/ScreenSaver';
 import { useIdleTimer } from './hooks/useIdleTimer';
 import { useVideoPlaybackActivity } from './hooks/useVideoPlaybackActivity';
+import { getScreensaverTimeout } from './utils/screensaverSettings';
 import { startVipVerification } from './utils/vipUtils';
 import { broadcastAuthChange, clearStoredAuthSession, getResolvedAccountContext } from './utils/accountAuth';
 import { isSyncableStorageKey, SYNC_OUTBOX_STORAGE_KEY } from './utils/syncStorage';
@@ -1725,10 +1726,7 @@ const AppWithIntro: React.FC = () => {
 
   // Screensaver logic
   const [screensaverEnabled, setScreensaverEnabled] = useState(() => localStorage.getItem('screensaver_enabled') !== 'false');
-  const [screensaverTimeout, setScreensaverTimeout] = useState(() => {
-    const saved = localStorage.getItem('screensaver_timeout');
-    return saved ? parseInt(saved, 10) : 60;
-  });
+  const [screensaverTimeout, setScreensaverTimeout] = useState(getScreensaverTimeout);
 
   const { isVideoPlaybackActive } = useVideoPlaybackActivity();
   // Routes de lecture connues et tous les éléments <video> des lecteurs déjà
@@ -1741,8 +1739,7 @@ const AppWithIntro: React.FC = () => {
   React.useEffect(() => {
     const handleSettingsChange = () => {
       setScreensaverEnabled(localStorage.getItem('screensaver_enabled') !== 'false');
-      const t = localStorage.getItem('screensaver_timeout');
-      setScreensaverTimeout(t ? parseInt(t, 10) : 60);
+      setScreensaverTimeout(getScreensaverTimeout());
     };
     window.addEventListener('screensaver_settings_changed', handleSettingsChange);
     return () => window.removeEventListener('screensaver_settings_changed', handleSettingsChange);
@@ -1756,7 +1753,7 @@ const AppWithIntro: React.FC = () => {
     currentPath === '/tv-shows' ||
     currentPath.startsWith('/provider/');
   const isWrappedRoute = currentPath === '/wrapped' || currentPath.startsWith('/wrapped/');
-  const isPlatformGatewayRoute = currentPath === '/platform/neahplus' || currentPath === '/platform/anime-zora';
+  const isPlatformGatewayRoute = currentPath === '/platform/neahlite' || currentPath === '/platform/neahplus' || currentPath === '/platform/anime-zora';
   const shouldShowHeader = !isWatchRoute && !isWrappedRoute;
   const isAprilFoolsAdminRouteEnabled = isAprilFoolsAdminEnabled(location.search);
   const isNoFooterPage = isWatchRoute;
