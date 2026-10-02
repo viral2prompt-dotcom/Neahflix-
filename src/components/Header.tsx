@@ -85,6 +85,7 @@ const Header: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const isAprilFoolsAdminVisible = isAprilFoolsAdminEnabled(location.search);
+  const isPlatformGatewayRoute = location.pathname === '/platform/neahplus' || location.pathname === '/platform/anime-zora';
 
   const {
     autocompleteSuggestions,
@@ -433,7 +434,7 @@ const Header: React.FC = () => {
           la croix — sans ça, tout geste de scroll qui démarre dans la bande
           des ~64px du header est avalé par lui et le menu ne bouge pas. Le
           bouton burger/croix garde pointer-events-auto pour rester cliquable. */}
-      <header className={`!fixed inset-x-0 top-0 w-full z-[11000] transition-all duration-300 ${isExploreOpen ? 'max-lg:pointer-events-none' : ''}`}>
+      <header className={`${isPlatformGatewayRoute ? 'hidden' : '!fixed inset-x-0 top-0 w-full z-[11000] transition-all duration-300'} ${isExploreOpen ? 'max-lg:pointer-events-none' : ''}`}>
         <div className="absolute inset-0 pointer-events-none z-0 bg-gradient-to-b from-black/90 via-black/70 to-transparent" aria-hidden="true" />
         <div className="relative z-10">
           <div className="max-w-[1400px] 2xl:max-w-[1600px] mx-auto">

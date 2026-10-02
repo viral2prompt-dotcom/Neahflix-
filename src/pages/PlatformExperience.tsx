@@ -22,8 +22,8 @@ const PlatformExperience = () => {
   const hasEmbeddedExperience = 'source' in service;
 
   return (
-    <main className="flex min-h-[calc(100dvh-5rem)] flex-col bg-slate-950 text-white">
-      <section className="flex min-h-0 flex-1 flex-col overflow-hidden bg-black">
+    <main className="flex h-[calc(100dvh-5rem)] w-full min-h-0 flex-col bg-slate-950 p-0 text-white lg:h-dvh">
+      <section className="flex min-h-0 w-full flex-1 flex-col overflow-hidden bg-black p-0">
         <header className="relative flex h-14 shrink-0 items-center border-b border-white/10 bg-slate-950/95 px-3 backdrop-blur sm:h-16 sm:px-5">
           <button type="button" onClick={() => navigate(-1)} className="absolute left-3 inline-flex items-center gap-1 rounded-lg px-2 py-2 text-xs font-semibold text-white/75 transition hover:bg-white/10 hover:text-white sm:left-5 sm:gap-2 sm:text-sm">
             <ArrowLeft className="h-4 w-4" />
@@ -34,11 +34,11 @@ const PlatformExperience = () => {
         </header>
 
         {hasEmbeddedExperience ? (
-          <div className="flex min-h-0 flex-1 bg-black">
+          <div className="m-0 flex min-h-0 w-full flex-1 bg-black p-0">
             <iframe
               src={service.source}
               title={service.brand}
-              className="h-full w-full flex-1 border-0"
+              className="m-0 block h-full w-full min-h-0 min-w-0 max-h-none max-w-none flex-1 border-0 p-0"
               data-screensaver-integration="true"
               referrerPolicy="no-referrer"
               allow="autoplay; fullscreen; picture-in-picture"
