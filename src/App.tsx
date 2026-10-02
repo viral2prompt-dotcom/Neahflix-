@@ -1727,7 +1727,7 @@ const AppWithIntro: React.FC = () => {
   const [screensaverEnabled, setScreensaverEnabled] = useState(() => localStorage.getItem('screensaver_enabled') !== 'false');
   const [screensaverTimeout, setScreensaverTimeout] = useState(() => {
     const saved = localStorage.getItem('screensaver_timeout');
-    return saved ? parseInt(saved, 10) : 30;
+    return saved ? parseInt(saved, 10) : 60;
   });
 
   const { isVideoPlaybackActive } = useVideoPlaybackActivity();
@@ -1742,7 +1742,7 @@ const AppWithIntro: React.FC = () => {
     const handleSettingsChange = () => {
       setScreensaverEnabled(localStorage.getItem('screensaver_enabled') !== 'false');
       const t = localStorage.getItem('screensaver_timeout');
-      setScreensaverTimeout(t ? parseInt(t, 10) : 30);
+      setScreensaverTimeout(t ? parseInt(t, 10) : 60);
     };
     window.addEventListener('screensaver_settings_changed', handleSettingsChange);
     return () => window.removeEventListener('screensaver_settings_changed', handleSettingsChange);

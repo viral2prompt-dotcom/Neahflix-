@@ -13,8 +13,11 @@ export function useVideoPlaybackActivity() {
   useEffect(() => {
     const activeVideos = new Set<HTMLVideoElement>();
     const activeYoutubeFrames = new Set<HTMLIFrameElement>();
+    const activeIntegrationFrames = new Set<HTMLIFrameElement>();
 
-    const sync = () => setIsVideoPlaybackActive(activeVideos.size + activeYoutubeFrames.size > 0);
+    const sync = () => setIsVideoPlaybackActive(
+      activeVideos.size + activeYoutubeFrames.size + activeIntegrationFrames.size > 0,
+    );
     const isTrackedVideo = (video: HTMLVideoElement) => video.dataset.screensaverIgnore !== 'true';
     const remove = (video: HTMLVideoElement) => {
       if (activeVideos.delete(video)) sync();
@@ -68,6 +71,27 @@ export function useVideoPlaybackActivity() {
         if (activeYoutubeFrames.delete(frame)) sync();
       }
     };
+    const handleIntegrationPlaybackChange = (event: MessageEvent) => {
+      const payload = event.data as { type?: string; active?: unknown } | null;
+      if (payload?.type !== 'neahflix:video-playback' || typeof payload.active !== 'boolean') return;
+
+      const frame = Array.from(document.querySelectorAll<HTMLIFrameElement>('iframe[data-screensaver-integration="true"]'))
+        .find((candidate) => candidate.contentWindow === event.source);
+      if (!frame) return;
+
+      // A cross-origin frame can only report playback voluntarily with
+      // postMessage. Verify both its window and declared origin; the parent
+      // never inspects or injects content into the integration.
+      const frameOrigin = new URL(frame.src, window.location.href).origin;
+      if (event.origin !== frameOrigin) return;
+
+      if (payload.active) {
+        activeIntegrationFrames.add(frame);
+        sync();
+      } else if (activeIntegrationFrames.delete(frame)) {
+        sync();
+      }
+    };
 
     // A player can already be playing when this hook is mounted after a route
     // transition, so seed the set from the current document as well.
@@ -79,10 +103,14 @@ export function useVideoPlaybackActivity() {
       activeYoutubeFrames.forEach((frame) => {
         if (!frame.isConnected && activeYoutubeFrames.delete(frame)) sync();
       });
+      activeIntegrationFrames.forEach((frame) => {
+        if (!frame.isConnected && activeIntegrationFrames.delete(frame)) sync();
+      });
     });
     observer.observe(document.body, { childList: true, subtree: true });
     document.addEventListener('playing', handlePlaying, true);
     window.addEventListener('message', handleYoutubeStateChange);
+    window.addEventListener('message', handleIntegrationPlaybackChange);
     ['pause', 'ended', 'abort', 'emptied'].forEach((eventName) => {
       document.addEventListener(eventName, handleStopped, true);
     });
@@ -94,6 +122,7 @@ export function useVideoPlaybackActivity() {
         document.removeEventListener(eventName, handleStopped, true);
       });
       window.removeEventListener('message', handleYoutubeStateChange);
+      window.removeEventListener('message', handleIntegrationPlaybackChange);
     };
   }, []);
 

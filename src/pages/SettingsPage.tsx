@@ -631,7 +631,7 @@ const SettingsPage: React.FC = () => {
     return localStorage.getItem('screensaver_enabled') !== 'false';
   });
   const [screensaverTimeout, setScreensaverTimeout] = useState(() => {
-    return parseInt(localStorage.getItem('screensaver_timeout') || '30', 10);
+    return parseInt(localStorage.getItem('screensaver_timeout') || '60', 10);
   });
   const [screensaverMode, setScreensaverMode] = useState(() => {
     return localStorage.getItem('screensaver_mode') || 'backdrop';
