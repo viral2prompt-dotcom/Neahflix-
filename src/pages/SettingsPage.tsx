@@ -76,6 +76,7 @@ import {
 } from '../utils/sessionDevice';
 import { getOverlayPortalRoot } from '@/utils/overlayPortal';
 import { getPageBackgroundPreferences, saveBackgroundImage, savePageBackgroundPreferences, type BackgroundPage, type PageBackgroundPreferences } from '../utils/pageBackgroundPreferences';
+import { getScreensaverTimeout } from '../utils/screensaverSettings';
 
 const API_URL = import.meta.env.VITE_MAIN_API;
 
@@ -630,9 +631,7 @@ const SettingsPage: React.FC = () => {
   const [screensaverEnabled, setScreensaverEnabled] = useState(() => {
     return localStorage.getItem('screensaver_enabled') !== 'false';
   });
-  const [screensaverTimeout, setScreensaverTimeout] = useState(() => {
-    return parseInt(localStorage.getItem('screensaver_timeout') || '60', 10);
-  });
+  const [screensaverTimeout, setScreensaverTimeout] = useState(getScreensaverTimeout);
   const [screensaverMode, setScreensaverMode] = useState(() => {
     return localStorage.getItem('screensaver_mode') || 'backdrop';
   });

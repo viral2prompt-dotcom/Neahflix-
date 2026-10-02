@@ -85,7 +85,7 @@ const Header: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const isAprilFoolsAdminVisible = isAprilFoolsAdminEnabled(location.search);
-  const isPlatformGatewayRoute = location.pathname === '/platform/neahplus' || location.pathname === '/platform/anime-zora';
+  const isPlatformGatewayRoute = location.pathname === '/platform/neahlite' || location.pathname === '/platform/neahplus' || location.pathname === '/platform/anime-zora';
 
   const {
     autocompleteSuggestions,
@@ -870,7 +870,7 @@ const Header: React.FC = () => {
       </AnimatePresence>
 
       {/* Navigation primaire mobile : les contenus essentiels restent accessibles sans ouvrir le drawer. */}
-      {!isExploreOpen && location.pathname !== '/settings' && (
+      {!isExploreOpen && location.pathname !== '/settings' && !isPlatformGatewayRoute && (
         <nav
           aria-label="Navigation principale"
           className="lg:hidden fixed inset-x-3 bottom-3 z-[10990] flex items-center justify-around rounded-2xl border border-white/10 bg-slate-950/90 px-1 py-1.5 shadow-[0_12px_45px_rgba(0,0,0,0.55)] backdrop-blur-xl"
