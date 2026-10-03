@@ -1723,9 +1723,9 @@ const AppWithIntro: React.FC = () => {
   // Détecter si on est sur une route /watch ou la page 404
   const isWatchRoute = location.pathname.startsWith('/watch/') || location.pathname.startsWith('/watchparty/room/') || location.pathname.startsWith('/ftv/watch/');
   const isScreensaverDisabledRoute = isWatchRoute || location.pathname.startsWith('/live-tv');
-  // NEAHPLUS est une passerelle externe : suspendre temporairement
-  // l'économiseur pendant la visite sans toucher à la préférence stockée.
-  const isNeahplusGatewayRoute = location.pathname === '/platform/neahplus';
+  // Les passerelles externes suspendent temporairement l'économiseur pendant
+  // leur visite, sans toucher à la préférence stockée de l'utilisateur.
+  const isPlatformGatewayRoute = location.pathname.startsWith('/platform/');
 
   // Screensaver logic
   const [screensaverEnabled, setScreensaverEnabled] = useState(() => localStorage.getItem('screensaver_enabled') !== 'false');
@@ -1735,7 +1735,7 @@ const AppWithIntro: React.FC = () => {
   // Routes de lecture connues et tous les éléments <video> des lecteurs déjà
   // montés suspendent l'économiseur. Les événements sont centralisés dans le
   // hook afin de ne pas modifier les implémentations HLS/FStream/proxy.
-  const shouldEnableScreensaver = screensaverEnabled && !isScreensaverDisabledRoute && !isNeahplusGatewayRoute && !isVideoPlaybackActive;
+  const shouldEnableScreensaver = screensaverEnabled && !isScreensaverDisabledRoute && !isPlatformGatewayRoute && !isVideoPlaybackActive;
   const { isIdle, wake } = useIdleTimer(screensaverTimeout * 1000, shouldEnableScreensaver);
 
   // Listen for settings changes from Profile page
@@ -1756,7 +1756,6 @@ const AppWithIntro: React.FC = () => {
     currentPath === '/tv-shows' ||
     currentPath.startsWith('/provider/');
   const isWrappedRoute = currentPath === '/wrapped' || currentPath.startsWith('/wrapped/');
-  const isPlatformGatewayRoute = currentPath === '/platform/neahlite' || currentPath === '/platform/neahplus' || currentPath === '/platform/anime-zora';
   const shouldShowHeader = !isWatchRoute && !isWrappedRoute;
   const isAprilFoolsAdminRouteEnabled = isAprilFoolsAdminEnabled(location.search);
   const isNoFooterPage = isWatchRoute;
@@ -1964,7 +1963,7 @@ const AppWithIntro: React.FC = () => {
             <Route path="*" element={<NotFound />} />
           </Routes>
         </ProfileGate>
-        {!isWatchRoute && <Footer />}
+        {!isWatchRoute && currentPath !== '/' && <Footer />}
       </div>
 
       {/* Redirect Popup */}

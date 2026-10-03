@@ -6,7 +6,7 @@ const PLATFORMS = {
   youtube: { brand: 'YouTube', unavailable: true },
   neahlite: { brand: 'NEAHLITE', premiumMessage: true },
   neahplus: { brand: 'NEAHPLUS', source: 'https://oha.to/#/channels?src=oha-live%2Fchannels' },
-  'anime-zora': { brand: 'Anime Zora', source: 'https://franime.fr/' },
+  'anime-zora': { brand: 'Anime Zora', comingSoon: true },
   tiktok: { brand: 'TikTok', unavailable: true },
   canal: { brand: 'CANAL+', officialEmbedding: 'none' },
 } as const;
@@ -36,7 +36,11 @@ const PlatformExperience = () => {
           <span className="absolute right-3 text-[10px] font-black tracking-wider text-white/55 sm:right-5 sm:text-xs">NEAHFLIX</span>
         </header>
 
-        {hasEmbeddedExperience && source ? (
+        {'comingSoon' in service ? (
+          <div className="flex flex-1 items-center justify-center p-5 sm:p-10">
+            <p className="text-center text-sm text-white/70 sm:text-base">Anime Zora sera bientôt disponible.</p>
+          </div>
+        ) : hasEmbeddedExperience && source ? (
           <div className="m-0 flex min-h-0 w-full flex-1 bg-black p-0">
             <iframe
               key={source}

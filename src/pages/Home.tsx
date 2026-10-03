@@ -1437,18 +1437,20 @@ const Home: React.FC = () => {
                 </div>
               )}
             </motion.div>
-            <section className="neahflix-lightfall relative mx-4 mb-10 mt-12 overflow-hidden rounded-3xl border border-sky-100/15 px-6 py-10 text-center shadow-2xl shadow-sky-950/30 md:mx-8 md:px-12" aria-label="Crédits Neahflix">
+            <section className="neahflix-lightfall relative mx-4 mt-12 overflow-hidden rounded-3xl border border-sky-100/15 px-6 py-10 text-center shadow-2xl shadow-sky-950/30 md:mx-8 md:px-12" aria-label="Crédits Neahflix">
               <Lightfall />
               <div className="relative z-10 mx-auto max-w-2xl">
                 <p className="font-serif text-xs tracking-[0.42em] text-sky-100/70">NEAHFLIX</p>
                 <p className="mt-4 font-serif text-2xl text-white sm:text-3xl">« Le plaisir du cinéma à un prix juste. »</p>
-                <p className="mt-5 text-sm leading-relaxed text-slate-300">Merci à Mysticsaba pour sa confiance dans l'aventure NEAHFLIX.</p>
-                <p className="neahflix-logo__wordmark mt-7 text-xs font-medium tracking-[0.14em]">@NGB23 — NEAHFLIX CREATOR / CODE CG242 |©✓</p>
-                <div className="mt-10 border-t border-sky-100/15 pt-8">
-                  <p className="font-serif text-xs tracking-[0.42em] text-sky-100/70">NEAHFLIX</p>
-                  <p className="mt-4 text-sm leading-relaxed text-slate-300">Neahflix n'héberge aucun fichier sur ses serveurs. Nous fournissons uniquement des liens vers des services externes. Nous ne sommes pas responsables du contenu hébergé par ces services tiers. En cas de problème avec la justice, veuillez contacter directement les hébergeurs des contenus concernés.</p>
-                  <p className="neahflix-logo__wordmark mt-7 text-xs font-medium tracking-[0.14em]">© 2026 Neahflix. Tous droits réservés.</p>
-                </div>
+                <p className="mt-5 text-sm leading-relaxed text-slate-300">Merci à Mysticsaba pour sa confiance dans l'aventure Neahflix.</p>
+                <p className="neahflix-logo__wordmark neahflix-logo__wordmark--white mt-7 text-xs font-medium tracking-[0.14em]">@NGB23 — NEAHFLIX CREATOR / CODE CG242 |©✓</p>
+              </div>
+            </section>
+            <section className="mx-4 mb-10 mt-10 text-center md:mx-8" aria-label="Informations légales Neahflix">
+              <div className="mx-auto max-w-2xl">
+                <p className="font-serif text-xs tracking-[0.42em] text-slate-300">NEAHFLIX</p>
+                <p className="mt-4 text-sm leading-relaxed text-slate-300">Neahflix n'héberge aucun fichier sur ses serveurs. Nous fournissons uniquement des liens vers des services externes. Nous ne sommes pas responsables du contenu hébergé par ces services tiers. En cas de problème avec la justice, veuillez contacter directement les hébergeurs des contenus concernés.</p>
+                <p className="mt-7 text-xs font-medium tracking-[0.14em] text-slate-300">© 2026 Neahflix. Tous droits réservés.</p>
               </div>
             </section>
           </>

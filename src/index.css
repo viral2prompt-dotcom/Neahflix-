@@ -504,6 +504,12 @@ body {
   animation: neahflix-logo-sheen 7s ease-in-out infinite;
 }
 
+.neahflix-logo__wordmark--white {
+  background: linear-gradient(105deg, #ffffff 0%, #ffffff 40%, #dbeafe 50%, #ffffff 60%, #ffffff 100%);
+  background-size: 240% 100%;
+  background-position: 100% 50%;
+}
+
 @keyframes neahflix-logo-sheen {
   0%, 72%, 100% { background-position: 100% 50%; }
   86% { background-position: 0% 50%; }
@@ -526,10 +532,13 @@ body {
   inset: -2px;
   z-index: -1;
   border-radius: 0.9rem;
-  background: conic-gradient(from 0deg, transparent 0deg, transparent 285deg, rgba(255, 54, 54, 0.95) 324deg, transparent 360deg);
-  animation: neahflix-nav-orbit 2.8s linear infinite;
-  filter: blur(2px);
-  opacity: 0.95;
+  padding: 1px;
+  background: conic-gradient(from 0deg, transparent 0deg, transparent 220deg, rgba(255, 255, 255, 0.18) 252deg, rgba(255, 255, 255, 0.95) 292deg, #ffffff 318deg, rgba(255, 255, 255, 0.18) 344deg, transparent 360deg);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  animation: neahflix-nav-orbit 2.2s linear infinite;
+  filter: drop-shadow(0 0 3px rgba(255, 255, 255, 0.9));
 }
 
 @keyframes neahflix-nav-orbit {
@@ -558,6 +567,10 @@ a[href="https://t.me/movix_site"] {
   .neahflix-app-shell::after,
   .neahflix-logo__wordmark,
   .neahflix-mobile-nav-item--active::before { animation: none; }
+
+  .neahflix-mobile-nav-item--active::before {
+    background: rgba(255, 255, 255, 0.75);
+  }
 }
 
 #root {
