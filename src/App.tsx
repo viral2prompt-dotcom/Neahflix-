@@ -1963,7 +1963,7 @@ const AppWithIntro: React.FC = () => {
             <Route path="*" element={<NotFound />} />
           </Routes>
         </ProfileGate>
-        {!isWatchRoute && currentPath !== '/' && <Footer />}
+        {!isWatchRoute && currentPath !== '/' && <Footer isIntegration={isPlatformGatewayRoute} />}
       </div>
 
       {/* Redirect Popup */}
