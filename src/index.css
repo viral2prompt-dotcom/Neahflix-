@@ -522,29 +522,6 @@ body {
   letter-spacing: 0.24em;
 }
 
-.neahflix-mobile-nav-item--active {
-  isolation: isolate;
-}
-
-.neahflix-mobile-nav-item--active::before {
-  content: '';
-  position: absolute;
-  inset: -2px;
-  z-index: -1;
-  border-radius: 0.9rem;
-  padding: 1px;
-  background: conic-gradient(from 0deg, transparent 0deg, transparent 220deg, rgba(255, 255, 255, 0.18) 252deg, rgba(255, 255, 255, 0.95) 292deg, #ffffff 318deg, rgba(255, 255, 255, 0.18) 344deg, transparent 360deg);
-  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-  -webkit-mask-composite: xor;
-  mask-composite: exclude;
-  animation: neahflix-nav-orbit 2.2s linear infinite;
-  filter: drop-shadow(0 0 3px rgba(255, 255, 255, 0.9));
-}
-
-@keyframes neahflix-nav-orbit {
-  to { transform: rotate(1turn); }
-}
-
 /* Les anciens points d'entrée vers le canal Movix restent dans le code pour
    éviter de casser les parcours historiques, mais ne font plus partie de
    l'interface Neahflix. */
@@ -1714,7 +1691,3 @@ body,
 .hero-info-action:hover { background-color: rgba(148, 163, 184, .18); transform: translateY(-1px); box-shadow: 0 12px 24px rgba(2,6,23,.34); }
 .hero-info-action:active { transform: scale(.98); }
 .neahflix-lightfall { background: linear-gradient(135deg, rgba(4, 17, 39, .96), rgba(11, 42, 69, .72), rgba(3, 13, 32, .96)); isolation: isolate; }
-.neahflix-lightfall__ray { position: absolute; inset: -55% -15%; opacity: .24; background: linear-gradient(105deg, transparent 42%, rgba(199,236,255,.52) 50%, transparent 58%); transform: rotate(9deg); animation: neahflix-lightfall 14s ease-in-out infinite alternate; }
-.neahflix-lightfall__ray--two { animation-delay: -7s; transform: rotate(-12deg) translateX(-22%); opacity: .14; }
-@keyframes neahflix-lightfall { to { transform: rotate(9deg) translateX(20%); } }
-@media (prefers-reduced-motion: reduce) { .neahflix-lightfall__ray { animation: none; } }

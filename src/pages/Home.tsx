@@ -19,7 +19,6 @@ import { encodeId } from '../utils/idEncoder';
 import { getPersonalizedRecommendations, isRecommendationsEnabled, PersonalizedRecommendations } from '../services/recommendationService';
 import CarouselTitle from '../components/CarouselTitle';
 import ConfirmDialog from '../components/ui/confirm-dialog';
-import { Lightfall } from '../components/Lightfall';
 
 // Nombre de sections à charger immédiatement (les premières sont prioritaires)
 const IMMEDIATE_LOAD_COUNT = 3;
@@ -1438,7 +1437,6 @@ const Home: React.FC = () => {
               )}
             </motion.div>
             <section className="neahflix-lightfall relative mx-4 mt-12 overflow-hidden rounded-3xl border border-sky-100/15 px-6 py-10 text-center shadow-2xl shadow-sky-950/30 md:mx-8 md:px-12" aria-label="Crédits Neahflix">
-              <Lightfall />
               <div className="relative z-10 mx-auto max-w-2xl">
                 <p className="font-serif text-xs tracking-[0.42em] text-sky-100/70">NEAHFLIX</p>
                 <p className="mt-4 font-serif text-2xl text-white sm:text-3xl">« Le plaisir du cinéma à un prix juste. »</p>
