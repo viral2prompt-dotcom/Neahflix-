@@ -885,10 +885,9 @@ const Header: React.FC = () => {
               key={item.path}
               to={item.path}
               className={`relative flex min-w-0 flex-1 flex-col items-center gap-1 rounded-xl px-1 py-2 text-[10px] font-semibold transition-all duration-300 ${item.active ? 'neahflix-mobile-nav-item--active' : ''} ${
-                item.active ? 'bg-red-500/18 text-white shadow-[0_0_18px_rgba(239,68,68,0.28)]' : 'text-slate-400 active:bg-white/10'
+                item.active ? 'bg-white/[0.06] text-white shadow-[0_0_18px_rgba(255,255,255,0.16)]' : 'text-slate-400 active:bg-white/10'
               }`}
             >
-              {item.active && <span className="absolute inset-x-5 top-0 h-px bg-gradient-to-r from-transparent via-red-300 to-transparent" />}
               {item.icon}
               <span className="truncate">{item.name}</span>
             </Link>
@@ -896,7 +895,7 @@ const Header: React.FC = () => {
           <button
             type="button"
             onClick={() => setIsExploreOpen(true)}
-            className={`relative flex min-w-0 flex-1 flex-col items-center gap-1 rounded-xl px-1 py-2 text-[10px] font-semibold transition-colors active:bg-white/10 ${isExploreOpen ? 'neahflix-mobile-nav-item--active bg-red-500/18 text-white shadow-[0_0_18px_rgba(239,68,68,0.28)]' : 'text-slate-400'}`}
+            className={`relative flex min-w-0 flex-1 flex-col items-center gap-1 rounded-xl px-1 py-2 text-[10px] font-semibold transition-colors active:bg-white/10 ${isExploreOpen ? 'neahflix-mobile-nav-item--active bg-white/[0.06] text-white shadow-[0_0_18px_rgba(255,255,255,0.16)]' : 'text-slate-400'}`}
             aria-label={t('nav.explore')}
           >
             <MoreHorizontal size={19} />
