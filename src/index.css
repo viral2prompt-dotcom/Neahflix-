@@ -504,12 +504,6 @@ body {
   animation: neahflix-logo-sheen 7s ease-in-out infinite;
 }
 
-.neahflix-logo__wordmark--white {
-  background: linear-gradient(105deg, #ffffff 0%, #ffffff 40%, #dbeafe 50%, #ffffff 60%, #ffffff 100%);
-  background-size: 240% 100%;
-  background-position: 100% 50%;
-}
-
 @keyframes neahflix-logo-sheen {
   0%, 72%, 100% { background-position: 100% 50%; }
   86% { background-position: 0% 50%; }
