@@ -1723,6 +1723,9 @@ const AppWithIntro: React.FC = () => {
   // Détecter si on est sur une route /watch ou la page 404
   const isWatchRoute = location.pathname.startsWith('/watch/') || location.pathname.startsWith('/watchparty/room/') || location.pathname.startsWith('/ftv/watch/');
   const isScreensaverDisabledRoute = isWatchRoute || location.pathname.startsWith('/live-tv');
+  // NEAHPLUS est une passerelle externe : suspendre temporairement
+  // l'économiseur pendant la visite sans toucher à la préférence stockée.
+  const isNeahplusGatewayRoute = location.pathname === '/platform/neahplus';
 
   // Screensaver logic
   const [screensaverEnabled, setScreensaverEnabled] = useState(() => localStorage.getItem('screensaver_enabled') !== 'false');
@@ -1732,7 +1735,7 @@ const AppWithIntro: React.FC = () => {
   // Routes de lecture connues et tous les éléments <video> des lecteurs déjà
   // montés suspendent l'économiseur. Les événements sont centralisés dans le
   // hook afin de ne pas modifier les implémentations HLS/FStream/proxy.
-  const shouldEnableScreensaver = screensaverEnabled && !isScreensaverDisabledRoute && !isVideoPlaybackActive;
+  const shouldEnableScreensaver = screensaverEnabled && !isScreensaverDisabledRoute && !isNeahplusGatewayRoute && !isVideoPlaybackActive;
   const { isIdle, wake } = useIdleTimer(screensaverTimeout * 1000, shouldEnableScreensaver);
 
   // Listen for settings changes from Profile page

@@ -516,6 +516,26 @@ body {
   letter-spacing: 0.24em;
 }
 
+.neahflix-mobile-nav-item--active {
+  isolation: isolate;
+}
+
+.neahflix-mobile-nav-item--active::before {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  z-index: -1;
+  border-radius: 0.9rem;
+  background: conic-gradient(from 0deg, transparent 0deg, transparent 285deg, rgba(255, 54, 54, 0.95) 324deg, transparent 360deg);
+  animation: neahflix-nav-orbit 2.8s linear infinite;
+  filter: blur(2px);
+  opacity: 0.95;
+}
+
+@keyframes neahflix-nav-orbit {
+  to { transform: rotate(1turn); }
+}
+
 /* Les anciens points d'entrée vers le canal Movix restent dans le code pour
    éviter de casser les parcours historiques, mais ne font plus partie de
    l'interface Neahflix. */
@@ -536,7 +556,8 @@ a[href="https://t.me/movix_site"] {
 @media (prefers-reduced-motion: reduce) {
   .neahflix-app-shell::before,
   .neahflix-app-shell::after,
-  .neahflix-logo__wordmark { animation: none; }
+  .neahflix-logo__wordmark,
+  .neahflix-mobile-nav-item--active::before { animation: none; }
 }
 
 #root {
