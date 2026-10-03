@@ -1141,7 +1141,7 @@ const Home: React.FC = () => {
     { id: 9001, alt: 'YouTube', brandClass: 'bg-[#ff0000] text-white', internalRoute: '/platform/youtube', label: t('platformGateway.temporarilyUnavailable') },
     { id: 9002, alt: 'TikTok', brandClass: 'bg-[#010101] text-white ring-1 ring-cyan-300/40', internalRoute: '/platform/tiktok', label: t('platformGateway.temporarilyUnavailable') },
     { id: 9003, alt: 'NEAHLITE', brandClass: 'bg-gradient-to-br from-amber-400 to-yellow-600 text-white', internalRoute: '/platform/neahlite', label: t('platformGateway.temporarilyUnavailable') },
-    { id: 9004, alt: 'Neahplus', brandClass: 'bg-gradient-to-br from-white to-blue-500 text-blue-950', internalRoute: '/platform/neahplus', label: 'Passerelle Neahflix' },
+    { id: 9004, alt: 'NEAHPLUS', brandClass: 'bg-gradient-to-br from-white to-blue-500 text-blue-950', internalRoute: '/platform/neahplus', label: 'Passerelle Neahflix' },
     { id: 9005, alt: 'CANAL+', brandClass: 'bg-black text-white ring-1 ring-white/60', internalRoute: '/platform/canal', label: 'Passerelle Neahflix' },
     { id: 9006, alt: 'Anime Zora', brandClass: 'bg-black text-white ring-1 ring-white/50', internalRoute: '/platform/anime-zora', label: 'Passerelle Neahflix' },
     { id: 9007, alt: 'Drama Aurévia', brandClass: 'bg-gradient-to-br from-pink-500 to-rose-700 text-white', label: 'Bientôt disponible' },
@@ -1442,9 +1442,13 @@ const Home: React.FC = () => {
               <div className="relative z-10 mx-auto max-w-2xl">
                 <p className="font-serif text-xs tracking-[0.42em] text-sky-100/70">NEAHFLIX</p>
                 <p className="mt-4 font-serif text-2xl text-white sm:text-3xl">« Le plaisir du cinéma à un prix juste. »</p>
-                <p className="mt-5 text-sm leading-relaxed text-slate-300">Merci à Mysticsaba pour son soutien et sa confiance dans l'aventure Neahflix.</p>
-                <p className="mt-7 text-xs font-medium tracking-[0.14em] text-sky-100">@NGWilson.B — Créateur de Neahflix</p>
-                <p className="mt-2 font-mono text-[11px] tracking-[0.22em] text-slate-400">Code 242.CG//100%</p>
+                <p className="mt-5 text-sm leading-relaxed text-slate-300">Merci à Mysticsaba pour sa confiance dans l'aventure NEAHFLIX.</p>
+                <p className="neahflix-logo__wordmark mt-7 text-xs font-medium tracking-[0.14em]">@NGB23 — NEAHFLIX CREATOR / CODE CG242 |©✓</p>
+                <div className="mt-10 border-t border-sky-100/15 pt-8">
+                  <p className="font-serif text-xs tracking-[0.42em] text-sky-100/70">NEAHFLIX</p>
+                  <p className="mt-4 text-sm leading-relaxed text-slate-300">Neahflix n'héberge aucun fichier sur ses serveurs. Nous fournissons uniquement des liens vers des services externes. Nous ne sommes pas responsables du contenu hébergé par ces services tiers. En cas de problème avec la justice, veuillez contacter directement les hébergeurs des contenus concernés.</p>
+                  <p className="neahflix-logo__wordmark mt-7 text-xs font-medium tracking-[0.14em]">© 2026 Neahflix. Tous droits réservés.</p>
+                </div>
               </div>
             </section>
           </>
