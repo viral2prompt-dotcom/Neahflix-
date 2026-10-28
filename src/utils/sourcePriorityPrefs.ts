@@ -30,15 +30,21 @@ const CHANGE_EVENT = 'movix-source-priority-changed';
  * les sources embed (fstream/omega/wiflix/j1f/swiftflow). Migration :
  * repositionnement inconditionnel (source trop récente pour qu'un ordre
  * volontaire existe) — voir migrateV3toV4.
+ *
+ * **v4 → v5** : SwiftFlow devient la source par défaut pour les films/séries,
+ * UQload devient le premier lecteur de secours. La migration réordonne uniquement
+ * les préférences encore identiques aux anciens defaults, sans écraser les choix
+ * personnalisés de l'utilisateur.
  */
-const SCHEMA_VERSION = 4 as const;
-type LegacySourcePriorityPrefs<V extends 1 | 2 | 3> = Omit<SourcePriorityPrefs, 'version'> & {
+const SCHEMA_VERSION = 5 as const;
+type LegacySourcePriorityPrefs<V extends 1 | 2 | 3 | 4> = Omit<SourcePriorityPrefs, 'version'> & {
   version: V;
 };
 type PersistedSourcePriorityPrefs = SourcePriorityPrefs
   | LegacySourcePriorityPrefs<1>
   | LegacySourcePriorityPrefs<2>
-  | LegacySourcePriorityPrefs<3>;
+  | LegacySourcePriorityPrefs<3>
+  | LegacySourcePriorityPrefs<4>;
 
 /** Ancien ordre built-in (pré-v3). Sert au comparateur du migrator v2→v3. */
 const V2_DEFAULT_BUILTIN_HOSTER_ORDER: readonly string[] = [
@@ -70,9 +76,8 @@ const V2_DEFAULT_BUILTIN_HOSTER_ORDER: readonly string[] = [
  * les fournissent pas.
  */
 const DEFAULT_MOVIES_TV_ORDER: readonly TopLevelSourceId[] = [
-  'nexus_hls', 'swiftflux', 'bravo', 'mp4', 'darkino',
-  'fstream', 'omega', 'wiflix', 'j1f', 'swiftflow', 'viper', 'coflix',
-  'custom', 'frembed', 'vox', 'kisskh', 'vostfr',
+  'swiftflow', 'fstream', 'nexus_hls', 'swiftflux', 'bravo', 'mp4', 'darkino',
+  'omega', 'wiflix', 'j1f', 'viper', 'coflix', 'custom', 'frembed', 'vox', 'kisskh', 'vostfr',
 ];
 
 /**
@@ -81,7 +86,7 @@ const DEFAULT_MOVIES_TV_ORDER: readonly TopLevelSourceId[] = [
  * vidmoly, sibnet, smoothpre, seekstreaming (détection # incluse), minochinos.
  */
 const DEFAULT_ANIME_HOSTER_ORDER: readonly HosterId[] = [
-  'vidmoly', 'sibnet', 'smoothpre', 'seekstreaming', 'minochinos',
+  'uqload', 'vidmoly', 'sibnet', 'smoothpre', 'seekstreaming', 'minochinos',
 ];
 
 export function buildDefaults(): SourcePriorityPrefs {
@@ -93,7 +98,7 @@ export function buildDefaults(): SourcePriorityPrefs {
 
   const moviesTv: MoviesTvPrefs = {
     sourceOrder: sourceOrderIds.map((id) => ({ id, enabled: true })),
-    hosterOrder: [...BUILTIN_HOSTER_IDS],
+    hosterOrder: ['uqload', ...BUILTIN_HOSTER_IDS.filter((id) => id !== 'uqload')],
     // Même liste que Anime mais appliquée aux sources films/séries qui ont
     // plusieurs versions (fstream/wiflix/viper). VF + VOSTFR activés par
     // défaut (les autres restent dispo si le backend les renvoie, mais
@@ -128,7 +133,7 @@ export const DEFAULT_SOURCE_PRIORITY_PREFS: SourcePriorityPrefs = buildDefaults(
 function isValidPrefs(obj: unknown): obj is PersistedSourcePriorityPrefs {
   if (!obj || typeof obj !== 'object') return false;
   const p = obj as Partial<Omit<SourcePriorityPrefs, 'version'>> & { version?: unknown };
-  const versionOk = p.version === 1 || p.version === 2 || p.version === 3 || p.version === 4;
+  const versionOk = p.version === 1 || p.version === 2 || p.version === 3 || p.version === 4 || p.version === 5;
   return versionOk
     && !!p.categories
     && !!p.categories.moviesTv
@@ -227,7 +232,7 @@ function migrateV2toV3(
  */
 function migrateV3toV4(
   parsed: LegacySourcePriorityPrefs<3>,
-): SourcePriorityPrefs {
+): LegacySourcePriorityPrefs<4> {
   const order = parsed.categories.moviesTv.sourceOrder;
   const idx = order.findIndex((e) => e.id === 'swiftflux');
 
@@ -248,6 +253,55 @@ function migrateV3toV4(
     categories: {
       ...parsed.categories,
       moviesTv: { ...parsed.categories.moviesTv, sourceOrder },
+    },
+  };
+}
+
+/**
+ * Migration v4 → v5 : SwiftFlow VF devient le premier choix pour les films/séries,
+ * et UQload le premier hoster de secours. Seuls les anciens ordres par défaut sont
+ * réordonnés ; les préférences personnalisées restent intactes.
+ */
+function migrateV4toV5(parsed: LegacySourcePriorityPrefs<4>): SourcePriorityPrefs {
+  const legacyMoviesTvOrder: readonly TopLevelSourceId[] = [
+    'nexus_hls', 'swiftflux', 'bravo', 'mp4', 'darkino',
+    'fstream', 'omega', 'wiflix', 'j1f', 'swiftflow', 'viper', 'coflix',
+    'custom', 'frembed', 'vox', 'kisskh', 'vostfr',
+  ];
+  const currentSourceOrder = parsed.categories.moviesTv.sourceOrder;
+  const sourceOrderIsDefault = currentSourceOrder.length === legacyMoviesTvOrder.length
+    && currentSourceOrder.every((entry, index) => entry.id === legacyMoviesTvOrder[index]);
+  const sourceOrder = sourceOrderIsDefault
+    ? DEFAULT_MOVIES_TV_ORDER.map((id) => currentSourceOrder.find((entry) => entry.id === id)!)
+    : currentSourceOrder;
+
+  const currentMoviesHosters = parsed.categories.moviesTv.hosterOrder;
+  const currentBuiltinMoviesHosters = currentMoviesHosters.filter((id) =>
+    (BUILTIN_HOSTER_IDS as readonly string[]).includes(id),
+  );
+  const movieHostersAreDefault = currentBuiltinMoviesHosters.length === BUILTIN_HOSTER_IDS.length
+    && BUILTIN_HOSTER_IDS.every((id, index) => currentBuiltinMoviesHosters[index] === id);
+  const moviesHosterOrder = movieHostersAreDefault
+    ? ['uqload', ...currentMoviesHosters.filter((id) => id !== 'uqload')]
+    : currentMoviesHosters;
+
+  const legacyAnimeHosterOrder: readonly HosterId[] = [
+    'vidmoly', 'sibnet', 'smoothpre', 'seekstreaming', 'minochinos',
+  ];
+  const currentAnimeHosters = parsed.categories.anime.hosterOrder;
+  const animeHostersAreDefault = currentAnimeHosters.length === legacyAnimeHosterOrder.length
+    && currentAnimeHosters.every((id, index) => id === legacyAnimeHosterOrder[index]);
+
+  return {
+    ...parsed,
+    version: 5,
+    categories: {
+      ...parsed.categories,
+      moviesTv: { ...parsed.categories.moviesTv, sourceOrder, hosterOrder: moviesHosterOrder },
+      anime: {
+        ...parsed.categories.anime,
+        hosterOrder: animeHostersAreDefault ? [...DEFAULT_ANIME_HOSTER_ORDER] : currentAnimeHosters,
+      },
     },
   };
 }
@@ -372,7 +426,11 @@ export function getSourcePriorityPrefs(): SourcePriorityPrefs {
     const v4 = v3.version === 3
       ? migrateV3toV4(v3)
       : v3;
-    return mergeWithDefaults(v4);
+    // Migration v4 → v5 (SwiftFlow en premier, UQload comme premier fallback).
+    const v5 = v4.version === 4
+      ? migrateV4toV5(v4)
+      : v4;
+    return mergeWithDefaults(v5);
   } catch {
     return buildDefaults();
   }
