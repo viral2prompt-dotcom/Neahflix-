@@ -15,6 +15,8 @@ test('NEAHPLUS bridge only accepts OHA and its known TVFree stream CDN', () => {
   assert.equal(isAllowedUpstream('https://edge.tvfree.to/live/index.m3u8'), true);
   assert.equal(isAllowedUpstream('http://127.0.0.1/admin'), false);
   assert.equal(isAllowedUpstream('https://example.com/video.m3u8'), false);
+  assert.equal(isAllowedUpstream('https://oha.to:8443/play/123/index.m3u8'), false);
+  assert.equal(isAllowedUpstream('https://user:pass@oha.to/play/123/index.m3u8'), false);
 });
 
 test('OHA URLs stay on the same HTTPS bridge origin', () => {
