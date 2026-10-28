@@ -177,6 +177,18 @@ const neahplusHandler = async (c) => {
     headers.set('cache-control', 'no-store');
     headers.set('x-content-type-options', 'nosniff');
 
+    // Keep upstream session cookies scoped to this bridge path, never to the
+    // entire Neahflix site or the upstream domain.
+    const upstreamCookies = typeof response.headers.getSetCookie === 'function'
+      ? response.headers.getSetCookie()
+      : (response.headers.get('set-cookie') ? [response.headers.get('set-cookie')] : []);
+    for (const cookie of upstreamCookies) {
+      let scopedCookie = cookie.replace(/;\\s*domain=[^;]*/i, '')
+        .replace(/;\\s*path=[^;]*/i, '; Path=/api/neahplus');
+      if (!/;\\s*path=/i.test(scopedCookie)) scopedCookie += '; Path=/api/neahplus';
+      headers.append('set-cookie', scopedCookie);
+    }
+
     const location = response.headers.get('location');
     if (location) {
       try { headers.set('location', neahplusBridgeUrl(new URL(location, upstream))); }
