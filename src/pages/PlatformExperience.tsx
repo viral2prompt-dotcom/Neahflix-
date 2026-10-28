@@ -5,7 +5,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 const PLATFORMS = {
   youtube: { brand: 'YouTube', unavailable: true },
   neahlite: { brand: 'NEAHLITE', premiumMessage: true },
-  neahplus: { brand: 'NEAHPLUS', source: 'https://oha.to/#/channels?src=oha-live%2Fchannels' },
+  neahplus: { brand: 'NEAHPLUS', source: '/api/neahplus/#/channels?src=oha-live%2Fchannels' },
   'anime-zora': { brand: 'Anime Zora', comingSoon: true },
   tiktok: { brand: 'TikTok', unavailable: true },
   canal: { brand: 'CANAL+', officialEmbedding: 'none' },
