@@ -920,6 +920,39 @@ const WatchAnime: React.FC = () => {
     // Utiliser les sources filtrées pour la sélection
     const sourcesToSearch = filteredSources.length > 0 ? filteredSources : videoSources;
 
+    // Global defaults: SwiftFlow VF first, then UQload VF, whether the source
+    // is a native HLS extraction or a regular embed. These checks intentionally
+    // precede the legacy Vidmoly/Sibnet preferences.
+    const isSwiftFlowSource = (source: VideoSource) =>
+      source.player?.toLowerCase().includes('swiftflow') || source.label?.toLowerCase().includes('swiftflow');
+    const isUqloadSource = (source: VideoSource) =>
+      source.hosterId?.toLowerCase() === 'uqload' ||
+      source.player?.toLowerCase().includes('uqload') ||
+      source.label?.toLowerCase().includes('uqload') ||
+      source.url?.toLowerCase().includes('uqload');
+
+    sourceToSelect = videoSources.find(source =>
+      isSwiftFlowSource(source) && source.language?.toLowerCase() === 'vf'
+    );
+    if (sourceToSelect) console.log('Selected SwiftFlow VF source:', sourceToSelect.label);
+
+    if (!sourceToSelect) {
+      sourceToSelect = videoSources.find(source =>
+        isUqloadSource(source) && source.language?.toLowerCase() === 'vf'
+      );
+      if (sourceToSelect) console.log('Selected UQload VF fallback:', sourceToSelect.label);
+    }
+
+    if (!sourceToSelect && selectedLanguage) {
+      sourceToSelect = sourcesToSearch.find(source => isSwiftFlowSource(source));
+      if (sourceToSelect) console.log('Selected SwiftFlow in current language:', sourceToSelect.label);
+    }
+
+    if (!sourceToSelect && selectedLanguage) {
+      sourceToSelect = sourcesToSearch.find(source => isUqloadSource(source));
+      if (sourceToSelect) console.log('Selected UQload in current language:', sourceToSelect.label);
+    }
+
     // Priority 1: Vidmoly HLS source in VF (always prioritize VF if available)
     if (!sourceToSelect) {
       sourceToSelect = sourcesToSearch.find(source =>
