@@ -183,9 +183,9 @@ const neahplusHandler = async (c) => {
       ? response.headers.getSetCookie()
       : (response.headers.get('set-cookie') ? [response.headers.get('set-cookie')] : []);
     for (const cookie of upstreamCookies) {
-      let scopedCookie = cookie.replace(/;\\s*domain=[^;]*/i, '')
-        .replace(/;\\s*path=[^;]*/i, '; Path=/api/neahplus');
-      if (!/;\\s*path=/i.test(scopedCookie)) scopedCookie += '; Path=/api/neahplus';
+      let scopedCookie = cookie.replace(/;\s*domain=[^;]*/i, '')
+        .replace(/;\s*path=[^;]*/i, '; Path=/api/neahplus');
+      if (!/;\s*path=/i.test(scopedCookie)) scopedCookie += '; Path=/api/neahplus';
       headers.append('set-cookie', scopedCookie);
     }
 
