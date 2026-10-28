@@ -21,7 +21,7 @@ const AdFreePopupContext = createContext<AdFreePopupContextType | undefined>(und
 
 export const AdFreePopupProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [showAdFreePopup, setShowAdFreePopup] = useState(false);
-  const [adType, setAdType] = useState<'ad1' | 'ad2'>('ad2');
+  const [adType] = useState<'ad1' | 'ad2'>('ad2');
   const [playerToShow, setPlayerToShow] = useState<string | null>(null);
   const [shouldLoadIframe, setShouldLoadIframe] = useState(true);
   const [isSpecialPlayer, setIsSpecialPlayer] = useState(false);
