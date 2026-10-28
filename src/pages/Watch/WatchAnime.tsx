@@ -1833,6 +1833,7 @@ const WatchAnime: React.FC = () => {
               allowFullScreen
               referrerPolicy={(embedUrl || '').toLowerCase().includes('ezplayer') ? 'no-referrer' : undefined}
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              sandbox="allow-scripts allow-same-origin allow-forms allow-presentation"
             ></iframe>
           ) : null}
         </div>
