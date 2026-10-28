@@ -71,7 +71,7 @@ export interface CustomHoster {
 }
 
 export interface SourcePriorityPrefs {
-  version: 4;
+  version: 5;
   categories: {
     moviesTv: MoviesTvPrefs;
     anime: AnimePrefs;
