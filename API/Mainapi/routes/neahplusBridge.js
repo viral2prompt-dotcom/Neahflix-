@@ -64,6 +64,8 @@ function rewriteEmbeddedUrls(text) {
   output = output.replace(/https?:\/\/(?:www\.)?oha\.to/gi, BRIDGE_PREFIX);
   output = output.replace(/(["'`])\/(assets|play|oha-[a-z0-9-]+|api|channels|catalog|resolve|source|subtitle|favicon|manifest|images|fonts|static|watch|live)(?=\/|\?|#|["'`])/gi,
     (_match, quote, path) => `${quote}${BRIDGE_PREFIX}/${path}`);
+  output = output.replace(/url\((["']?)\/(assets|images|fonts|static)(?=\/)/gi,
+    (_match, quote, path) => `url(${quote}${BRIDGE_PREFIX}/${path}`);
   return output;
 }
 
@@ -169,6 +171,10 @@ async function handleProxy(req, res) {
     const isPlaylist = /\.m3u8(?:$|\?)/i.test(finalUrl.pathname) || /mpegurl/i.test(contentType);
     const isText = isPlaylist || /(?:text\/html|javascript|ecmascript|text\/css|application\/json)/i.test(contentType);
 
+    // The global API middleware defaults to DENY; this single allowlisted iframe route
+    // is same-origin with the Neahflix page, so permit only same-origin framing.
+    res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+    res.setHeader('Content-Security-Policy', "frame-ancestors 'self'");
     res.status(response.status);
     res.setHeader('Content-Type', contentType);
     res.setHeader('Cache-Control', 'no-store');
