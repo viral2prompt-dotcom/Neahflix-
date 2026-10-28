@@ -953,6 +953,13 @@ const WatchAnime: React.FC = () => {
       if (sourceToSelect) console.log('Selected UQload in current language:', sourceToSelect.label);
     }
 
+    // UQload is the global second choice even when it only has another language;
+    // if SwiftFlow VF is absent, don't skip UQload just because another hoster has VF.
+    if (!sourceToSelect) {
+      sourceToSelect = videoSources.find(source => isUqloadSource(source));
+      if (sourceToSelect) console.log('Selected first available UQload fallback:', sourceToSelect.label);
+    }
+
     // Priority 1: Vidmoly HLS source in VF (always prioritize VF if available)
     if (!sourceToSelect) {
       sourceToSelect = sourcesToSearch.find(source =>
