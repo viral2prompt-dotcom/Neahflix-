@@ -2963,7 +2963,14 @@ const WatchMovie: React.FC = () => {
             allowFullScreen
             referrerPolicy={(embedUrl || '').toLowerCase().includes('ezplayer') ? 'no-referrer' : 'strict-origin-when-cross-origin'}
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-            sandbox={undefined}
+            sandbox={(() => {
+              const urlLower = (embedUrl || '').toLowerCase();
+              // Préserver les lecteurs connus pour ne pas fonctionner sous sandbox.
+              const requiresUnsandboxedFrame = [
+                'mixdrop', 'dood', 'emmmmbed', 'lecteur6', 'supervideo', 'dropload'
+              ].some((host) => urlLower.includes(host));
+              return requiresUnsandboxedFrame ? undefined : 'allow-scripts allow-same-origin allow-forms allow-presentation';
+            })()}
           ></iframe>
 
           {/* Sources Menu Overlay */}
@@ -3827,8 +3834,9 @@ const WatchMovie: React.FC = () => {
               if (embedType === 'coflix') {
                 return undefined;
               }
-              // Par défaut, pas de sandbox
-              return undefined;
+              // Bloquer les popups et navigations déclenchées par les embeds ordinaires.
+              // Les exceptions ci-dessus restent intactes pour préserver leur compatibilité.
+              return 'allow-scripts allow-same-origin allow-forms allow-presentation';
             })()}
           ></iframe>
 
@@ -3939,6 +3947,7 @@ const WatchMovie: React.FC = () => {
             allowFullScreen
             referrerPolicy="strict-origin-when-cross-origin"
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            sandbox="allow-scripts allow-same-origin allow-forms allow-presentation"
           ></iframe>
 
           <PlayerOverlayPortal>
