@@ -76,7 +76,7 @@ const V2_DEFAULT_BUILTIN_HOSTER_ORDER: readonly string[] = [
  * les fournissent pas.
  */
 const DEFAULT_MOVIES_TV_ORDER: readonly TopLevelSourceId[] = [
-  'swiftflow', 'fstream', 'nexus_hls', 'swiftflux', 'bravo', 'mp4', 'darkino',
+  'swiftflow', 'nexus_hls', 'fstream', 'swiftflux', 'bravo', 'mp4', 'darkino',
   'omega', 'wiflix', 'j1f', 'viper', 'coflix', 'custom', 'frembed', 'vox', 'kisskh', 'vostfr',
 ];
 
@@ -339,6 +339,27 @@ function mergeWithDefaults(parsed: PersistedSourcePriorityPrefs): SourcePriority
     return [...filtered, ...extras];
   };
 
+  // Migrate existing v5 preferences that still match the old built-in order.
+  // Preserve enabled flags, but place the aggregate extracted HLS list second so
+  // UQload can be the first fallback when SwiftFlow is unavailable.
+  const previousV5DefaultOrder: readonly TopLevelSourceId[] = [
+    'swiftflow', 'fstream', 'nexus_hls', 'swiftflux', 'bravo', 'mp4', 'darkino',
+    'omega', 'wiflix', 'j1f', 'viper', 'coflix', 'custom', 'frembed', 'vox', 'kisskh', 'vostfr',
+  ];
+  const storedMoviesTvOrder = parsed.categories.moviesTv.sourceOrder;
+  const storedOrderMatchesPreviousDefault = storedMoviesTvOrder.length === previousV5DefaultOrder.length
+    && storedMoviesTvOrder.every((entry, index) => entry.id === previousV5DefaultOrder[index]);
+  const migratedMoviesTvSourceOrder = storedOrderMatchesPreviousDefault
+    ? defaults.categories.moviesTv.sourceOrder.map((entry) => {
+        const stored = storedMoviesTvOrder.find((candidate) => candidate.id === entry.id);
+        return stored ? { ...entry, enabled: stored.enabled } : entry;
+      })
+    : mergeOrderedToggle(
+        storedMoviesTvOrder,
+        defaults.categories.moviesTv.sourceOrder,
+        deprecatedSources,
+      );
+
   // Purge overrides pointing at deprecated ids.
   const purgeOverrides = <K extends string>(
     overrides: Partial<Record<K, HosterId[]>> | undefined,
@@ -365,11 +386,7 @@ function mergeWithDefaults(parsed: PersistedSourcePriorityPrefs): SourcePriority
     version: SCHEMA_VERSION,
     categories: {
       moviesTv: {
-        sourceOrder: mergeOrderedToggle(
-          parsed.categories.moviesTv.sourceOrder,
-          defaults.categories.moviesTv.sourceOrder,
-          deprecatedSources,
-        ),
+        sourceOrder: migratedMoviesTvSourceOrder,
         hosterOrder: mergeOrderedList(
           parsed.categories.moviesTv.hosterOrder,
           defaults.categories.moviesTv.hosterOrder,
