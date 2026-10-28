@@ -2023,7 +2023,7 @@ const WatchMovie: React.FC = () => {
       // (overrides any user priority, comportement préservé)
       // Garde-fou : si un lecteur Viblix (source `mp4`) existe, on ne force plus
       // `custom` — le forçage servait à combler l'absence de lecteur direct.
-      if (id === '1218925' && fetchedMp4Sources.length === 0) {
+      if (id === '1218925' && fetchedMp4Sources.length === 0 && swiftflowProcessedSources.length === 0 && ![...finalHlsSources, ...finalFileSources, ...fstreamProcessedSources, ...wiflixProcessedSources, ...j1fProcessedSources].some((source: any) => /uqload/i.test(`${source.url ?? ''} ${source.label ?? ''}`))) {
         console.log('🎯 Special case: Movie ID 1218925 - selecting custom source');
         setSelectedSource('custom');
         setEmbedUrl('https://movix1.embedseek.com/#h6j8');
@@ -2033,7 +2033,7 @@ const WatchMovie: React.FC = () => {
       }
       // Special case for movie ID 1311031 - force custom source selection
       // (même garde-fou Viblix que ci-dessus)
-      else if (id === '1311031' && fetchedMp4Sources.length === 0) {
+      else if (id === '1311031' && fetchedMp4Sources.length === 0 && swiftflowProcessedSources.length === 0 && ![...finalHlsSources, ...finalFileSources, ...fstreamProcessedSources, ...wiflixProcessedSources, ...j1fProcessedSources].some((source: any) => /uqload/i.test(`${source.url ?? ''} ${source.label ?? ''}`))) {
         console.log('🎯 Special case: Movie ID 1311031 - selecting custom source');
 
         // Fetch custom links from API for this specific movie
