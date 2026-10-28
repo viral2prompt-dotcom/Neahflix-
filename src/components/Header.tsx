@@ -460,11 +460,6 @@ const Header: React.FC = () => {
                 <span className="neahflix-logo__wordmark tracking-[0.12em]">NEAHFLIX</span>
               </Link>
 
-              {/* Le profil reste au premier plan de l'expérience mobile, juste après la marque. */}
-              <div className="flex items-center cursor-pointer relative shrink-0">
-                <ProfileMenu />
-              </div>
-
               {/* Desktop Nav: 3 items principaux + Explorer */}
               <nav className="hidden lg:flex items-center gap-1">
                 {mainNavItems.map((item) => (
