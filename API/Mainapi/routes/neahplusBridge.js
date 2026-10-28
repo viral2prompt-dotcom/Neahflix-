@@ -20,6 +20,8 @@ function isAllowedUpstream(value) {
   try {
     const url = value instanceof URL ? value : new URL(value);
     if (!['http:', 'https:'].includes(url.protocol)) return false;
+    if (url.username || url.password) return false;
+    if (url.port && !((url.protocol === 'https:' && url.port === '443') || (url.protocol === 'http:' && url.port === '80'))) return false;
     const host = url.hostname.toLowerCase();
     return host === 'oha.to' || host === 'www.oha.to' ||
       host === 'tvfree.to' || host.endsWith('.tvfree.to');
@@ -157,6 +159,9 @@ async function fetchAllowedUrl(initialUrl, req) {
 async function handleProxy(req, res) {
   let upstreamUrl;
   try {
+    if (!['GET', 'HEAD', 'POST'].includes(req.method)) {
+      return res.status(405).set('Allow', 'GET, HEAD, POST').send('Méthode NEAHPLUS non autorisée');
+    }
     if (req.path === '/__relay') {
       const rawTarget = typeof req.query.url === 'string' ? req.query.url : '';
       upstreamUrl = new URL(rawTarget);
@@ -171,12 +176,14 @@ async function handleProxy(req, res) {
     const isPlaylist = /\.m3u8(?:$|\?)/i.test(finalUrl.pathname) || /mpegurl/i.test(contentType);
     const isText = isPlaylist || /(?:text\/html|javascript|ecmascript|text\/css|application\/json)/i.test(contentType);
 
-    // The global API middleware defaults to DENY; this single allowlisted iframe route
-    // is same-origin with the Neahflix page, so permit only same-origin framing.
-    res.setHeader('X-Frame-Options', 'SAMEORIGIN');
-    res.setHeader('Content-Security-Policy', "frame-ancestors 'self'");
     res.status(response.status);
     res.setHeader('Content-Type', contentType);
+    if (/text\/html/i.test(contentType)) {
+      // The global API middleware defaults to DENY; permit only same-origin framing
+      // for this allowlisted HTML gateway. Other bridge responses keep global headers.
+      res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+      res.setHeader('Content-Security-Policy', "frame-ancestors 'self'");
+    }
     res.setHeader('Cache-Control', 'no-store');
     for (const header of ['accept-ranges', 'content-range', 'last-modified', 'etag']) {
       if (response.headers[header]) res.setHeader(header, response.headers[header]);
