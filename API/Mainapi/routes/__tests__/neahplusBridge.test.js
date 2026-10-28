@@ -34,6 +34,8 @@ test('external TVFree media is relayed through the restricted bridge', () => {
 test('embedded OHA URLs are rewritten to the HTTPS bridge', () => {
   const output = rewriteEmbeddedUrls('const stream = "http://oha.to/play/123/index.m3u8";');
   assert.equal(output, 'const stream = "/api/neahplus/play/123/index.m3u8";');
+  assert.equal(rewriteEmbeddedUrls('const asset = "/assets/app.js";'), 'const asset = "/api/neahplus/assets/app.js";');
+  assert.equal(rewriteEmbeddedUrls('x{background:url(/assets/a.png)}'), 'x{background:url(/api/neahplus/assets/a.png)}');
 });
 
 test('HTML root assets and links are kept inside the bridge', () => {
