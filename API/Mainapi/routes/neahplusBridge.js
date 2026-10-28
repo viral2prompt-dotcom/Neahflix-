@@ -166,7 +166,6 @@ async function handleProxy(req, res) {
 
     const { response, finalUrl } = await fetchAllowedUrl(upstreamUrl, req);
     const contentType = response.headers['content-type'] || 'application/octet-stream';
-    const finalPath = finalUrl.pathname.toLowerCase();
     const isPlaylist = /\.m3u8(?:$|\?)/i.test(finalUrl.pathname) || /mpegurl/i.test(contentType);
     const isText = isPlaylist || /(?:text\/html|javascript|ecmascript|text\/css|application\/json)/i.test(contentType);
 
