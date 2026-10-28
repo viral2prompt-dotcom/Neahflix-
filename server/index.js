@@ -103,19 +103,19 @@ const neahplusBridgeUrl = (url) => {
 
 const rewriteNeahplusText = (text, upstreamUrl, isHtml = false) => {
   let output = String(text);
-  output = output.replace(/https?:\\/\\/(?:www\\.)?oha\\.to/gi, NEAHPLUS_PREFIX);
-  output = output.replace(/https?:\\/\\/(?:[a-z0-9-]+\\.)*tvfree\\.to[^"'\\s<>)]*/gi, (value) => {
+  output = output.replace(/https?:\/\/(?:www\.)?oha\.to/gi, NEAHPLUS_PREFIX);
+  output = output.replace(/https?:\/\/(?:[a-z0-9-]+\.)*tvfree\.to[^"'\s<>)]*/gi, (value) => {
     try { return neahplusBridgeUrl(new URL(value)); } catch { return value; }
   });
   // Rewrite root-relative paths commonly used by the OHA single-page app.
-  output = output.replace(/(["'`])\\/(?!api\\/neahplus(?:\\/|["'`]))(assets|play|api|channels|catalog|resolve|source|subtitle|favicon|manifest|images|fonts|static|watch|live|oha-[a-z0-9-]+)(?=\\/|\\?|#|["'`])/gi,
+  output = output.replace(/(["'`])\/(?!api\/neahplus(?:\/|["'`]))(assets|play|api|channels|catalog|resolve|source|subtitle|favicon|manifest|images|fonts|static|watch|live|oha-[a-z0-9-]+)(?=\/|\?|#|["'`])/gi,
     (_match, quote, route) => `${quote}${NEAHPLUS_PREFIX}/${route}`);
-  output = output.replace(/url\\((["']?)\\/(assets|images|fonts|static)(?=\\/)/gi,
+  output = output.replace(/url\((["']?)\/(assets|images|fonts|static)(?=\/)/gi,
     (_match, quote, route) => `url(${quote}${NEAHPLUS_PREFIX}/${route}`);
 
   if (isHtml) {
     // Ensure relative scripts/styles resolve through this same-origin bridge.
-    output = output.replace(/<head(\\s[^>]*)?>/i, (tag) => `${tag}<base href="${NEAHPLUS_PREFIX}/">`);
+    output = output.replace(/<head(\s[^>]*)?>/i, (tag) => `${tag}<base href="${NEAHPLUS_PREFIX}/">`);
   }
   return output;
 };
@@ -184,8 +184,8 @@ const neahplusHandler = async (c) => {
     }
 
     const type = response.headers.get('content-type') || '';
-    const playlist = /mpegurl/i.test(type) || /\\.m3u8(?:$|\\?)/i.test(upstream.pathname);
-    const rewriteable = playlist || /(?:text\\/html|javascript|ecmascript|text\\/css|application\\/json)/i.test(type);
+    const playlist = /mpegurl/i.test(type) || /\.m3u8(?:$|\?)/i.test(upstream.pathname);
+    const rewriteable = playlist || /(?:text\/html|javascript|ecmascript|text\/css|application\/json)/i.test(type);
     if (method === 'HEAD' || response.status === 204 || response.status === 304) {
       return new Response(null, { status: response.status, headers });
     }
@@ -195,7 +195,7 @@ const neahplusHandler = async (c) => {
       if (text.length > 8 * 1024 * 1024) return c.text('Réponse NEAHPLUS trop volumineuse', 502);
       let rewritten;
       if (playlist) {
-        rewritten = text.split(/\\r?\\n/).map((line) => {
+        rewritten = text.split(/\r?\n/).map((line) => {
           const value = line.trim();
           if (!value || value.startsWith('#')) {
             return value.startsWith('#') ? value.replace(/URI="([^"]+)"/g, (_m, uri) => {
@@ -203,9 +203,9 @@ const neahplusHandler = async (c) => {
             }) : line;
           }
           try { return neahplusBridgeUrl(new URL(value, upstream)); } catch { return line; }
-        }).join('\\n');
+        }).join('\n');
       } else {
-        rewritten = rewriteNeahplusText(text, upstream, /text\\/html/i.test(type));
+        rewritten = rewriteNeahplusText(text, upstream, /text\/html/i.test(type));
       }
       headers.delete('content-length');
       headers.delete('content-encoding');
