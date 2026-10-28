@@ -101,7 +101,7 @@ const neahplusBridgeUrl = (url) => {
   return `${NEAHPLUS_PREFIX}${url.pathname}${url.search}${url.hash}`;
 };
 
-const rewriteNeahplusText = (text, upstreamUrl, isHtml = false) => {
+const rewriteNeahplusText = (text, isHtml = false) => {
   let output = String(text);
   output = output.replace(/https?:\/\/(?:www\.)?oha\.to/gi, NEAHPLUS_PREFIX);
   output = output.replace(/https?:\/\/(?:[a-z0-9-]+\.)*tvfree\.to[^"'\s<>)]*/gi, (value) => {
