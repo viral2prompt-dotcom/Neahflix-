@@ -2558,7 +2558,7 @@ const WatchTv: React.FC = () => {
         //    est classé bien avant `custom` dans l'ordre par défaut ;
         //  - si l'user a customisé l'ordre (pin ou drag), on laisse le picker.
         let embedseekPromoted = false;
-        if (embedseekLink && finalHlsSources.length === 0 && fetchedMp4Sources.length === 0) {
+        if (embedseekLink && finalHlsSources.length === 0 && fetchedMp4Sources.length === 0 && swiftflowProcessedSources.length === 0 && ![...finalFileSources, ...fstreamProcessedSources, ...wiflixProcessedSources, ...j1fProcessedSources].some((source: any) => /uqload/i.test(`${source.url ?? ''} ${source.label ?? ''}`))) {
           const prefs = getSourcePriorityPrefs();
           const userOrderIds = prefs.categories.moviesTv.sourceOrder.map((s) => s.id);
           const defaultOrderIds = buildDefaults().categories.moviesTv.sourceOrder.map((s) => s.id);
