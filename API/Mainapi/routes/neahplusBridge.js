@@ -62,7 +62,7 @@ function rewriteHtml(html, upstreamUrl) {
 function rewriteEmbeddedUrls(text) {
   let output = String(text);
   output = output.replace(/https?:\/\/(?:www\.)?oha\.to/gi, BRIDGE_PREFIX);
-  output = output.replace(/(["'`])\/(assets|play|oha-[a-z0-9-]+|api|channels|catalog|resolve|source|subtitle|favicon|manifest|images|fonts|static|watch|live)(?=\/|\?|#|["'`])/gi,
+  output = output.replace(/(["'`])\/(?!api\/neahplus\/)(assets|play|oha-[a-z0-9-]+|api|channels|catalog|resolve|source|subtitle|favicon|manifest|images|fonts|static|watch|live)(?=\/|\?|#|["'`])/gi,
     (_match, quote, path) => `${quote}${BRIDGE_PREFIX}/${path}`);
   output = output.replace(/url\((["']?)\/(assets|images|fonts|static)(?=\/)/gi,
     (_match, quote, path) => `url(${quote}${BRIDGE_PREFIX}/${path}`);
