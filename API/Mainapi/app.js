@@ -530,6 +530,9 @@ app.use('/api/media', require('./routes/mediaExtract'));
 // proxy de flux, qui ne réécrit ni navigation ni politiques d'iframe.
 app.use('/neahlite', require('./routes/neahliteBridge'));
 
+// HTTPS-only, host-allowlisted relay for the NEAHPLUS/OHA streaming gateway.
+app.use('/api/neahplus', require('./routes/neahplusBridge'));
+
 const downloadLinksLeaderboardRouter = require('./routes/downloadLinksLeaderboard');
 app.use('/api/download-links', downloadLinksLeaderboardRouter);
 
