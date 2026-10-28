@@ -217,7 +217,7 @@ const neahplusHandler = async (c) => {
           try { return neahplusBridgeUrl(new URL(value, upstream)); } catch { return line; }
         }).join('\n');
       } else {
-        rewritten = rewriteNeahplusText(text, upstream, /text\/html/i.test(type));
+        rewritten = rewriteNeahplusText(text, /text\/html/i.test(type));
       }
       headers.delete('content-length');
       headers.delete('content-encoding');
