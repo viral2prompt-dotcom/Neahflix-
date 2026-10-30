@@ -32,7 +32,7 @@ const app = new Hono();
 // ne peut donc pas les déclarer immuables — mais ils ne changent quasiment
 // jamais. Le `no-cache` qui s'appliquait à eux était le pire des cas : le
 // serveur statique n'émet ni ETag ni Last-Modified, donc le navigateur n'avait
-// aucun moyen de revalider etretéléchargeait le fichier *en entier* à chaque
+// aucun moyen de revalider et retéléchargeait le fichier *en entier* à chaque
 // page. Le logo seul pèse près de 800 Ko, et sert de favicon partout.
 const MEDIA_ASSET_RE = /\.(?:png|jpe?g|gif|webp|avif|svg|ico|woff2?|ttf|otf|eot|mp4|webm|m4v|mp3|wasm)$/i;
 
