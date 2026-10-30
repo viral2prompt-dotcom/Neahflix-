@@ -15,6 +15,7 @@ const GRANT_TTL_SECONDS = 6 * 60 * 60;
 const MIN_SECRET_LENGTH = 32;
 const MAX_REDIRECTS = 5;
 const UPSTREAM_TIMEOUT_MS = 30000;
+const ALLOWED_STREAM_PORTS = new Set([80, 443, 8008, 8080]);
 
 export class NeahplusRefused extends Error {
   constructor(message, status = 403) {
@@ -34,6 +35,8 @@ export const isTrustedDestination = (url) => isHttpUrl(url) && isTrustedHost(hos
 const isPublicTarget = (url) => {
   const host = hostOf(url);
   if (!host || host === 'localhost' || host.endsWith('.localhost')) return false;
+  const port = Number(url.port || (url.protocol === 'https:' ? 443 : 80));
+  if (!ALLOWED_STREAM_PORTS.has(port)) return false;
   return isIP(host) ? isPublicIp(host) : true;
 };
 
@@ -44,7 +47,7 @@ export const rewriteNeahplusLogoPaths = (text) =>
   String(text).replace(/"\/live2\//g, `"${NEAHPLUS_PREFIX}/live2/`);
 
 export const rewriteNeahplusText = (text, isHtml = false) => {
-  let output = String(text);
+  let output = rewriteNeahplusLogoPaths(String(text));
   output = output.replace(/https?:\/\/(?:www\.)?oha\.to/gi, NEAHPLUS_PREFIX);
   output = output.replace(/https?:\/\/(?:[a-z0-9-]+\.)*tvfree\.to[^"'\s<>)]*/gi, (value) => {
     try {
@@ -146,12 +149,9 @@ export const createNeahplusBridge = ({
       const value = line.trim();
       if (!value) return line;
       if (value.startsWith('#')) {
-        return value.replace(/URI="([^"]+)"/g, (match, uri) => {
-          const mapped = bridged(uri);
-          return mapped ? `URI="${mapped}"` : match;
-        });
+        return value.replace(/URI="([^"]+)"/g, (_match, uri) => `URI="${bridged(uri) ?? ''}"`);
       }
-      return bridged(value) ?? line;
+      return bridged(value) ?? '#NEAHPLUS-REFUSED';
     }).join('\n');
   };
 

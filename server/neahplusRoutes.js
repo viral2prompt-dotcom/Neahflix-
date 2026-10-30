@@ -83,8 +83,8 @@ export const mountNeahplus = (app, bridge) => {
         return new Response(null, { status: response.status, headers: outHeaders });
       }
 
-      const playlist = /mpegurl/i.test(type) || /\.m3u8(?:$|\?)/i.test(upstream.pathname);
-      const rewriteable = playlist || /(?:text\/html|javascript|ecmascript|text\/css|application\/json)/i.test(type);
+      const playlist = response.ok && (/mpegurl/i.test(type) || /\.m3u8(?:$|\?)/i.test(upstream.pathname));
+      const rewriteable = response.ok && (playlist || /(?:text\/html|javascript|ecmascript|text\/css|application\/json)/i.test(type));
       if (!rewriteable) return new Response(response.body, { status: response.status, headers: outHeaders });
 
       const text = await response.text();
