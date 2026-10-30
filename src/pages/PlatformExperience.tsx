@@ -1,11 +1,12 @@
 import { ArrowLeft, ShieldCheck } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams } from 'react-router-dom';
+import NeahplusExperience from '@/components/neahplus/NeahplusExperience';
 
 const PLATFORMS = {
   youtube: { brand: 'YouTube', unavailable: true },
   neahlite: { brand: 'NEAHLITE', premiumMessage: true },
-  neahplus: { brand: 'NEAHPLUS', source: '/api/neahplus/#/channels?src=oha-live%2Fchannels' },
+  neahplus: { brand: 'NEAHPLUS', native: true },
   'anime-zora': { brand: 'Anime Zora', comingSoon: true },
   tiktok: { brand: 'TikTok', unavailable: true },
   canal: { brand: 'CANAL+', officialEmbedding: 'none' },
@@ -18,9 +19,6 @@ const PlatformExperience = () => {
   const service = platform ? PLATFORMS[platform] : undefined;
 
   if (!service) return null;
-
-  const hasEmbeddedExperience = 'source' in service;
-  const source = 'source' in service ? service.source : undefined;
 
   return (
     <main className="flex h-[calc(100dvh-5rem)] w-full min-h-0 flex-col bg-slate-950 p-0 text-white lg:h-dvh">
@@ -40,18 +38,8 @@ const PlatformExperience = () => {
           <div className="flex flex-1 items-center justify-center p-5 sm:p-10">
             <p className="text-center text-sm text-white/70 sm:text-base">Anime Zora sera bientôt disponible.</p>
           </div>
-        ) : hasEmbeddedExperience && source ? (
-          <div className="m-0 flex min-h-0 w-full flex-1 bg-black p-0">
-            <iframe
-              key={source}
-              src={source}
-              title={service.brand}
-              className="m-0 block h-full w-full min-h-0 min-w-0 max-h-none max-w-none flex-1 border-0 p-0"
-              data-screensaver-integration="true"
-              referrerPolicy="no-referrer"
-              allow="autoplay; fullscreen; picture-in-picture"
-            />
-          </div>
+        ) : 'native' in service ? (
+          <NeahplusExperience />
         ) : (
           <div className="flex flex-1 items-center justify-center p-5 sm:p-10">
             <div className="max-w-2xl text-center">
