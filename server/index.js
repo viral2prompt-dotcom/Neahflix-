@@ -7,14 +7,8 @@ import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { buildSocialPreviewResponse } from '../functions/_lib/socialPreview.js';
 import { registerGracefulShutdown } from './gracefulShutdown.js';
-import {
-  NEAHPLUS_ORIGIN,
-  NEAHPLUS_PREFIX,
-  isAllowedNeahplusDestination,
-  neahplusBridgeUrl,
-  rewriteNeahplusResolveJson,
-  rewriteNeahplusText,
-} from './neahplus.js';
+import { createNeahplusBridge } from './neahplus.js';
+import { mountNeahplus } from './neahplusRoutes.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, '..');
@@ -85,130 +79,11 @@ const socialPreviewHandler = async (c) => {
 app.get('/movie/:id', socialPreviewHandler);
 app.get('/tv/:id', socialPreviewHandler);
 
-
-
-// NEAHPLUS bridge helpers live in ./neahplus.js
-
-const neahplusHandler = async (c) => {
-  if (!['GET', 'HEAD', 'POST'].includes(c.req.method)) {
-    return c.text('Méthode NEAHPLUS non autorisée', 405, { Allow: 'GET, HEAD, POST' });
-  }
-
-  let upstream;
-  try {
-    const incoming = new URL(c.req.url);
-    if (incoming.pathname === `${NEAHPLUS_PREFIX}/__relay` || incoming.pathname === `${NEAHPLUS_PREFIX}/__stream`) {
-      if (incoming.pathname.endsWith('/__stream') && c.req.method === 'POST') {
-        return c.text('Méthode NEAHPLUS non autorisée', 405, { Allow: 'GET, HEAD' });
-      }
-      const target = incoming.searchParams.get('url') || '';
-      upstream = new URL(target);
-    } else {
-      const suffix = incoming.pathname.slice(NEAHPLUS_PREFIX.length) || '/';
-      upstream = new URL(`${suffix}${incoming.search}`, NEAHPLUS_ORIGIN);
-    }
-    if (!isAllowedNeahplusDestination(upstream)) {
-      return c.text('Destination NEAHPLUS non autorisée', 403);
-    }
-
-    let method = c.req.method;
-    let body = ['GET', 'HEAD'].includes(method) ? undefined : await c.req.arrayBuffer();
-    let response;
-    for (let redirects = 0; redirects <= 5; redirects += 1) {
-      if (!isAllowedNeahplusDestination(upstream)) {
-        return c.text('Redirection NEAHPLUS non autorisée', 502);
-      }
-      const headers = new Headers(c.req.raw.headers);
-      for (const key of ['host', 'origin', 'referer', 'connection', 'content-length', 'accept-encoding']) headers.delete(key);
-      headers.set('origin', NEAHPLUS_ORIGIN);
-      headers.set('referer', `${NEAHPLUS_ORIGIN}/`);
-      response = await fetch(upstream, {
-        method,
-        headers,
-        body,
-        redirect: 'manual',
-        signal: AbortSignal.timeout(30000),
-      });
-      if (response.status < 300 || response.status >= 400 || !response.headers.get('location')) break;
-      if (redirects === 5) return c.text('Trop de redirections NEAHPLUS', 502);
-      const nextUrl = new URL(response.headers.get('location'), upstream);
-      if (!isAllowedNeahplusDestination(nextUrl)) return c.text('Redirection NEAHPLUS non autorisée', 502);
-      if (response.status === 303 || ((response.status === 301 || response.status === 302) && method === 'POST')) {
-        method = 'GET';
-        body = undefined;
-      }
-      upstream = nextUrl;
-    }
-
-    const headers = new Headers();
-    for (const name of ['content-type', 'accept-ranges', 'content-range', 'last-modified', 'etag']) {
-      const value = response.headers.get(name);
-      if (value) headers.set(name, value);
-    }
-    headers.set('cache-control', 'no-store');
-    headers.set('x-content-type-options', 'nosniff');
-
-    // Keep upstream session cookies scoped to this bridge path, never to the
-    // entire Neahflix site or the upstream domain.
-    const upstreamCookies = typeof response.headers.getSetCookie === 'function'
-      ? response.headers.getSetCookie()
-      : (response.headers.get('set-cookie') ? [response.headers.get('set-cookie')] : []);
-    for (const cookie of upstreamCookies) {
-      let scopedCookie = cookie.replace(/;\s*domain=[^;]*/i, '')
-        .replace(/;\s*path=[^;]*/i, '; Path=/api/neahplus');
-      if (!/;\s*path=/i.test(scopedCookie)) scopedCookie += '; Path=/api/neahplus';
-      headers.append('set-cookie', scopedCookie);
-    }
-
-    const location = response.headers.get('location');
-    if (location) {
-      try { headers.set('location', neahplusBridgeUrl(new URL(location, upstream))); }
-      catch { return c.text('Redirection NEAHPLUS non autorisée', 502); }
-    }
-
-    const type = response.headers.get('content-type') || '';
-    const playlist = /mpegurl/i.test(type) || /\.m3u8(?:$|\?)/i.test(upstream.pathname);
-    const rewriteable = playlist || /(?:text\/html|javascript|ecmascript|text\/css|application\/json)/i.test(type);
-    if (method === 'HEAD' || response.status === 204 || response.status === 304) {
-      return new Response(null, { status: response.status, headers });
-    }
-
-    if (rewriteable) {
-      const text = await response.text();
-      if (text.length > 8 * 1024 * 1024) return c.text('Réponse NEAHPLUS trop volumineuse', 502);
-      let rewritten;
-      if (playlist) {
-        rewritten = text.split(/\r?\n/).map((line) => {
-          const value = line.trim();
-          if (!value || value.startsWith('#')) {
-            return value.startsWith('#') ? value.replace(/URI="([^"]+)"/g, (_m, uri) => {
-              try { return `URI="${neahplusBridgeUrl(new URL(uri, upstream))}"`; } catch { return `URI="${uri}"`; }
-            }) : line;
-          }
-          try { return neahplusBridgeUrl(new URL(value, upstream)); } catch { return line; }
-        }).join('\n');
-      } else {
-        const body = /\/resolve$/.test(upstream.pathname) && /json/i.test(type)
-          ? rewriteNeahplusResolveJson(text)
-          : text;
-        rewritten = rewriteNeahplusText(body, /text\/html/i.test(type));
-      }
-      headers.delete('content-length');
-      headers.delete('content-encoding');
-      return new Response(rewritten, { status: response.status, headers });
-    }
-
-    // Stream media directly; preserve byte-range support for seeking.
-    return new Response(response.body, { status: response.status, headers });
-  } catch (error) {
-    console.error('[NEAHPLUS] Bridge failed:', error?.message || error);
-    return c.text('Passerelle HTTPS NEAHPLUS indisponible', 502);
-  }
-};
-
-app.all('/api/neahplus', neahplusHandler);
-app.all('/api/neahplus/*', neahplusHandler);
-
+const neahplusBridge = createNeahplusBridge({ secret: process.env.NEAHPLUS_SIGNING_SECRET });
+if (!neahplusBridge.enabled) {
+  console.warn('[NEAHPLUS] NEAHPLUS_SIGNING_SECRET absent ou trop court : flux externes désactivés.');
+}
+mountNeahplus(app, neahplusBridge);
 
 app.all('/api/*', async (c) => {
   const incoming = new URL(c.req.url);
