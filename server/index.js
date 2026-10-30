@@ -7,6 +7,14 @@ import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { buildSocialPreviewResponse } from '../functions/_lib/socialPreview.js';
 import { registerGracefulShutdown } from './gracefulShutdown.js';
+import {
+  NEAHPLUS_ORIGIN,
+  NEAHPLUS_PREFIX,
+  isAllowedNeahplusDestination,
+  neahplusBridgeUrl,
+  rewriteNeahplusResolveJson,
+  rewriteNeahplusText,
+} from './neahplus.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, '..');
@@ -24,7 +32,7 @@ const app = new Hono();
 // ne peut donc pas les déclarer immuables — mais ils ne changent quasiment
 // jamais. Le `no-cache` qui s'appliquait à eux était le pire des cas : le
 // serveur statique n'émet ni ETag ni Last-Modified, donc le navigateur n'avait
-// aucun moyen de revalider et retéléchargeait le fichier *en entier* à chaque
+// aucun moyen de revalider etretéléchargeait le fichier *en entier* à chaque
 // page. Le logo seul pèse près de 800 Ko, et sert de favicon partout.
 const MEDIA_ASSET_RE = /\.(?:png|jpe?g|gif|webp|avif|svg|ico|woff2?|ttf|otf|eot|mp4|webm|m4v|mp3|wasm)$/i;
 
@@ -79,46 +87,7 @@ app.get('/tv/:id', socialPreviewHandler);
 
 
 
-// NEAHPLUS is handled by this server (the one serving the frontend), not by
-// the separately deployed Mainapi Express service. Keep this bridge isolated
-// from every other /api route.
-const NEAHPLUS_PREFIX = '/api/neahplus';
-const NEAHPLUS_ORIGIN = 'https://oha.to';
-const NEAHPLUS_ALLOWED_HOST = (hostname) => {
-  const host = String(hostname || '').toLowerCase();
-  return host === 'oha.to' || host === 'www.oha.to' ||
-    host === 'tvfree.to' || host.endsWith('.tvfree.to');
-};
-
-const neahplusBridgeUrl = (url) => {
-  if (!['http:', 'https:'].includes(url.protocol) ||
-      url.username || url.password || !NEAHPLUS_ALLOWED_HOST(url.hostname)) {
-    throw new Error('Destination NEAHPLUS non autorisée');
-  }
-  if (url.hostname.toLowerCase().endsWith('tvfree.to') || url.hostname.toLowerCase() === 'tvfree.to') {
-    return `${NEAHPLUS_PREFIX}/__relay?url=${encodeURIComponent(url.toString())}`;
-  }
-  return `${NEAHPLUS_PREFIX}${url.pathname}${url.search}${url.hash}`;
-};
-
-const rewriteNeahplusText = (text, isHtml = false) => {
-  let output = String(text);
-  output = output.replace(/https?:\/\/(?:www\.)?oha\.to/gi, NEAHPLUS_PREFIX);
-  output = output.replace(/https?:\/\/(?:[a-z0-9-]+\.)*tvfree\.to[^"'\s<>)]*/gi, (value) => {
-    try { return neahplusBridgeUrl(new URL(value)); } catch { return value; }
-  });
-  // Rewrite root-relative paths commonly used by the OHA single-page app.
-  output = output.replace(/(["'`])\/(?!api\/neahplus(?:\/|["'`]))(assets|play|api|channels|catalog|resolve|source|subtitle|favicon|manifest|images|fonts|static|watch|live|oha-[a-z0-9-]+)(?=\/|\?|#|["'`])/gi,
-    (_match, quote, route) => `${quote}${NEAHPLUS_PREFIX}/${route}`);
-  output = output.replace(/url\((["']?)\/(assets|images|fonts|static)(?=\/)/gi,
-    (_match, quote, route) => `url(${quote}${NEAHPLUS_PREFIX}/${route}`);
-
-  if (isHtml) {
-    // Ensure relative scripts/styles resolve through this same-origin bridge.
-    output = output.replace(/<head(\s[^>]*)?>/i, (tag) => `${tag}<base href="${NEAHPLUS_PREFIX}/">`);
-  }
-  return output;
-};
+// NEAHPLUS bridge helpers live in ./neahplus.js
 
 const neahplusHandler = async (c) => {
   if (!['GET', 'HEAD', 'POST'].includes(c.req.method)) {
@@ -128,15 +97,17 @@ const neahplusHandler = async (c) => {
   let upstream;
   try {
     const incoming = new URL(c.req.url);
-    if (incoming.pathname === `${NEAHPLUS_PREFIX}/__relay`) {
+    if (incoming.pathname === `${NEAHPLUS_PREFIX}/__relay` || incoming.pathname === `${NEAHPLUS_PREFIX}/__stream`) {
+      if (incoming.pathname.endsWith('/__stream') && c.req.method === 'POST') {
+        return c.text('Méthode NEAHPLUS non autorisée', 405, { Allow: 'GET, HEAD' });
+      }
       const target = incoming.searchParams.get('url') || '';
       upstream = new URL(target);
     } else {
       const suffix = incoming.pathname.slice(NEAHPLUS_PREFIX.length) || '/';
       upstream = new URL(`${suffix}${incoming.search}`, NEAHPLUS_ORIGIN);
     }
-    if (!['http:', 'https:'].includes(upstream.protocol) || upstream.username ||
-        upstream.password || !NEAHPLUS_ALLOWED_HOST(upstream.hostname)) {
+    if (!isAllowedNeahplusDestination(upstream)) {
       return c.text('Destination NEAHPLUS non autorisée', 403);
     }
 
@@ -144,7 +115,7 @@ const neahplusHandler = async (c) => {
     let body = ['GET', 'HEAD'].includes(method) ? undefined : await c.req.arrayBuffer();
     let response;
     for (let redirects = 0; redirects <= 5; redirects += 1) {
-      if (!NEAHPLUS_ALLOWED_HOST(upstream.hostname) || !['http:', 'https:'].includes(upstream.protocol)) {
+      if (!isAllowedNeahplusDestination(upstream)) {
         return c.text('Redirection NEAHPLUS non autorisée', 502);
       }
       const headers = new Headers(c.req.raw.headers);
@@ -161,7 +132,7 @@ const neahplusHandler = async (c) => {
       if (response.status < 300 || response.status >= 400 || !response.headers.get('location')) break;
       if (redirects === 5) return c.text('Trop de redirections NEAHPLUS', 502);
       const nextUrl = new URL(response.headers.get('location'), upstream);
-      if (!NEAHPLUS_ALLOWED_HOST(nextUrl.hostname)) return c.text('Redirection NEAHPLUS non autorisée', 502);
+      if (!isAllowedNeahplusDestination(nextUrl)) return c.text('Redirection NEAHPLUS non autorisée', 502);
       if (response.status === 303 || ((response.status === 301 || response.status === 302) && method === 'POST')) {
         method = 'GET';
         body = undefined;
@@ -217,7 +188,10 @@ const neahplusHandler = async (c) => {
           try { return neahplusBridgeUrl(new URL(value, upstream)); } catch { return line; }
         }).join('\n');
       } else {
-        rewritten = rewriteNeahplusText(text, /text\/html/i.test(type));
+        const body = /\/resolve$/.test(upstream.pathname) && /json/i.test(type)
+          ? rewriteNeahplusResolveJson(text)
+          : text;
+        rewritten = rewriteNeahplusText(body, /text\/html/i.test(type));
       }
       headers.delete('content-length');
       headers.delete('content-encoding');
