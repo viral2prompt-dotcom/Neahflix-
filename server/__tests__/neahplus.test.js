@@ -141,7 +141,7 @@ test('playlist: segments on the playlist origin are signed, cross-origin segment
   const out = bridge.rewritePlaylist('#EXTM3U\n#EXTINF:10,\nseg1.ts\nhttp://other.example/seg2.ts', base);
   const [, , same, other] = out.split('\n');
   assert.ok(same.startsWith(`${P}/__stream?`));
-  assert.equal(other, 'http://other.example/seg2.ts');
+  assert.equal(other, '#NEAHPLUS-REFUSED');
 });
 
 test('signed streams: a valid grant is accepted and returns the same target', async () => {
@@ -167,7 +167,7 @@ test('signed streams: a tampered url, exp or signature is refused', async () => 
 test('signed streams: private literal and ftp targets are refused even with a valid signature', () => {
   const bridge = bridgeAt();
   const exp = Math.floor(Date.now() / 1000) + 600;
-  for (const target of ['http://127.0.0.1:8080/admin', 'http://169.254.169.254/x', 'ftp://109.205.187.150/a.ts']) {
+  for (const target of ['http://127.0.0.1:8080/admin', 'http://169.254.169.254/x', 'ftp://109.205.187.150/a.ts', 'http://109.205.187.150:9000/a.ts']) {
     const url = new URL(`${P}/__stream`, 'https://neahflix.test');
     url.searchParams.set('url', target);
     url.searchParams.set('exp', String(exp));
@@ -252,4 +252,30 @@ test('303 redirects switch the request to GET, 307 keeps the method', async () =
   const second = scripted([redirect(307, '/a.m3u8'), ok()]);
   await bridgeAt({ transport: second.transport }).fetchUpstream(fetchOptions(PUBLIC_TARGET, 'POST'));
   assert.equal(second.calls[1].method, 'POST');
+});
+
+test('playlists: refused segment lines and URI attributes are neutralised, not left raw', () => {
+  const bridge = bridgeAt();
+  const base = new URL(PUBLIC_TARGET);
+  const playlist = [
+    '#EXTM3U',
+    '#EXT-X-KEY:METHOD=AES-128,URI="http://10.0.0.5/key.bin"',
+    '#EXTINF:4,',
+    'http://10.0.0.5/seg-private.ts',
+    '#EXTINF:4,',
+    'seg-ok.ts',
+  ].join('\n');
+  const rewritten = bridge.rewritePlaylist(playlist, base);
+  assert.ok(!rewritten.includes('10.0.0.5'));
+  assert.match(rewritten, /URI=""/);
+  assert.match(rewritten, /#NEAHPLUS-REFUSED/);
+  assert.match(rewritten, /\/api\/neahplus\/__stream\?url=/);
+});
+
+test('catalog text: logo paths declared as /live2/ go through the bridge', () => {
+  const json = '{"images":{"logo":"/live2/logo/123.png","poster":"/live2/logo/123.png"}}';
+  assert.equal(
+    rewriteNeahplusText(json),
+    '{"images":{"logo":"/api/neahplus/live2/logo/123.png","poster":"/api/neahplus/live2/logo/123.png"}}',
+  );
 });
