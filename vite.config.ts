@@ -3,6 +3,7 @@ import react from '@vitejs/plugin-react'
 import { resolve } from 'path'
 import { readFileSync, writeFileSync, existsSync } from 'fs'
 import { visualizer } from 'rollup-plugin-visualizer'
+import { createApiProxy } from './scripts/viteApiProxy.mjs'
 
 const buildId = process.env.CF_PAGES_COMMIT_SHA || process.env.COMMIT_REF || new Date().toISOString()
 process.env.VITE_APP_BUILD_ID = buildId
@@ -93,24 +94,7 @@ function injectPublicConfig(): Plugin {
 // l'origine Vite. Le serveur de développement et `vite preview` doivent donc
 // tous les deux transmettre ces chemins au Main API local. Sans la règle
 // NEAHLITE, le fallback SPA de Preview renvoyait index.html dans l'iframe.
-const mainApiProxy = {
-  '/backend-api': {
-    target: 'http://127.0.0.1:25565',
-    changeOrigin: true,
-    secure: false,
-    rewrite: (path: string) => path.replace(/^\/backend-api/, ''),
-  },
-  '/api': {
-    target: 'http://127.0.0.1:25565',
-    changeOrigin: true,
-    secure: false,
-  },
-  '/neahlite': {
-    target: 'http://127.0.0.1:25565',
-    changeOrigin: true,
-    secure: false,
-  },
-}
+const mainApiProxy = createApiProxy(Number(process.env.NEAHPLUS_BACKEND_PORT) || 3001)
 
 export default defineConfig({
   logLevel: 'warn',
