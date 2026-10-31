@@ -8,7 +8,7 @@ import { fileURLToPath } from 'node:url';
 import { buildSocialPreviewResponse } from '../functions/_lib/socialPreview.js';
 import { registerGracefulShutdown } from './gracefulShutdown.js';
 import { createNeahplusBridge } from './neahplus.js';
-import { mountNeahplus } from './neahplusRoutes.js';
+import { mountNeahplus, mountNeahplusHealth } from './neahplusRoutes.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, '..');
@@ -16,8 +16,11 @@ const DIST = join(ROOT, 'dist');
 const INDEX_HTML = join(DIST, 'index.html');
 
 if (!existsSync(DIST)) {
-  console.error(`[server] dist/ introuvable (${DIST}). Lance "npm run build" avant "npm start".`);
-  process.exit(1);
+  if (process.env.NODE_ENV === 'production') {
+    console.error(`[server] dist/ introuvable (${DIST}). Lance "npm run build" avant "npm start".`);
+    process.exit(1);
+  }
+  console.warn('[server] dist/ absent : seules les routes API sont disponibles (lancer "npm run build" pour l\'application).');
 }
 
 const app = new Hono();
@@ -83,6 +86,7 @@ const neahplusBridge = createNeahplusBridge({ secret: process.env.NEAHPLUS_SIGNI
 if (!neahplusBridge.enabled) {
   console.warn('[NEAHPLUS] NEAHPLUS_SIGNING_SECRET absent ou trop court : flux externes désactivés.');
 }
+mountNeahplusHealth(app, neahplusBridge);
 mountNeahplus(app, neahplusBridge);
 
 app.all('/api/*', async (c) => {
@@ -120,6 +124,9 @@ app.get('*', async (c) => {
   const path = new URL(c.req.url).pathname;
   if (/\.[^/]+$/.test(path)) {
     return c.text('Not Found', 404);
+  }
+  if (!existsSync(INDEX_HTML)) {
+    return c.text('Application non construite : lancer "npm run build".', 503);
   }
   const html = await readFile(INDEX_HTML, 'utf8');
   return c.html(html);

@@ -44,6 +44,10 @@ const scopeCookie = (cookie) => {
   return scoped;
 };
 
+export const mountNeahplusHealth = (app, bridge) => {
+  app.get('/health/neahplus', (c) => c.json({ ok: true, enabled: bridge.enabled }));
+};
+
 export const mountNeahplus = (app, bridge) => {
   const handler = async (c) => {
     if (!['GET', 'HEAD', 'POST'].includes(c.req.method)) {
