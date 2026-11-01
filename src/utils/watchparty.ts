@@ -221,6 +221,29 @@ export interface ControlState {
 }
 
 /**
+ * NEAHPLUS Live media — kind='live' avec channelId.
+ * Les URLs signées sont résolues côté client par chaque participant via
+ * resolveNeahplusStream(channelId), jamais stockées dans l'état de la room.
+ */
+export interface LiveMedia {
+  kind: 'live';
+  channelId: string;
+  title: string;
+  logo: string | null;
+  mediaType: 'live';
+  mediaId?: string | null;
+}
+
+/**
+ * Type guard: true si le média est un flux live NEAHPLUS.
+ */
+export const isLiveMedia = (media: unknown): media is LiveMedia => {
+  if (!media || typeof media !== 'object') return false;
+  const candidate = media as { kind?: unknown; channelId?: unknown };
+  return candidate.kind === 'live' && typeof candidate.channelId === 'string';
+};
+
+/**
  * Watch party room info
  */
 export interface WatchPartyRoom {
@@ -251,7 +274,7 @@ export interface WatchPartyRoom {
     captions?: CaptionInfo[]; // Array of available subtitles/captions
     currentNexusSource?: NexusSourceInfo; // Currently selected Nexus source
     currentBravoSource?: BravoSourceInfo; // Currently selected Bravo source
-  };
+  } | LiveMedia;
   createdAt: number;
   participants: Participant[];
 }
