@@ -180,6 +180,26 @@ const MAX_STRING_LENGTH = 2048;
 const MAX_PARTICIPANTS_CAP = 50;
 const MAX_EMOJI_LENGTH = 16;
 
+// --- NEAHPLUS Live media ---
+// Les channels live sont identifiés par un channelId court et sûr. Les URLs
+// signées sont résolues côté client via /api/neahplus/live/resolve — elles ne
+// doivent JAMAIS être stockées dans l'état de la room.
+const LIVE_CHANNEL_ID_PATTERN = /^[A-Za-z0-9._~-]{1,128}$/;
+const LIVE_CHANNEL_ID_MAX = 128;
+
+function sanitizeLiveMedia(media) {
+  const channelId = sanitizeString(media?.channelId, LIVE_CHANNEL_ID_MAX);
+  if (!channelId || !LIVE_CHANNEL_ID_PATTERN.test(channelId)) return null;
+  return {
+    kind: 'live',
+    channelId,
+    title: sanitizeString(media?.title, 200) || 'NEAHPLUS Live',
+    logo: sanitizeOptionalString(media?.logo, 512),
+    mediaType: 'live',
+    mediaId: sanitizeOptionalString(media?.mediaId, 64)
+  };
+}
+
 // Adresse du client réel. La machine n'est pas joignable directement sur son
 // port : tout le trafic entre par Cloudflare puis nginx, donc les en-têtes de
 // transfert sont posés par notre propre infrastructure.
@@ -274,6 +294,9 @@ async function loadRoomsFromDisk() {
       room.pendingControlRequests = [];
       room.readyState = {};
       room.pauseVote = null;
+      // voiceParticipants est un Set<socketId> non-sérialisable : il est remis
+      // à null au chargement depuis le disque.
+      room.voiceParticipants = null;
       watchpartyRooms.set(room.id, room);
     });
     // Optionnel: supprimer le fichier après restauration, comme dans le serveur principal
@@ -285,8 +308,9 @@ async function loadRoomsFromDisk() {
 // `pauseVote.timeoutId` est un objet Timeout de Node, dont les champs internes
 // `_idlePrev`/`_idleNext` forment une liste chaînée circulaire : le sérialiser
 // faisait échouer JSON.stringify et donc perdre TOUTES les rooms au shutdown.
+// `voiceParticipants` est un Set<socketId> : non JSON-sérialisable, donc exclu.
 function serializeRoom(room) {
-  const { pauseVote, ...rest } = room;
+  const { pauseVote, voiceParticipants, ...rest } = room;
   if (!pauseVote) return { ...rest, pauseVote: null };
   const { timeoutId, ...voteRest } = pauseVote;
   return { ...rest, pauseVote: voteRest };
@@ -409,6 +433,11 @@ function sanitizeSourceList(list, fields) {
 }
 
 function sanitizeMedia(media) {
+  // Live media (NEAHPLUS) : kind='live' avec channelId, pas de src/url.
+  // Les URLs signées sont résolues côté client, jamais stockées côté serveur.
+  if (media?.kind === 'live') {
+    return sanitizeLiveMedia(media);
+  }
   const src = sanitizeString(media?.src);
   if (!src) return null;
   return {
@@ -479,6 +508,30 @@ function issueAccessToken(room, nickname) {
 
 function extractRequestToken(req) {
   return sanitizeString(req.get('x-watchparty-token') || req.query.token || '', 256);
+}
+
+// --- NEAHPLUS Live Voice Chat (WebRTC via Socket.IO signaling) ---
+// Limité à 6 participants simultanés pour limiter la mesh P2P (n*(n-1)/2 connexions).
+const VOICE_MAX_PARTICIPANTS = 6;
+const VOICE_LIMIT_MESSAGE = 'Voice chat is full (6 participants max).';
+
+// Serveurs ICE par défaut : STUN Google public. TURN optionnel via env var.
+const DEFAULT_ICE_SERVERS = [
+  { urls: 'stun:stun.l.google.com:19302' },
+  { urls: 'stun:stun1.l.google.com:19302' }
+];
+
+// Serveurs TURN configurables via WATCHPARTY_TURN_SERVER (JSON array of RTCIceServer).
+let TURN_SERVERS = [];
+try {
+  const raw = process.env.WATCHPARTY_TURN_SERVER;
+  if (raw) TURN_SERVERS = JSON.parse(raw);
+} catch {
+  console.warn('[Watchparty] WATCHPARTY_TURN_SERVER invalide, TURN désactivé.');
+}
+
+function getIceServers() {
+  return [...DEFAULT_ICE_SERVERS, ...TURN_SERVERS];
 }
 
 // --- Socket.IO namespace dédié watchparty ---
@@ -769,8 +822,8 @@ watchpartyIO.on('connection', (socket) => {
 
     r.syncMode = mode;
     const systemMsg = systemMessage(r, mode === 'pro'
-      ? 'Sync Pro activé par l’hôte. La synchronisation avancée est maintenant active.'
-      : 'Le mode de synchronisation classique a été réactivé par l’hôte.');
+      ? 'Sync Pro activé par l\'hôte. La synchronisation avancée est maintenant active.'
+      : 'Le mode de synchronisation classique a été réactivé par l\'hôte.');
     watchpartyIO.to(roomId).emit('room:chat', systemMsg);
     watchpartyIO.to(roomId).emit('sync:modeChanged', {
       mode,
@@ -848,6 +901,99 @@ watchpartyIO.on('connection', (socket) => {
     watchpartyIO.to(roomId).emit('media:updated', r.media);
     watchpartyIO.to(roomId).emit('playback:state', r.playbackState);
     emitRoomInfo(roomId, r);
+  });
+
+  // --- NEAHPLUS Live: host-only channel change ---
+  // Pour les rooms live, le changement de channel est la seule action de
+  // changement de média. Le playbackState est réinitialisé car le live n'a
+  // pas de position temporelle — la sync se fait par channelId, pas par position.
+  socket.on('live:changeChannel', (payload) => {
+    if (!watchpartyRooms.has(roomId)) return;
+    const r = watchpartyRooms.get(roomId);
+    if (socket.id !== r.hostId) return;
+    if (r.media?.kind !== 'live') return;
+
+    const channelId = sanitizeString(payload?.channelId, LIVE_CHANNEL_ID_MAX);
+    if (!channelId || !LIVE_CHANNEL_ID_PATTERN.test(channelId)) return;
+
+    r.media = {
+      ...r.media,
+      channelId,
+      title: sanitizeString(payload?.title, 200) || r.media.title || 'NEAHPLUS Live',
+      logo: sanitizeOptionalString(payload?.logo, 512) || r.media.logo || null
+    };
+    r.playbackState = {
+      isPlaying: false,
+      position: 0,
+      updatedAt: Date.now(),
+      updatedBy: socket.id
+    };
+
+    watchpartyIO.to(roomId).emit('live:channelChanged', { channelId, changedBy: socket.id });
+    watchpartyIO.to(roomId).emit('media:updated', r.media);
+    watchpartyIO.to(roomId).emit('playback:state', r.playbackState);
+    emitRoomInfo(roomId, r);
+  });
+
+  // --- Voice chat (WebRTC signaling relay) ---
+
+  // Rejoindre le voice chat : limite à VOICE_MAX_PARTICIPANTS, envoie la liste
+  // des pairs existants et les serveurs ICE au nouveau participant, puis notifie
+  // les autres pairs.
+  socket.on('voice:join', () => {
+    if (!watchpartyRooms.has(roomId)) return;
+    const r = watchpartyRooms.get(roomId);
+    if (!r.voiceParticipants) r.voiceParticipants = new Set();
+    if (r.voiceParticipants.has(socket.id)) return;
+    if (r.voiceParticipants.size >= VOICE_MAX_PARTICIPANTS) {
+      socket.emit('voice:error', { message: VOICE_LIMIT_MESSAGE });
+      return;
+    }
+    r.voiceParticipants.add(socket.id);
+    const peerList = [...r.voiceParticipants].filter((id) => id !== socket.id);
+    socket.emit('voice:ready', {
+      peerIds: peerList,
+      iceServers: getIceServers()
+    });
+    socket.to(roomId).emit('voice:peer-joined', { peerId: socket.id, nickname });
+  });
+
+  // Quitter le voice chat : retire le socket et notifie les autres.
+  socket.on('voice:leave', () => {
+    if (!watchpartyRooms.has(roomId)) return;
+    const r = watchpartyRooms.get(roomId);
+    if (!r.voiceParticipants || !r.voiceParticipants.has(socket.id)) return;
+    r.voiceParticipants.delete(socket.id);
+    socket.to(roomId).emit('voice:peer-left', { peerId: socket.id });
+  });
+
+  // État du micro (mute/unmute) relayé à la room.
+  socket.on('voice:state', (payload) => {
+    if (!watchpartyRooms.has(roomId)) return;
+    const r = watchpartyRooms.get(roomId);
+    if (!r.voiceParticipants || !r.voiceParticipants.has(socket.id)) return;
+    socket.to(roomId).emit('voice:state', {
+      peerId: socket.id,
+      micOn: payload?.micOn === true,
+      speaking: payload?.speaking === true
+    });
+  });
+
+  // Relai de signalisation WebRTC (offer/answer/ICE candidate) vers un pair
+  // spécifique. Le serveur ne fait que relayer — il ne participe pas à la
+  // connexion P2P.
+  socket.on('voice:signal', (payload) => {
+    if (!watchpartyRooms.has(roomId)) return;
+    const r = watchpartyRooms.get(roomId);
+    if (!r.voiceParticipants || !r.voiceParticipants.has(socket.id)) return;
+    const targetId = sanitizeString(payload?.targetId, 256);
+    if (!targetId || !r.voiceParticipants.has(targetId)) return;
+    const targetSocket = watchpartyIO.sockets.get(targetId);
+    if (!targetSocket) return;
+    targetSocket.emit('voice:signal', {
+      fromId: socket.id,
+      data: payload?.data
+    });
   });
 
   // Ready toggle
@@ -1109,6 +1255,13 @@ watchpartyIO.on('connection', (socket) => {
     const leaving = r.participants[idx];
     r.participants.splice(idx, 1);
 
+    // Nettoyage du voice chat : retire le socket des participants voice et
+    // notifie les autres pairs.
+    if (r.voiceParticipants && r.voiceParticipants.has(socket.id)) {
+      r.voiceParticipants.delete(socket.id);
+      socket.to(roomId).emit('voice:peer-left', { peerId: socket.id });
+    }
+
     const leaveMessage = systemMessage(r, `${leaving.nickname} a quitté la Watch Party.`);
 
     // Reassign host if needed. Tous les participants restants sont authentifiés
@@ -1117,7 +1270,7 @@ watchpartyIO.on('connection', (socket) => {
     if (socket.id === r.hostId && r.participants.length > 0) {
       const newHost = r.participants.sort((a, b) => a.joinedAt - b.joinedAt)[0];
       r.hostId = newHost.id; newHost.isHost = true;
-      const newHostMsg = systemMessage(r, `${newHost.nickname} est maintenant l'hôte de la Watch Party.`);
+      const newHostMsg = systemMessage(r, `${newHost.nickname} est maintenant l\'hôte de la Watch Party.`);
       watchpartyIO.to(roomId).emit('room:chat', newHostMsg);
     }
 
@@ -1158,10 +1311,13 @@ app.post(
       const cleanNickname = sanitizeNickname(nickname);
       const cleanMedia = sanitizeMedia(media);
       if (!nickname || !cleanMedia) {
-        return res.status(400).json({ success: false, message: 'Missing required fields: nickname, media.src' });
+        return res.status(400).json({
+          success: false,
+          message: 'Missing required fields: nickname, media (kind=live with channelId, or media.src)'
+        });
       }
 
-      // Plafonds mémoire : les rooms vivent jusqu'à 12 h et un POST non
+      // Plafonds mémoire : les rooms vivent jusqu'à 12 H et un POST non
       // authentifié suffisait à en créer autant qu'on voulait.
       if (watchpartyRooms.size >= MAX_ROOMS) {
         return res.status(503).json({ success: false, message: 'Server at capacity. Please try again later.' });
@@ -1196,6 +1352,7 @@ app.post(
         readyState: {},           // Map: participantId -> boolean
         pauseTimer: null,         // {endTime, startedBy, duration} or null
         pauseVote: null,          // {requestedBy, requestedDuration, votes: {participantId: boolean}, endTime, timeoutId}
+        voiceParticipants: null,  // Set<socketId> — initialisé à la première connexion voice
         media: cleanMedia,
         participants: [],
         messages: [],
