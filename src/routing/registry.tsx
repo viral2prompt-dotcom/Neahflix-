@@ -57,6 +57,7 @@ export const ROUTES: RouteEntry[] = [
 
   // Watch party
   { path: '/watchparty/create',       loader: lz(() => import('../pages/WatchPartyCreate')) },
+  { path: '/watchparty/live/create',  loader: lz(() => import('../pages/WatchPartyLiveCreate')) },
   { path: '/watchparty/room/:roomId', loader: lz(() => import('../pages/WatchPartyRoom')) },
   { path: '/watchparty/join',         loader: lz(() => import('../pages/WatchPartyJoin')) },
   { path: '/watchparty/join/:code',   loader: lz(() => import('../pages/WatchPartyJoin')) },
