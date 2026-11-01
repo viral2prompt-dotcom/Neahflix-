@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { PrefetchLink as Link } from '@/routing/PrefetchLink';
 import { motion } from 'framer-motion';
 import axios from 'axios';
-import { ArrowLeft, Users, Play, Film, Tv, Hash, User } from 'lucide-react';
+import { ArrowLeft, Users, Play, Film, Tv, Hash, User, Radio } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useTranslation } from 'react-i18next';
@@ -110,6 +110,8 @@ const WatchPartyJoin: React.FC = () => {
     }
   };
 
+  const isLiveRoom = roomInfo?.mediaType === 'live';
+
   return (
     <div className="min-h-screen bg-black text-white">
       {/* Background gradient */}
@@ -147,13 +149,13 @@ const WatchPartyJoin: React.FC = () => {
                 className="mb-8 p-4 bg-white/5 border border-white/10 rounded-lg"
               >
                 <div className="flex items-start gap-4">
-                  <div className="p-3 bg-red-500/10 rounded-lg shrink-0 text-red-400">
-                    {roomInfo.mediaType === 'movie' ? <Film size={24} /> : <Tv size={24} />}
+                  <div className={`p-3 rounded-lg shrink-0 ${isLiveRoom ? 'bg-sky-500/10 text-sky-400' : 'bg-red-500/10 text-red-400'}`}>
+                    {isLiveRoom ? <Radio size={24} /> : roomInfo.mediaType === 'movie' ? <Film size={24} /> : <Tv size={24} />}
                   </div>
                   <div>
                     <h2 className="text-lg font-semibold text-white mb-1">{roomInfo.title}</h2>
-                    <Badge variant="default" className="border border-white/20 text-white/70 bg-white/5 hover:bg-white/10">
-                      {roomInfo.mediaType === 'movie' ? t('watchParty.movieType') : t('watchParty.tvType')}
+                    <Badge variant="default" className={`border ${isLiveRoom ? 'border-sky-500/30 text-sky-300 bg-sky-500/10' : 'border-white/20 text-white/70 bg-white/5'} hover:bg-white/10`}>
+                      {isLiveRoom ? 'NEAHPLUS Live' : roomInfo.mediaType === 'movie' ? t('watchParty.movieType') : t('watchParty.tvType')}
                     </Badge>
                   </div>
                 </div>
