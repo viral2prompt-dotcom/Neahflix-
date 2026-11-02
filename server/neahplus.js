@@ -170,8 +170,14 @@ export const createNeahplusBridge = ({
       throw new NeahplusRefused('Flux NEAHPLUS refusé', 502);
     }
     if (!isHttpUrl(target)) throw new NeahplusRefused('Flux NEAHPLUS refusé', 502);
-    if (isTrustedHost(hostOf(target))) return text;
-    if (!(await isPublicDestination(target))) {
+
+    // Le lecteur frontend n'accepte que les URL signées émises par cette
+    // passerelle. Auparavant, les URL oha.to/tvfree.to étaient renvoyées
+    // directement : resolveNeahplusStream() les rejetait alors comme
+    // « Flux NEAHPLUS invalide » avant même que HLS puisse démarrer.
+    // Toutes les destinations doivent donc passer par le même contrôle
+    // HMAC et le même proxy, y compris les hôtes NEAHPLUS de confiance.
+    if (!isTrustedHost(hostOf(target)) && !(await isPublicDestination(target))) {
       throw new NeahplusRefused('Flux NEAHPLUS refusé : destination non publique', 502);
     }
     return JSON.stringify({ ...data, url: streamPath(target.toString()) });
