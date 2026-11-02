@@ -7,6 +7,8 @@ import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { buildSocialPreviewResponse } from '../functions/_lib/socialPreview.js';
 import { registerGracefulShutdown } from './gracefulShutdown.js';
+import { createNeahplusBridge } from './neahplus.js';
+import { mountNeahplus, mountNeahplusHealth } from './neahplusRoutes.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, '..');
@@ -59,6 +61,11 @@ app.use('/*', async (c, next) => {
 });
 
 app.get('/health', (c) => c.json({ ok: true, runtime: 'node', app: 'movix-hono' }));
+
+const neahplusBridge = createNeahplusBridge({ secret: process.env.NEAHPLUS_SIGNING_SECRET });
+if (!neahplusBridge.enabled) console.warn('[NEAHPLUS] NEAHPLUS_SIGNING_SECRET absent ou trop court : flux externes désactivés.');
+mountNeahplusHealth(app, neahplusBridge);
+mountNeahplus(app, neahplusBridge);
 
 const toCloudflareCtx = (c) => ({
   request: new Request(c.req.url, { method: c.req.method, headers: c.req.raw.headers }),
