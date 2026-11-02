@@ -12,7 +12,8 @@ export const createApiProxy = (neahplusPort) => {
       target: MAIN_API_TARGET,
       changeOrigin: true,
       secure: false,
-      rewrite: (path) => path.replace(/^\\/backend-api/, ''),
+      rewrite: (path) =>
+        path.startsWith('/backend-api') ? path.slice('/backend-api'.length) || '/' : path,
     },
     // Cette route spécifique reste avant /api pour conserver le routage
     // explicite NEAHPLUS vers le même serveur Hono.
