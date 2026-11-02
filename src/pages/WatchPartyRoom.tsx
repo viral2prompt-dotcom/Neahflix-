@@ -3,7 +3,7 @@ import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
 import io, { Socket } from 'socket.io-client';
-import { Copy, Share2, MessageSquare, Users, X, Send, Clipboard, Check, AlertTriangle, Loader2, Trash2, UserX, Maximize, Minimize, Hand, Clock, CheckCircle2, XCircle, RefreshCw, Settings, Info } from 'lucide-react';
+import { Copy, Share2, MessageSquare, Users, X, Send, Clipboard, Check, AlertTriangle, Loader2, Trash2, UserX, Maximize, Minimize, Hand, Clock, CheckCircle2, XCircle, RefreshCw, Settings, Info, Radio } from 'lucide-react';
 import ChangeMediaModal from '../components/ChangeMediaModal';
 import EmojiAutocomplete from '../components/EmojiAutocomplete';
 import ReactMarkdown, { type Components } from 'react-markdown';
@@ -16,6 +16,9 @@ import { FloatingReactionsContainer, REACTION_EMOJIS, extractReactionEmojis } fr
 import { useWrappedTracker } from '../hooks/useWrappedTracker';
 import { WATCHPARTY_API } from '../config/runtime';
 import WatchPartySyncInfoModal from '../components/WatchPartySyncInfoModal';
+import NeahplusPlayer from '../components/neahplus/NeahplusPlayer';
+import NeahplusChannelPicker from '../components/neahplus/NeahplusChannelPicker';
+import { isLiveMedia, type LiveChannelSource } from '../utils/watchpartyLiveModel';
 import { CLASSIC_HOST_INTERVAL_MS, LocalPlayerSnapshot, SYNC_PRO_HOST_INTERVAL_MS, WatchPartySyncWorkerOutput } from '../utils/watchpartySync';
 
 const MAIN_API = WATCHPARTY_API;
@@ -272,6 +275,7 @@ const WatchPartyRoom: React.FC = () => {
   const [showPauseTimerModal, setShowPauseTimerModal] = useState(false);
   const [showChangeMediaModal, setShowChangeMediaModal] = useState(false);
   const [showSettingsPanel, setShowSettingsPanel] = useState(false);
+  const [showLiveChannelPicker, setShowLiveChannelPicker] = useState(false);
   const [showSyncInfoModal, setShowSyncInfoModal] = useState(false);
   const [chatEnabled, setChatEnabled] = useState(true);
   const [syncMode, setSyncMode] = useState<SyncMode>('classic');
@@ -303,6 +307,7 @@ const WatchPartyRoom: React.FC = () => {
   const isSyncingRef = useRef(false); // Guard contre les boucles de feedback play/pause
   const syncWorkerRef = useRef<Worker | null>(null);
   const syncModeRef = useRef<SyncMode>('classic');
+  const isLiveRoomRef = useRef(false);
   const masterPlaybackStateRef = useRef<PlaybackState | null>(null);
   const syncProbeSequenceRef = useRef(0);
   const syncProbeTimersRef = useRef<number[]>([]);
@@ -598,7 +603,7 @@ const WatchPartyRoom: React.FC = () => {
 
     // Set up periodic position broadcasting for the host
     continuousSyncIntervalRef.current = setInterval(() => {
-      if (playerRef.current && socketRef.current) {
+      if (!isLiveRoomRef.current && playerRef.current && socketRef.current) {
         try {
           const currentTime = playerRef.current.getCurrentTime();
           // Use the actual paused state from the video element
@@ -731,6 +736,7 @@ const WatchPartyRoom: React.FC = () => {
       socket.on('room:info', (updatedRoomInfo: RoomInfo) => {
         if (!mounted) return;
         setRoomInfo(updatedRoomInfo);
+        isLiveRoomRef.current = isLiveMedia(updatedRoomInfo.media);
         setChatEnabled(updatedRoomInfo.chatEnabled ?? true);
         setSyncMode(updatedRoomInfo.syncMode || 'classic');
       });
@@ -743,9 +749,10 @@ const WatchPartyRoom: React.FC = () => {
       socket.on('media:updated', (newMedia: RoomInfo['media']) => {
         if (!mounted) return;
         console.log('[WatchPartyRoom] Media changed by host:', newMedia?.title);
+        isLiveRoomRef.current = isLiveMedia(newMedia);
         setRoomInfo(prev => prev ? { ...prev, media: newMedia } : prev);
-        // Reset player to new source
-        if (playerRef.current) {
+        // Reset only the VOD player; Live has no timeline position.
+        if (!isLiveRoomRef.current && playerRef.current) {
           playerRef.current.seekTo(0);
         }
       });
@@ -778,6 +785,9 @@ const WatchPartyRoom: React.FC = () => {
           position: newState.position,
         });
         console.log('[WatchPartyRoom] localPlayerVisualState has been set.'); // New log
+
+        // Live rooms synchronize by channelId, never by playback time.
+        if (isLiveRoomRef.current) return;
 
         if (syncModeRef.current === 'pro') {
           syncWorkerRef.current?.postMessage({
@@ -1310,6 +1320,18 @@ const WatchPartyRoom: React.FC = () => {
     setShowChangeMediaModal(false);
   };
 
+  // Change NEAHPLUS channel; the server also enforces host-only access.
+  const handleChangeLiveChannel = (channel: LiveChannelSource) => {
+    if (!socketRef.current || !isCurrentUserHost || socketState !== SocketState.CONNECTED || !isLiveRoomRef.current) return;
+    socketRef.current.emit('live:changeChannel', {
+      channelId: channel.id,
+      title: channel.name,
+      logo: channel.logo ?? null,
+    });
+    setShowLiveChannelPicker(false);
+    setShowSettingsPanel(false);
+  };
+
   // Start pause timer (host/co-host only)
   const handleStartPauseTimer = (duration: number) => {
     if (socketRef.current && canControlPlayback && socketState === SocketState.CONNECTED) {
@@ -1518,11 +1540,13 @@ const WatchPartyRoom: React.FC = () => {
     return <LoadingSpinner message={t('watchParty.fetchingRoomDetails')} />;
   }
 
-  if (socketState !== SocketState.CONNECTED && !masterPlaybackState) {
+  const isLiveRoom = isLiveMedia(roomInfo.media);
+
+  if (socketState !== SocketState.CONNECTED && !masterPlaybackState && !isLiveRoom) {
     return <LoadingSpinner message={t('watchParty.connectingToServer', { state: socketState })} />;
   }
 
-  if (!roomInfo.media?.title || !masterPlaybackState) {
+  if (!roomInfo.media?.title || (!masterPlaybackState && !isLiveRoom)) {
     return <LoadingSpinner message={!roomInfo.media?.title ? t('watchParty.mediaSourceNotAvailable') : t('watchParty.waitingForPlayback')} />;
   }
 
@@ -1532,7 +1556,7 @@ const WatchPartyRoom: React.FC = () => {
         hidden
         data-premid-party-context=""
         data-premid-party-title={roomInfo.media?.title || undefined}
-        data-premid-party-media-type={roomInfo.media?.mediaType || undefined}
+        data-premid-party-media-type={isLiveRoom ? 'live' : roomInfo.media?.mediaType || undefined}
         data-premid-party-season={roomInfo.media?.seasonNumber != null ? String(roomInfo.media.seasonNumber) : undefined}
         data-premid-party-episode={roomInfo.media?.episodeNumber != null ? String(roomInfo.media.episodeNumber) : undefined}
         data-premid-party-poster={roomInfo.media?.poster || undefined}
@@ -1628,7 +1652,13 @@ const WatchPartyRoom: React.FC = () => {
         >
           <div className="absolute inset-0 p-1 sm:p-2 lg:p-4">
             <div className="h-full w-full relative rounded-lg overflow-hidden shadow-lg bg-black">
-              {currentMediaSrc && roomInfo && masterPlaybackState ? (
+              {isLiveRoom ? (
+                <NeahplusPlayer
+                  key={roomInfo.media.channelId}
+                  channelId={roomInfo.media.channelId}
+                  channelName={roomInfo.media.title}
+                />
+              ) : currentMediaSrc && roomInfo && masterPlaybackState ? (
                 <MemoizedHLSPlayer
                   ref={playerRef}
                   videoRef={videoElementForEventRef}
@@ -2197,17 +2227,30 @@ const WatchPartyRoom: React.FC = () => {
                 {/* Host-only controls */}
                 {isCurrentUserHost && (
                   <>
-                    {/* Change media */}
-                    <button
-                      onClick={() => { setShowSettingsPanel(false); setShowChangeMediaModal(true); }}
-                      className="w-full flex items-center gap-3 p-4 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 hover:border-red-500/30 transition-all text-left"
-                    >
-                      <RefreshCw size={20} className="text-red-400 flex-shrink-0" />
-                      <div>
-                        <p className="text-sm font-medium text-white">{t('watchParty.changeMedia')}</p>
-                        <p className="text-xs text-white/40">{t('watchParty.changeMediaDesc')}</p>
-                      </div>
-                    </button>
+                    {/* Media/channel change: the action matches the room type. */}
+                    {isLiveRoom ? (
+                      <button
+                        onClick={() => { setShowSettingsPanel(false); setShowLiveChannelPicker(true); }}
+                        className="w-full flex items-center gap-3 p-4 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 hover:border-red-500/30 transition-all text-left"
+                      >
+                        <Radio size={20} className="text-red-400 flex-shrink-0" />
+                        <div>
+                          <p className="text-sm font-medium text-white">Changer de chaîne</p>
+                          <p className="text-xs text-white/40">Choisir une autre chaîne du catalogue NEAHPLUS</p>
+                        </div>
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => { setShowSettingsPanel(false); setShowChangeMediaModal(true); }}
+                        className="w-full flex items-center gap-3 p-4 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 hover:border-red-500/30 transition-all text-left"
+                      >
+                        <RefreshCw size={20} className="text-red-400 flex-shrink-0" />
+                        <div>
+                          <p className="text-sm font-medium text-white">{t('watchParty.changeMedia')}</p>
+                          <p className="text-xs text-white/40">{t('watchParty.changeMediaDesc')}</p>
+                        </div>
+                      </button>
+                    )}
 
                     {/* Control mode */}
                     <div className="p-4 rounded-xl bg-white/5 border border-white/10">
@@ -2378,6 +2421,14 @@ const WatchPartyRoom: React.FC = () => {
       {/* Change media modal (host only) — gated on isOpen so the modal's
           internal state, debounced search, etc. don't live inside the React
           tree (and re-evaluate on every parent re-render) when closed. — perf */}
+      {showLiveChannelPicker && isLiveRoom && (
+        <NeahplusChannelPicker
+          currentChannelId={roomInfo.media.channelId}
+          onClose={() => setShowLiveChannelPicker(false)}
+          onSelect={handleChangeLiveChannel}
+        />
+      )}
+
       {showChangeMediaModal && (
         <ChangeMediaModal
           isOpen={showChangeMediaModal}
