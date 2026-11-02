@@ -4,7 +4,6 @@ import { resolve } from 'path'
 import { readFileSync, writeFileSync, existsSync } from 'fs'
 import { visualizer } from 'rollup-plugin-visualizer'
 import { createApiProxy } from './scripts/viteApiProxy.mjs'
-import { createApiProxy } from './scripts/viteApiProxy.mjs'
 
 const buildId = process.env.CF_PAGES_COMMIT_SHA || process.env.COMMIT_REF || new Date().toISOString()
 process.env.VITE_APP_BUILD_ID = buildId
