@@ -3,6 +3,8 @@ import react from '@vitejs/plugin-react'
 import { resolve } from 'path'
 import { readFileSync, writeFileSync, existsSync } from 'fs'
 import { visualizer } from 'rollup-plugin-visualizer'
+import { createApiProxy } from './scripts/viteApiProxy.mjs'
+import { createApiProxy } from './scripts/viteApiProxy.mjs'
 
 const buildId = process.env.CF_PAGES_COMMIT_SHA || process.env.COMMIT_REF || new Date().toISOString()
 process.env.VITE_APP_BUILD_ID = buildId
@@ -93,24 +95,7 @@ function injectPublicConfig(): Plugin {
 // l'origine Vite. Le serveur de développement et `vite preview` doivent donc
 // tous les deux transmettre ces chemins au Main API local. Sans la règle
 // NEAHLITE, le fallback SPA de Preview renvoyait index.html dans l'iframe.
-const mainApiProxy = {
-  '/backend-api': {
-    target: 'http://127.0.0.1:25565',
-    changeOrigin: true,
-    secure: false,
-    rewrite: (path: string) => path.replace(/^\/backend-api/, ''),
-  },
-  '/api': {
-    target: 'http://127.0.0.1:25565',
-    changeOrigin: true,
-    secure: false,
-  },
-  '/neahlite': {
-    target: 'http://127.0.0.1:25565',
-    changeOrigin: true,
-    secure: false,
-  },
-}
+const mainApiProxy = createApiProxy(Number(process.env.NEAHPLUS_BACKEND_PORT) || 3001)
 
 export default defineConfig({
   logLevel: 'warn',
@@ -195,41 +180,14 @@ export default defineConfig({
         defaultHandler(level, log)
       },
       output: {
-        codeSplitting: {
-          groups: [
-            {
-              name: 'react-vendor',
-              test: /[\\/]node_modules[\\/](react|react-dom|react-router-dom|react-helmet-async|scheduler|uuid)[\\/]/,
-            },
-            {
-              name: 'radix',
-              test: /[\\/]node_modules[\\/](@radix-ui|@headlessui|class-variance-authority|tailwind-merge|clsx|tailwindcss-animate)[\\/]/,
-            },
-            {
-              name: 'motion',
-              test: /[\\/]node_modules[\\/](framer-motion|lenis|sonner)[\\/]/,
-            },
-            {
-              name: 'i18n',
-              test: /[\\/]node_modules[\\/](i18next|i18next-browser-languagedetector|react-i18next)[\\/]/,
-            },
-            {
-              name: 'markdown',
-              test: /[\\/]node_modules[\\/](react-markdown|remark-emoji)[\\/]/,
-            },
-            // remark-gfm + its mdast-util-gfm-* / micromark-extension-gfm-* deps are
-            // kept in their own chunk so they only load on engines that support regex
-            // lookbehinds. Bundling them with react-markdown would force-evaluate
-            // mdast-util-gfm-autolink-literal's lookbehind regex on Safari < 16.4 and
-            // crash with "Invalid regular expression: invalid group specifier name".
-            // Shared deps (ccount, mdast-util-find-and-replace, unified, etc.) are left
-            // out of this rule so Rollup can keep them in the static markdown chunk
-            // and avoid making the static chunk depend on this dynamic one.
-            {
-              name: 'remark-gfm',
-              test: /[\\/]node_modules[\\/](remark-gfm|mdast-util-gfm[^\\/]*|micromark-extension-gfm[^\\/]*)[\\/]/,
-            },
-          ],
+        manualChunks(id) {
+          if (!id.includes('node_modules')) return
+          if (/[\\/]node_modules[\\/](react|react-dom|react-router-dom|react-helmet-async|scheduler|uuid)[\\/]/.test(id)) return 'react-vendor'
+          if (/[\\/]node_modules[\\/](@radix-ui|@headlessui|class-variance-authority|tailwind-merge|clsx|tailwindcss-animate)[\\/]/.test(id)) return 'radix'
+          if (/[\\/]node_modules[\\/](framer-motion|lenis|sonner)[\\/]/.test(id)) return 'motion'
+          if (/[\\/]node_modules[\\/](i18next|i18next-browser-languagedetector|react-i18next)[\\/]/.test(id)) return 'i18n'
+          if (/[\\/]node_modules[\\/](react-markdown|remark-emoji)[\\/]/.test(id)) return 'markdown'
+          if (/[\\/]node_modules[\\/](remark-gfm|mdast-util-gfm[^\\/]*|micromark-extension-gfm[^\\/]*)[\\/]/.test(id)) return 'remark-gfm'
         },
       },
     }
