@@ -14,7 +14,7 @@
     "build:report": "vite build && node scripts/bundle-report.mjs",
     "lint": "eslint .",
     "preview": "vite preview",
-    "start": "node server/index.js",
+    "start": "node --env-file=.env server/index.js",
     "start:coolify": "node server/index.js",
     "dev:server": "node --env-file=.env server/index.js",
     "app:publish": "node scripts/publish-app.mjs",
