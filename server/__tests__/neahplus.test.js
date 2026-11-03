@@ -135,7 +135,7 @@ test('destinations: OHA resolve URLs use signed streams and TVFree playlist URLs
 
   assert.equal(stream.pathname, `${P}/__stream`);
   assert.equal(stream.searchParams.get('url'), target);
-  assert.match(stream.searchParams.get('exp'), /^\\d+$/);
+  assert.match(stream.searchParams.get('exp'), /^\d+$/);
   assert.match(stream.searchParams.get('sig'), /^[A-Za-z0-9_-]{43}$/);
   assert.deepEqual(
     { live: body.live, format: body.format, name: body.name },
@@ -144,10 +144,10 @@ test('destinations: OHA resolve URLs use signed streams and TVFree playlist URLs
   assert.equal(bridge.verifiedStreamTarget(stream).toString(), target);
 
   const playlist = bridge.rewritePlaylist(
-    '#EXTM3U\\nhttps://tvfree.to/seg/1.ts',
+    '#EXTM3U\nhttps://tvfree.to/seg/1.ts',
     new URL('https://tvfree.to/p.m3u8'),
   );
-  const relay = new URL(playlist.split('\\n')[1], 'https://neahflix.test');
+  const relay = new URL(playlist.split('\n')[1], 'https://neahflix.test');
   assert.equal(relay.pathname, `${P}/__relay`);
   assert.equal(relay.searchParams.get('url'), 'https://tvfree.to/seg/1.ts');
 });
