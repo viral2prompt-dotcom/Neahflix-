@@ -127,12 +127,29 @@ test('destinations: arbitrary hosts and unsafe URLs are not trusted', () => {
   assert.equal(isTrustedDestination(new URL('https://oha.to/live/play/1')), true);
 });
 
-test('destinations: OHA and TVFree hosts keep their existing routes', async () => {
+test('destinations: OHA resolve URLs use signed streams and TVFree playlist URLs keep the relay route', async () => {
   const bridge = bridgeAt();
-  const trusted = resolveBody('https://oha.to/live/play/1');
-  assert.equal(await bridge.rewriteResolveJson(trusted), trusted);
-  const playlist = bridge.rewritePlaylist('#EXTM3U\nhttps://tvfree.to/seg/1.ts', new URL('https://tvfree.to/p.m3u8'));
-  assert.ok(playlist.includes(`${P}/__relay?url=`));
+  const target = 'https://oha.to/live/play/1';
+  const body = JSON.parse(await bridge.rewriteResolveJson(resolveBody(target)));
+  const stream = new URL(body.url, 'https://neahflix.test');
+
+  assert.equal(stream.pathname, `${P}/__stream`);
+  assert.equal(stream.searchParams.get('url'), target);
+  assert.match(stream.searchParams.get('exp'), /^\\d+$/);
+  assert.match(stream.searchParams.get('sig'), /^[A-Za-z0-9_-]{43}$/);
+  assert.deepEqual(
+    { live: body.live, format: body.format, name: body.name },
+    { live: true, format: 'hls', name: 'SCI-FI' },
+  );
+  assert.equal(bridge.verifiedStreamTarget(stream).toString(), target);
+
+  const playlist = bridge.rewritePlaylist(
+    '#EXTM3U\\nhttps://tvfree.to/seg/1.ts',
+    new URL('https://tvfree.to/p.m3u8'),
+  );
+  const relay = new URL(playlist.split('\\n')[1], 'https://neahflix.test');
+  assert.equal(relay.pathname, `${P}/__relay`);
+  assert.equal(relay.searchParams.get('url'), 'https://tvfree.to/seg/1.ts');
 });
 
 test('playlist: segments on the playlist origin are signed, cross-origin segments are refused', () => {
