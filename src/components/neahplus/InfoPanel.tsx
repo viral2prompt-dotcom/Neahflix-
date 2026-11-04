@@ -186,7 +186,7 @@ const InfoPanel = ({ channel, channelDisplayName, onClose }: InfoPanelProps) => 
                           : isPast
                             ? 'opacity-40'
                             : 'hover:bg-white/5'
-                      }`
+                      }`}
                     >
                       <span className={`shrink-0 text-xs font-semibold tabular-nums ${isCurrent ? 'text-red-300' : 'text-white/60'}`}>
                         {formatTime(p.start)}
