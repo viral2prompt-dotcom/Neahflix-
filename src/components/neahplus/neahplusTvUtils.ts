@@ -9,6 +9,7 @@ export interface ChannelGroup {
   isHistorical: boolean;
   logo: string | null;
   countries: string[];
+  categories: string[];
 }
 
 export const foldText = (value: string): string =>
@@ -17,6 +18,7 @@ export const foldText = (value: string): string =>
 const QUALITY_SUFFIX_RE = /\s*(hd|full\s*hd|fhd|sd)\s*$/i;
 const ALL_SUFFIX_RE = /\s*(hd|full\s*hd|fhd|sd|fr|eu|us|uk|int|international|\+\d+|-\d+)\s*$/i;
 const FRANCE = 'france';
+const DEFAULT_COUNTRY = 'France';
 
 export const normalizeChannelName = (name: string): string => {
   const folded = foldText(name);
@@ -28,21 +30,29 @@ export const shortChannelName = (name: string): string => {
   return folded.replace(ALL_SUFFIX_RE, '').replace(/[^a-z0-9]+$/g, '') || folded;
 };
 
-const countryKey = (channel: NeahplusChannel): string => foldText(channel.countries[0] ?? '');
+// Indépendant de l'ordre des tags : France si présente, sinon le premier pays par ordre alphabétique.
+const primaryCountryKey = (channel: NeahplusChannel): string => {
+  const countries = channel.countries.map(foldText).filter(Boolean);
+  if (countries.includes(FRANCE)) return FRANCE;
+  return [...countries].sort((a, b) => a.localeCompare(b, 'fr'))[0] ?? '';
+};
 
 const buildGroup = (key: string, channels: NeahplusChannel[]): ChannelGroup => {
-  const countries: string[] = [];
-  for (const channel of channels) {
-    for (const country of channel.countries) {
-      if (!countries.includes(country)) countries.push(country);
-    }
-  }
   const displayName = channels.reduce(
     (shortest, channel) => (channel.name.length < shortest.length ? channel.name : shortest),
     channels[0].name,
   );
   const logo = channels.find((channel) => channel.logo)?.logo ?? null;
-  return { key, displayName, variants: channels, hasStream: true, isHistorical: false, logo, countries };
+  return {
+    key,
+    displayName,
+    variants: channels,
+    hasStream: true,
+    isHistorical: false,
+    logo,
+    countries: [...new Set(channels.flatMap((channel) => channel.countries))],
+    categories: [...new Set(channels.flatMap((channel) => channel.categories))],
+  };
 };
 
 // La clé du pays principal reste le nom normalisé : les favoris enregistrés avant
@@ -53,7 +63,7 @@ export const groupChannelVariants = (channels: NeahplusChannel[]): ChannelGroup[
   for (const channel of channels) {
     const name = normalizeChannelName(channel.name);
     const byCountry = byName.get(name) ?? new Map<string, NeahplusChannel[]>();
-    const country = countryKey(channel);
+    const country = primaryCountryKey(channel);
     byCountry.set(country, [...(byCountry.get(country) ?? []), channel]);
     byName.set(name, byCountry);
   }
@@ -70,12 +80,15 @@ export const groupChannelVariants = (channels: NeahplusChannel[]): ChannelGroup[
   return groups.sort((a, b) => a.displayName.localeCompare(b.displayName, 'fr') || a.key.localeCompare(b.key));
 };
 
+export const groupMatchesCountry = (group: ChannelGroup, country: string): boolean =>
+  group.countries.length > 0 ? group.countries.includes(country) : country === DEFAULT_COUNTRY;
+
 export const HISTORICAL_CHANNELS: ChannelGroup[] = [
-  { key: 'historical:disney-channel', displayName: 'Disney Channel', variants: [], hasStream: false, isHistorical: true, logo: null, countries: ['France'] },
-  { key: 'historical:disney-junior', displayName: 'Disney Junior', variants: [], hasStream: false, isHistorical: true, logo: null, countries: ['France'] },
-  { key: 'historical:disney-xd', displayName: 'Disney XD', variants: [], hasStream: false, isHistorical: true, logo: null, countries: ['France'] },
-  { key: 'historical:national-geographic', displayName: 'National Geographic', variants: [], hasStream: false, isHistorical: true, logo: null, countries: ['France'] },
-  { key: 'historical:national-geographic-wild', displayName: 'National Geographic Wild', variants: [], hasStream: false, isHistorical: true, logo: null, countries: ['France'] },
+  { key: 'historical:disney-channel', displayName: 'Disney Channel', variants: [], hasStream: false, isHistorical: true, logo: null, countries: ['France'], categories: [] },
+  { key: 'historical:disney-junior', displayName: 'Disney Junior', variants: [], hasStream: false, isHistorical: true, logo: null, countries: ['France'], categories: [] },
+  { key: 'historical:disney-xd', displayName: 'Disney XD', variants: [], hasStream: false, isHistorical: true, logo: null, countries: ['France'], categories: [] },
+  { key: 'historical:national-geographic', displayName: 'National Geographic', variants: [], hasStream: false, isHistorical: true, logo: null, countries: ['France'], categories: [] },
+  { key: 'historical:national-geographic-wild', displayName: 'National Geographic Wild', variants: [], hasStream: false, isHistorical: true, logo: null, countries: ['France'], categories: [] },
 ];
 
 export const historicalChannelsWithoutDuplicates = (realGroups: ChannelGroup[]): ChannelGroup[] =>
