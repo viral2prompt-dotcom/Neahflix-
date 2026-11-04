@@ -451,11 +451,12 @@ const NeahplusExperience = () => {
   }, []);
 
   const focusGridItem = useCallback((index: number) => {
-    const max = (tab === 'guide' ? epgVisible : visibleGroups).length - 1;
+    const items = tab === 'guide' ? epgVisible : visibleGroups;
+    const max = items.length - 1;
     const clamped = Math.max(0, Math.min(index, max));
     gridFocusIndex.current = clamped;
     itemRefs.current[clamped]?.focus();
-  }, [tab, epgVisible.length, visibleGroups.length]);
+  }, [tab, epgVisible, visibleGroups]);
 
   /* ---- Tab navigation ---- */
   const focusTab = useCallback((index: number) => {
