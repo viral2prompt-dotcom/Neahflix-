@@ -1,5 +1,16 @@
-import { useEffect, useRef, useState } from 'react';
-import { AlertTriangle, Loader2, Play, RotateCcw } from 'lucide-react';
+import { useCallback, useEffect, useRef, useState, type ChangeEvent } from 'react';
+import {
+  AlertTriangle,
+  ChevronLeft,
+  Info,
+  Loader2,
+  Maximize,
+  Minimize,
+  Play,
+  RotateCcw,
+  Volume2,
+  VolumeX,
+} from 'lucide-react';
 import type Hls from 'hls.js';
 import { safePlay } from '@/utils/safePlay';
 import { NeahplusError, resolveNeahplusStream } from './neahplusCatalog';
@@ -26,13 +37,20 @@ const errorMessage = (error: unknown): string => {
 interface NeahplusPlayerProps {
   channelId: string;
   channelName: string;
+  onInfo?: () => void;
+  onPrevChannel?: () => void;
+  onGuide?: () => void;
 }
 
-const NeahplusPlayer = ({ channelId, channelName }: NeahplusPlayerProps) => {
+const NeahplusPlayer = ({ channelId, channelName, onInfo, onPrevChannel, onGuide }: NeahplusPlayerProps) => {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const [status, setStatus] = useState<PlayerStatus>('resolving');
   const [message, setMessage] = useState<string | null>(null);
   const [attempt, setAttempt] = useState(0);
+  const [muted, setMuted] = useState(false);
+  const [volume, setVolume] = useState(1);
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -114,10 +132,46 @@ const NeahplusPlayer = ({ channelId, channelName }: NeahplusPlayerProps) => {
     if (video) void safePlay(video).catch(() => setStatus('paused'));
   };
 
+  const toggleMute = useCallback(() => {
+    const video = videoRef.current;
+    if (!video) return;
+    video.muted = !video.muted;
+    setMuted(video.muted);
+  }, []);
+
+  const handleVolume = useCallback((e: ChangeEvent<HTMLInputElement>) => {
+    const video = videoRef.current;
+    if (!video) return;
+    const v = parseFloat(e.target.value);
+    video.volume = v;
+    video.muted = v === 0;
+    setVolume(v);
+    setMuted(v === 0);
+  }, []);
+
+  const toggleFullscreen = useCallback(() => {
+    const container = containerRef.current;
+    if (!container) return;
+    if (!document.fullscreenElement) {
+      void container.requestFullscreen().catch(() => {});
+    } else {
+      void document.exitFullscreen().catch(() => {});
+    }
+  }, []);
+
+  useEffect(() => {
+    const handleChange = () => setIsFullscreen(!!document.fullscreenElement);
+    document.addEventListener('fullscreenchange', handleChange);
+    return () => document.removeEventListener('fullscreenchange', handleChange);
+  }, []);
+
   const overlayStatus = status === 'paused' || status === 'playing' ? null : status;
 
   return (
-    <div className="relative aspect-video w-full overflow-hidden rounded-2xl bg-black ring-1 ring-white/10">
+    <div
+      ref={containerRef}
+      className="relative aspect-video w-full overflow-hidden rounded-2xl bg-black ring-1 ring-white/10"
+    >
       <video
         ref={videoRef}
         className="h-full w-full bg-black object-contain"
@@ -125,12 +179,13 @@ const NeahplusPlayer = ({ channelId, channelName }: NeahplusPlayerProps) => {
         playsInline
         aria-label={`Lecteur ${channelName}`}
       />
+
       {overlayStatus && (
         <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black/75 p-6 text-center">
           {overlayStatus === 'error' ? (
             <AlertTriangle className="h-10 w-10 text-amber-300" aria-hidden="true" />
           ) : (
-            <Loader2 className="h-10 w-10 animate-spin text-sky-300 motion-reduce:animate-none" aria-hidden="true" />
+            <Loader2 className="h-10 w-10 animate-spin text-red-400 motion-reduce:animate-none" aria-hidden="true" />
           )}
           <p className="text-sm font-semibold text-white">{STATUS_LABEL[overlayStatus]}</p>
           {overlayStatus === 'error' && message && (
@@ -140,7 +195,7 @@ const NeahplusPlayer = ({ channelId, channelName }: NeahplusPlayerProps) => {
             <button
               type="button"
               onClick={() => setAttempt((value) => value + 1)}
-              className="mt-1 inline-flex items-center gap-2 rounded-lg bg-sky-400 px-4 py-2 text-sm font-semibold text-slate-950 transition hover:bg-sky-300"
+              className="mt-1 inline-flex items-center gap-2 rounded-lg bg-red-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-400"
             >
               <RotateCcw className="h-4 w-4" aria-hidden="true" />
               Réessayer
@@ -148,18 +203,79 @@ const NeahplusPlayer = ({ channelId, channelName }: NeahplusPlayerProps) => {
           )}
         </div>
       )}
+
       {status === 'paused' && (
         <button
           type="button"
           onClick={resume}
           className="absolute inset-0 flex items-center justify-center bg-black/40 transition hover:bg-black/30"
         >
-          <span className="flex h-16 w-16 items-center justify-center rounded-full bg-sky-400 text-slate-950 shadow-lg">
+          <span className="flex h-16 w-16 items-center justify-center rounded-full bg-red-500 text-white shadow-lg">
             <Play className="ml-1 h-7 w-7 fill-current" aria-hidden="true" />
           </span>
           <span className="sr-only">Reprendre la lecture</span>
         </button>
       )}
+
+      <div className="pointer-events-none absolute bottom-0 left-0 right-0 z-20 flex items-center gap-1.5 bg-gradient-to-t from-black/80 to-transparent px-3 pb-2 pt-8 opacity-0 transition-opacity duration-200 hover:opacity-100 focus-within:opacity-100 [.group:hover_&]:opacity-100">
+        {onPrevChannel && (
+          <button
+            type="button"
+            onClick={onPrevChannel}
+            aria-label="Chaîne précédente"
+            className="pointer-events-auto flex h-8 w-8 items-center justify-center rounded-lg text-white/80 transition hover:bg-white/15 hover:text-white"
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </button>
+        )}
+        <button
+          type="button"
+          onClick={toggleMute}
+          aria-label={muted ? 'Activer le son' : 'Couper le son'}
+          className="pointer-events-auto flex h-8 w-8 items-center justify-center rounded-lg text-white/80 transition hover:bg-white/15 hover:text-white"
+        >
+          {muted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
+        </button>
+        <input
+          type="range"
+          min="0"
+          max="1"
+          step="0.05"
+          value={muted ? 0 : volume}
+          onChange={handleVolume}
+          aria-label="Volume"
+          className="pointer-events-auto h-1 w-16 cursor-pointer appearance-none rounded-full bg-white/30 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white"
+        />
+        <div className="flex-1" />
+        {onGuide && (
+          <button
+            type="button"
+            onClick={onGuide}
+            aria-label="Guide TV"
+            className="pointer-events-auto rounded-lg px-2 py-1 text-[10px] font-semibold text-white/70 transition hover:bg-white/15 hover:text-white"
+          >
+            GUIDE
+          </button>
+        )}
+        {onInfo && (
+          <button
+            type="button"
+            onClick={onInfo}
+            aria-label="Informations sur le programme"
+            className="pointer-events-auto flex h-8 w-8 items-center justify-center rounded-lg text-white/80 transition hover:bg-white/15 hover:text-white"
+          >
+            <Info className="h-4 w-4" />
+          </button>
+        )}
+        <button
+          type="button"
+          onClick={toggleFullscreen}
+          aria-label={isFullscreen ? 'Quitter le plein écran' : 'Plein écran'}
+          className="pointer-events-auto flex h-8 w-8 items-center justify-center rounded-lg text-white/80 transition hover:bg-white/15 hover:text-white"
+        >
+          {isFullscreen ? <Minimize className="h-4 w-4" /> : <Maximize className="h-4 w-4" />}
+        </button>
+      </div>
     </div>
   );
 };

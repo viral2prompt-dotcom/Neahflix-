@@ -6,6 +6,7 @@ import {
   Globe,
   Heart,
   Home as HomeIcon,
+  Info,
   Loader2,
   RotateCcw,
   Search,
@@ -13,6 +14,10 @@ import {
   Tv,
 } from 'lucide-react';
 import NeahplusPlayer from './NeahplusPlayer';
+import ChannelCarousel from './ChannelCarousel';
+import ProgramSynopsis from './ProgramSynopsis';
+import InfoPanel from './InfoPanel';
+import QuickSearch from './QuickSearch';
 import {
   currentProgram,
   loadNeahplusCatalog,
@@ -50,8 +55,6 @@ const TABS: { id: Tab; label: string; icon: typeof HomeIcon }[] = [
 const PAGE_SIZE = 60;
 const HOME_SECTION_COUNT = 12;
 
-/* ===================== Channel card ===================== */
-
 interface ChannelCardProps {
   group: ChannelGroup;
   selected: boolean;
@@ -85,11 +88,11 @@ const ChannelCard = ({
       type="button"
       onClick={onSelect}
       aria-current={selected ? 'true' : undefined}
-      className={`group relative flex w-full flex-col gap-2 rounded-2xl border p-3 text-left transition-all duration-200 ${
+      className={`group relative flex w-full flex-col gap-2 rounded-xl border p-3 text-left transition-all duration-200 ${
         selected
-          ? 'border-sky-400/60 bg-sky-400/10 ring-1 ring-sky-400/40'
+          ? 'border-red-500/60 bg-red-500/10 ring-1 ring-red-500/40'
           : 'border-white/10 bg-white/[0.03] hover:border-white/20 hover:bg-white/[0.06]'
-      }`}
+      }`
     >
       <div className="flex items-center gap-3">
         {group.logo ? (
@@ -120,10 +123,10 @@ const ChannelCard = ({
             <span className="text-[10px] text-amber-300/80">Flux non disponible</span>
           )}
           {group.variants.length > 1 && (
-            <span className="text-[10px] text-sky-300/80">{group.variants.length} variantes</span>
+            <span className="text-[10px] text-red-300/80">{group.variants.length} variantes</span>
           )}
           {resolving && (
-            <span className="text-[10px] text-sky-300/80">Vérification…</span>
+            <span className="text-[10px] text-red-300/80">Vérification…</span>
           )}
         </div>
         <button
@@ -145,8 +148,6 @@ const ChannelCard = ({
     </button>
   );
 };
-
-/* ===================== EPG row ===================== */
 
 interface EpgRowProps {
   channel: NeahplusChannel;
@@ -173,13 +174,13 @@ const EpgRow = ({ channel, date, onPlay, index, registerRef }: EpgRowProps) => {
       ref={(el) => registerRef(el, index)}
       type="button"
       onClick={onPlay}
-      className="flex w-full flex-col gap-1 rounded-xl border border-white/10 bg-white/[0.03] p-3 text-left transition hover:border-sky-400/40 hover:bg-white/[0.06]"
+      className="flex w-full flex-col gap-1 rounded-xl border border-white/10 bg-white/[0.03] p-3 text-left transition hover:border-red-500/40 hover:bg-white/[0.06]"
     >
       <div className="flex items-center gap-2">
         {channel.logo ? (
           <img src={channel.logo} alt="" loading="lazy" className="h-8 w-8 rounded-md bg-white/5 object-contain p-0.5" />
         ) : (
-          <span className="flex h-8 w-8 items-center justify-center rounded-md bg-slate-800 text-sky-200">
+          <span className="flex h-8 w-8 items-center justify-center rounded-md bg-slate-800 text-red-200">
             <Tv className="h-4 w-4" />
           </span>
         )}
@@ -190,7 +191,7 @@ const EpgRow = ({ channel, date, onPlay, index, registerRef }: EpgRowProps) => {
       ) : (
         <div className="flex flex-col gap-0.5">
           {current && (
-            <p className="text-xs text-sky-300">
+            <p className="text-xs text-red-300">
               <span className="font-semibold">En cours : </span>
               {current.title} ({formatTime(current.start)}–{formatTime(current.end)})
             </p>
@@ -218,8 +219,6 @@ const EpgRow = ({ channel, date, onPlay, index, registerRef }: EpgRowProps) => {
     </button>
   );
 };
-
-/* ===================== Home section ===================== */
 
 interface HomeSectionProps {
   title: string;
@@ -274,8 +273,6 @@ const HomeSection = ({
   );
 };
 
-/* ===================== Main component ===================== */
-
 const NeahplusExperience = () => {
   const [catalog, setCatalog] = useState<NeahplusCatalog | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -289,12 +286,14 @@ const NeahplusExperience = () => {
   const [favorites, setFavorites] = useState<Set<string>>(new Set());
   const [guideDate, setGuideDate] = useState(() => new Date());
   const [resolvingKey, setResolvingKey] = useState<string | null>(null);
+  const [showInfoPanel, setShowInfoPanel] = useState(false);
+  const [showQuickSearch, setShowQuickSearch] = useState(false);
+  const [prevGroupKey, setPrevGroupKey] = useState<string | null>(null);
   const gridRef = useRef<HTMLDivElement>(null);
   const itemRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const gridFocusIndex = useRef(0);
   const tabButtonsRef = useRef<(HTMLButtonElement | null)[]>([]);
 
-  /* ---- Load catalog ---- */
   useEffect(() => {
     const controller = new AbortController();
     setLoadError(null);
@@ -309,7 +308,6 @@ const NeahplusExperience = () => {
     return () => controller.abort();
   }, [attempt]);
 
-  /* ---- Favorites ---- */
   useEffect(() => {
     setFavorites(loadFavorites());
   }, []);
@@ -324,11 +322,9 @@ const NeahplusExperience = () => {
     });
   }, []);
 
-  /* ---- Groups with variants (strict grouping) ---- */
   const realGroups = useMemo(() => groupChannelVariants(catalog?.channels ?? []), [catalog]);
   const allGroups = useMemo(() => [...realGroups, ...HISTORICAL_CHANNELS], [realGroups]);
 
-  /* ---- Default country = France ---- */
   useEffect(() => {
     if (catalog && !country) {
       const hasFrance = catalog.countries.some((c) => c.name === 'France');
@@ -336,7 +332,6 @@ const NeahplusExperience = () => {
     }
   }, [catalog, country]);
 
-  /* ---- Filtering ---- */
   const filteredGroups = useMemo(() => {
     const needle = foldText(query.trim());
     const base = tab === 'favorites'
@@ -356,11 +351,13 @@ const NeahplusExperience = () => {
     setVisibleCount(PAGE_SIZE);
   }, [query, country, tab]);
 
-  /* ---- Selected group & active variant ---- */
   const selectedGroup = allGroups.find((g) => g.key === selectedGroupKey) ?? null;
   const activeVariant = selectedGroup?.variants[activeVariantIndex] ?? null;
 
-  /* ---- Auto-resolve: find first working variant ---- */
+  const carouselGroups = useMemo(() => {
+    return allGroups.filter((g) => g.hasStream && g.variants.length > 0);
+  }, [allGroups]);
+
   const resolvingRef = useRef<AbortController | null>(null);
 
   const resolveBestVariant = useCallback(async (group: ChannelGroup) => {
@@ -379,7 +376,6 @@ const NeahplusExperience = () => {
         setResolvingKey(null);
         return;
       } catch {
-        // Cette variante ne fonctionne pas, on essaie la suivante
       }
     }
 
@@ -390,20 +386,35 @@ const NeahplusExperience = () => {
   }, []);
 
   const handleSelectGroup = useCallback((group: ChannelGroup) => {
+    setPrevGroupKey(selectedGroupKey);
     setSelectedGroupKey(group.key);
     setActiveVariantIndex(0);
     if (group.variants.length > 1) {
       void resolveBestVariant(group);
     }
-  }, [resolveBestVariant]);
+  }, [resolveBestVariant, selectedGroupKey]);
 
   const handleSelectChannel = useCallback((channel: NeahplusChannel) => {
     const group = allGroups.find((g) => g.variants.some((v) => v.id === channel.id));
     if (!group) return;
+    setPrevGroupKey(selectedGroupKey);
     setSelectedGroupKey(group.key);
     const vIdx = group.variants.findIndex((v) => v.id === channel.id);
     setActiveVariantIndex(vIdx >= 0 ? vIdx : 0);
-  }, [allGroups]);
+  }, [allGroups, selectedGroupKey]);
+
+  const goToPrevChannel = useCallback(() => {
+    if (prevGroupKey) {
+      const prev = allGroups.find((g) => g.key === prevGroupKey);
+      if (prev) {
+        const temp = prevGroupKey;
+        setPrevGroupKey(selectedGroupKey);
+        setSelectedGroupKey(temp);
+        setActiveVariantIndex(0);
+        if (prev.variants.length > 1) void resolveBestVariant(prev);
+      }
+    }
+  }, [prevGroupKey, allGroups, selectedGroupKey, resolveBestVariant]);
 
   const cycleVariant = useCallback((direction: 1 | -1) => {
     if (!selectedGroup || selectedGroup.variants.length <= 1) return;
@@ -413,7 +424,6 @@ const NeahplusExperience = () => {
     });
   }, [selectedGroup]);
 
-  /* ---- EPG channels ---- */
   const epgChannels = useMemo(() => {
     if (!catalog) return [];
     return channelsWithEpg(catalog.channels)
@@ -423,7 +433,6 @@ const NeahplusExperience = () => {
 
   const epgVisible = epgChannels.slice(0, visibleCount);
 
-  /* ---- Home data ---- */
   const now = Date.now();
   const favoriteChannels = useMemo(() => {
     if (!catalog) return [];
@@ -445,7 +454,6 @@ const NeahplusExperience = () => {
     return recommendedChannels(catalog.channels, now, HOME_SECTION_COUNT);
   }, [catalog, now]);
 
-  /* ---- Grid focus management ---- */
   const registerRef = useCallback((el: HTMLButtonElement | null, index: number) => {
     itemRefs.current[index] = el;
   }, []);
@@ -458,7 +466,6 @@ const NeahplusExperience = () => {
     itemRefs.current[clamped]?.focus();
   }, [tab, epgVisible, visibleGroups]);
 
-  /* ---- Tab navigation ---- */
   const focusTab = useCallback((index: number) => {
     const clamped = Math.max(0, Math.min(index, TABS.length - 1));
     tabButtonsRef.current[clamped]?.focus();
@@ -466,9 +473,10 @@ const NeahplusExperience = () => {
 
   const currentTabIndex = TABS.findIndex((t) => t.id === tab);
 
-  /* ---- Keyboard navigation (remote control) ---- */
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
+      if (showInfoPanel || showQuickSearch) return;
+
       const target = e.target as HTMLElement;
       const isInInput = target.tagName === 'INPUT' || target.tagName === 'SELECT' || target.tagName === 'TEXTAREA';
       if (isInInput && e.key !== 'Escape') return;
@@ -480,6 +488,22 @@ const NeahplusExperience = () => {
         }
         e.preventDefault();
         return;
+      }
+
+      if (e.key === 'i' || e.key === 'I') {
+        if (!isInInput && activeVariant) {
+          e.preventDefault();
+          setShowInfoPanel(true);
+          return;
+        }
+      }
+
+      if (e.key === '/') {
+        if (!isInInput && catalog) {
+          e.preventDefault();
+          setShowQuickSearch(true);
+          return;
+        }
       }
 
       switch (e.key) {
@@ -524,9 +548,8 @@ const NeahplusExperience = () => {
 
     window.addEventListener('keydown', handleKey);
     return () => window.removeEventListener('keydown', handleKey);
-  }, [tab, epgVisible, visibleGroups, focusGridItem, focusTab, currentTabIndex, cycleVariant, selectedGroup]);
+  }, [tab, epgVisible, visibleGroups, focusGridItem, focusTab, currentTabIndex, cycleVariant, selectedGroup, activeVariant, catalog, showInfoPanel, showQuickSearch]);
 
-  /* ---- Reset focus on tab change ---- */
   useEffect(() => {
     gridFocusIndex.current = 0;
     itemRefs.current = [];
@@ -536,7 +559,6 @@ const NeahplusExperience = () => {
     return () => clearTimeout(timer);
   }, [tab]);
 
-  /* ---- Loading / Error states ---- */
   if (loadError) {
     return (
       <div className="flex flex-1 flex-col items-center justify-center gap-4 p-6 text-center">
@@ -547,7 +569,7 @@ const NeahplusExperience = () => {
         <button
           type="button"
           onClick={() => setAttempt((v) => v + 1)}
-          className="inline-flex items-center gap-2 rounded-lg bg-sky-400 px-4 py-2 text-sm font-semibold text-slate-950 transition hover:bg-sky-300"
+          className="inline-flex items-center gap-2 rounded-lg bg-red-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-400"
         >
           <RotateCcw className="h-4 w-4" aria-hidden="true" />
           Réessayer
@@ -559,7 +581,7 @@ const NeahplusExperience = () => {
   if (!catalog) {
     return (
       <div className="flex flex-1 flex-col items-center justify-center gap-3 p-6 text-center">
-        <Loader2 className="h-8 w-8 animate-spin text-sky-300 motion-reduce:animate-none" aria-hidden="true" />
+        <Loader2 className="h-8 w-8 animate-spin text-red-400 motion-reduce:animate-none" aria-hidden="true" />
         <p className="text-sm text-white/75">Chargement du catalogue des chaînes</p>
       </div>
     );
@@ -582,7 +604,7 @@ const NeahplusExperience = () => {
             aria-current={tab === id ? 'true' : undefined}
             className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors sm:text-sm ${
               tab === id
-                ? 'bg-sky-400/15 text-sky-200 ring-1 ring-sky-400/30'
+                ? 'bg-red-500/15 text-red-200 ring-1 ring-red-500/30'
                 : 'text-white/55 hover:bg-white/5 hover:text-white/80'
             }`}
           >
@@ -590,6 +612,15 @@ const NeahplusExperience = () => {
             <span className="hidden sm:inline">{label}</span>
           </button>
         ))}
+        <button
+          type="button"
+          onClick={() => setShowQuickSearch(true)}
+          aria-label="Recherche rapide"
+          className="ml-auto inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-white/55 transition hover:bg-white/5 hover:text-white/80 sm:text-sm"
+        >
+          <Search className="h-4 w-4" aria-hidden="true" />
+          <span className="hidden sm:inline">Rechercher</span>
+        </button>
       </nav>
 
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden lg:flex-row">
@@ -600,6 +631,9 @@ const NeahplusExperience = () => {
                 key={activeVariant.id}
                 channelId={activeVariant.id}
                 channelName={selectedGroup.displayName}
+                onInfo={() => setShowInfoPanel(true)}
+                onPrevChannel={prevGroupKey ? goToPrevChannel : undefined}
+                onGuide={() => setTab('guide')}
               />
               <div className="flex items-center justify-between gap-2">
                 <div className="min-w-0">
@@ -608,29 +642,39 @@ const NeahplusExperience = () => {
                     {currentProgram(activeVariant, Date.now())?.title ?? selectedGroup.countries.join(', ')}
                   </p>
                 </div>
-                {selectedGroup.variants.length > 1 && (
-                  <div className="flex items-center gap-1">
-                    <button
-                      type="button"
-                      onClick={() => cycleVariant(-1)}
-                      className="rounded-lg bg-white/5 p-1.5 text-white/70 transition hover:bg-white/10"
-                      aria-label="Variante précédente"
-                    >
-                      <ChevronLeft className="h-4 w-4" />
-                    </button>
-                    <span className="text-xs text-white/50">
-                      {activeVariantIndex + 1}/{selectedGroup.variants.length}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => cycleVariant(1)}
-                      className="rounded-lg bg-white/5 p-1.5 text-white/70 transition hover:bg-white/10"
-                      aria-label="Variante suivante"
-                    >
-                      <ChevronRight className="h-4 w-4" />
-                    </button>
-                  </div>
-                )}
+                <div className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={() => setShowInfoPanel(true)}
+                    aria-label="Informations programme"
+                    className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/5 text-white/70 transition hover:bg-white/10 hover:text-white"
+                  >
+                    <Info className="h-4 w-4" />
+                  </button>
+                  {selectedGroup.variants.length > 1 && (
+                    <div className="flex items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() => cycleVariant(-1)}
+                        className="rounded-lg bg-white/5 p-1.5 text-white/70 transition hover:bg-white/10"
+                        aria-label="Variante précédente"
+                      >
+                        <ChevronLeft className="h-4 w-4" />
+                      </button>
+                      <span className="text-xs text-white/50">
+                        {activeVariantIndex + 1}/{selectedGroup.variants.length}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => cycleVariant(1)}
+                        className="rounded-lg bg-white/5 p-1.5 text-white/70 transition hover:bg-white/10"
+                        aria-label="Variante suivante"
+                      >
+                        <ChevronRight className="h-4 w-4" />
+                      </button>
+                    </div>
+                  )}
+                </div>
               </div>
               {selectedGroup.variants.length > 1 && (
                 <div className="flex flex-wrap gap-1">
@@ -641,7 +685,7 @@ const NeahplusExperience = () => {
                       onClick={() => setActiveVariantIndex(i)}
                       className={`rounded-md px-2 py-1 text-xs font-medium transition ${
                         i === activeVariantIndex
-                          ? 'bg-sky-400/20 text-sky-200 ring-1 ring-sky-400/30'
+                          ? 'bg-red-500/20 text-red-200 ring-1 ring-red-500/30'
                           : 'bg-white/5 text-white/50 hover:bg-white/10'
                       }`}
                     >
@@ -661,6 +705,19 @@ const NeahplusExperience = () => {
               </div>
             </div>
           )}
+
+          <ChannelCarousel
+            groups={carouselGroups}
+            selectedKey={selectedGroupKey}
+            favoritedKeys={favorites}
+            onSelectGroup={handleSelectGroup}
+            onToggleFavorite={toggleFavorite}
+          />
+
+          <ProgramSynopsis
+            channel={activeVariant}
+            channelDisplayName={selectedGroup?.displayName ?? ''}
+          />
         </section>
 
         <section className="flex min-h-0 flex-1 flex-col overflow-hidden">
@@ -673,7 +730,7 @@ const NeahplusExperience = () => {
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Rechercher une chaîne"
-                className="w-full rounded-lg border border-white/10 bg-white/5 py-2 pl-9 pr-3 text-sm text-white placeholder:text-white/40 focus:border-sky-400 focus:outline-none"
+                className="w-full rounded-lg border border-white/10 bg-white/5 py-2 pl-9 pr-3 text-sm text-white placeholder:text-white/40 focus:border-red-500 focus:outline-none"
               />
             </label>
             {tab !== 'world' && tab !== 'home' && catalog.countries.length > 0 && (
@@ -682,7 +739,7 @@ const NeahplusExperience = () => {
                 <select
                   value={country}
                   onChange={(e) => setCountry(e.target.value)}
-                  className="w-full rounded-lg border border-white/10 bg-slate-900 px-3 py-2 text-sm text-white focus:border-sky-400 focus:outline-none"
+                  className="w-full rounded-lg border border-white/10 bg-slate-900 px-3 py-2 text-sm text-white focus:border-red-500 focus:outline-none"
                 >
                   <option value="">Tous les pays</option>
                   {catalog.countries.map((c) => (
@@ -810,7 +867,7 @@ const NeahplusExperience = () => {
                     <button
                       type="button"
                       onClick={() => setVisibleCount((v) => v + PAGE_SIZE)}
-                      className="w-full rounded-xl py-3 text-sm font-semibold text-sky-200 transition hover:bg-white/5"
+                      className="w-full rounded-xl py-3 text-sm font-semibold text-red-200 transition hover:bg-white/5"
                     >
                       Afficher plus de chaînes
                     </button>
@@ -842,7 +899,7 @@ const NeahplusExperience = () => {
                   <button
                     type="button"
                     onClick={() => setVisibleCount((v) => v + PAGE_SIZE)}
-                    className="col-span-full w-full rounded-xl py-3 text-sm font-semibold text-sky-200 transition hover:bg-white/5"
+                    className="col-span-full w-full rounded-xl py-3 text-sm font-semibold text-red-200 transition hover:bg-white/5"
                   >
                     Afficher plus de chaînes
                   </button>
@@ -859,6 +916,23 @@ const NeahplusExperience = () => {
           Elle n'est ni affiliée à CANAL+ ni exploitée par CANAL+.
         </p>
       </footer>
+
+      {showInfoPanel && activeVariant && (
+        <InfoPanel
+          channel={activeVariant}
+          channelDisplayName={selectedGroup?.displayName ?? activeVariant.name}
+          onClose={() => setShowInfoPanel(false)}
+        />
+      )}
+
+      {showQuickSearch && catalog && (
+        <QuickSearch
+          channels={catalog.channels}
+          currentChannelId={activeVariant?.id ?? null}
+          onSelect={handleSelectChannel}
+          onClose={() => setShowQuickSearch(false)}
+        />
+      )}
     </div>
   );
 };
