@@ -83,18 +83,20 @@ const ChannelCard = ({
   const bgColor = channelColor(group.displayName);
 
   return (
-    <button
-      ref={(el) => registerRef(el, index)}
-      type="button"
-      onClick={onSelect}
-      aria-current={selected ? 'true' : undefined}
-      className={`group relative flex w-full flex-col gap-2 rounded-xl border p-3 text-left transition-all duration-200 ${
+    <div
+      className={`group relative overflow-hidden rounded-xl border transition-all duration-200 ${
         selected
           ? 'border-red-500/60 bg-red-500/10 ring-1 ring-red-500/40'
           : 'border-white/10 bg-white/[0.03] hover:border-white/20 hover:bg-white/[0.06]'
-      }`
+      }`}
     >
-      <div className="flex items-center gap-3">
+      <button
+        ref={(el) => registerRef(el, index)}
+        type="button"
+        onClick={onSelect}
+        aria-current={selected ? 'true' : undefined}
+        className="flex w-full items-center gap-3 p-3 pr-12 text-left"
+      >
         {group.logo ? (
           <img
             src={group.logo}
@@ -112,40 +114,41 @@ const ChannelCard = ({
             {initials}
           </span>
         )}
-        <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-bold text-white">{group.displayName}</p>
-          <p className="truncate text-xs text-white/50">
+        <span className="min-w-0 flex-1">
+          <span className="block truncate text-sm font-bold text-white">{group.displayName}</span>
+          <span className="block truncate text-xs text-white/50">
             {group.isHistorical
               ? 'Chaîne historique'
               : prog?.title ?? group.countries.join(', ') ?? '—'}
-          </p>
+          </span>
           {!group.hasStream && (
-            <span className="text-[10px] text-amber-300/80">Flux non disponible</span>
+            <span className="block text-[10px] text-amber-300/80">Flux non disponible</span>
           )}
           {group.variants.length > 1 && (
-            <span className="text-[10px] text-red-300/80">{group.variants.length} variantes</span>
+            <span className="block text-[10px] text-red-300/80">{group.variants.length} variantes</span>
           )}
           {resolving && (
-            <span className="text-[10px] text-red-300/80">Vérification…</span>
+            <span className="block text-[10px] text-red-300/80">Vérification…</span>
           )}
-        </div>
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            onToggleFavorite();
-          }}
-          aria-label={favorited ? 'Retirer des favoris' : 'Ajouter aux favoris'}
-          className={`shrink-0 rounded-lg p-1.5 transition-colors ${
-            favorited
-              ? 'text-amber-400 hover:bg-amber-400/10'
-              : 'text-white/30 hover:bg-white/10 hover:text-white/60'
-          }`}
-        >
-          <Star className="h-4 w-4" fill={favorited ? 'currentColor' : 'none'} aria-hidden="true" />
-        </button>
-      </div>
-    </button>
+        </span>
+      </button>
+      <button
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          onToggleFavorite();
+        }}
+        aria-label={favorited ? 'Retirer des favoris' : 'Ajouter aux favoris'}
+        aria-pressed={favorited}
+        className={`absolute right-2 top-1/2 -translate-y-1/2 rounded-lg p-2 transition-colors ${
+          favorited
+            ? 'text-amber-400 hover:bg-amber-400/10'
+            : 'text-white/30 hover:bg-white/10 hover:text-white/60'
+        }`}
+      >
+        <Star className="h-4 w-4" fill={favorited ? 'currentColor' : 'none'} aria-hidden="true" />
+      </button>
+    </div>
   );
 };
 
