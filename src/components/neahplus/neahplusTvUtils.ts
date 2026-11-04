@@ -123,6 +123,26 @@ export const saveFavorites = (favorites: Set<string>): void => {
   }
 };
 
+// Migration après chargement du catalogue : une ancienne clé ambiguë (sans suffixe pays)
+// qui correspond désormais à plusieurs groupes de pays différents est étendue pour
+// inclure toutes les nouvelles clés. Les clés inconnues et les clés déjà à jour sont
+// conservées. Renvoie l'ensemble migré et un drapeau indiquant s'il y a eu du changement.
+export const migrateLegacyFavorites = (
+  favorites: Set<string>,
+  groups: ChannelGroup[],
+): { favorites: Set<string>; changed: boolean } => {
+  const next = new Set(favorites);
+
+  for (const legacy of favorites) {
+    const matching = groups.filter((g) => g.key === legacy || g.key.startsWith(`${legacy}@`));
+    if (matching.length > 0) {
+      for (const group of matching) next.add(group.key);
+    }
+  }
+
+  return { favorites: next, changed: next.size !== favorites.size };
+};
+
 export const getProgramsForDay = (channel: NeahplusChannel, date: Date): NeahplusProgram[] =>
   channel.programs.filter((program) => isSameDay(new Date(program.start), date)).sort((a, b) => Date.parse(a.start) - Date.parse(b.start));
 

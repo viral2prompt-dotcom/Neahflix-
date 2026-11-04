@@ -195,3 +195,87 @@ test('une chaîne historique sans correspondance réelle reste visible', () => {
   assert.equal(historical.length, utils.HISTORICAL_CHANNELS.length);
   assert.ok(historical.every((g) => utils.groupMatchesCountry(g, 'France')));
 });
+
+test('migration : une ancienne clé ambiguë TF1 ajoute les clés France et Belgique', () => {
+  const groups = utils.groupChannelVariants([
+    channel('fr', 'TF1', ['France']),
+    channel('be', 'TF1', ['Belgique']),
+  ]);
+  const legacy = new Set(['tf1']);
+
+  const { favorites, changed } = utils.migrateLegacyFavorites(legacy, groups);
+
+  assert.equal(changed, true);
+  assert.ok(favorites.has('tf1'), 'la clé France tf1 est conservée');
+  assert.ok(favorites.has('tf1@belgique'), 'la clé Belgique tf1@belgique est ajoutée');
+  assert.equal(favoriteGroups(groups, favorites).length, 2);
+});
+
+test('migration : une clé déjà à jour n\'est pas modifiée', () => {
+  const groups = utils.groupChannelVariants([
+    channel('fr', 'TF1', ['France']),
+    channel('be', 'TF1', ['Belgique']),
+  ]);
+  const legacy = new Set(['tf1', 'tf1@belgique']);
+
+  const { favorites, changed } = utils.migrateLegacyFavorites(legacy, groups);
+
+  assert.equal(changed, false);
+  assert.deepEqual([...favorites].sort(), ['tf1', 'tf1@belgique']);
+});
+
+test('migration : une clé inconnue sans correspondance est conservée sans ajout', () => {
+  const groups = utils.groupChannelVariants([
+    channel('fr', 'TF1', ['France']),
+  ]);
+  const legacy = new Set(['tf1', 'canal-plus-inconnue']);
+
+  const { favorites, changed } = utils.migrateLegacyFavorites(legacy, groups);
+
+  assert.equal(changed, false);
+  assert.ok(favorites.has('canal-plus-inconnue'), 'la clé inconnue est conservée');
+  assert.ok(favorites.has('tf1'));
+  assert.equal(favorites.size, 2);
+});
+
+test('migration : aucune correspondance ne modifie l\'ensemble', () => {
+  const groups = utils.groupChannelVariants([
+    channel('fr', 'TF1', ['France']),
+  ]);
+  const legacy = new Set(['rtl-inconnue']);
+
+  const { favorites, changed } = utils.migrateLegacyFavorites(legacy, groups);
+
+  assert.equal(changed, false);
+  assert.deepEqual([...favorites], ['rtl-inconnue']);
+});
+
+test('migration : trois pays différents pour une même chaîne', () => {
+  const groups = utils.groupChannelVariants([
+    channel('fr', 'RTL', ['France']),
+    channel('be', 'RTL', ['Belgique']),
+    channel('ch', 'RTL', ['Suisse']),
+  ]);
+  const legacy = new Set(['rtl']);
+
+  const { favorites, changed } = utils.migrateLegacyFavorites(legacy, groups);
+
+  assert.equal(changed, true);
+  assert.ok(favorites.has('rtl'));
+  assert.ok(favorites.has('rtl@belgique'));
+  assert.ok(favorites.has('rtl@suisse'));
+  assert.equal(favorites.size, 3);
+});
+
+test('migration : les clés historiques sont conservées', () => {
+  const groups = utils.groupChannelVariants([
+    channel('fr', 'TF1', ['France']),
+  ]);
+  const legacy = new Set(['historical:disney-channel', 'tf1']);
+
+  const { favorites, changed } = utils.migrateLegacyFavorites(legacy, groups);
+
+  assert.ok(favorites.has('historical:disney-channel'), 'la clé historique est conservée');
+  assert.ok(favorites.has('tf1'));
+  assert.equal(changed, false);
+});
