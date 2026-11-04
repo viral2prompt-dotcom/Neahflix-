@@ -1,88 +1,13 @@
 import { isSameDay } from 'date-fns';
 import type { NeahplusChannel, NeahplusProgram } from './neahplusCatalog';
 
-export interface ChannelGroup {
-  key: string;
-  displayName: string;
-  variants: NeahplusChannel[];
-  hasStream: boolean;
-  isHistorical: boolean;
-  logo: string | null;
-  countries: string[];
-}
-
-export const foldText = (value: string): string =>
-  value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
-
-/**
- * Suffixes de qualite uniquement -- fusion sure.
- * Les suffixes de pays (FR, UK, EU, US, INT...) NE sont PAS inclus
- * car ils indiquent des versions nationales potentiellement differentes.
- */
+export interface ChannelGroup { key: string; displayName: string; variants: NeahplusChannel[]; hasStream: boolean; isHistorical: boolean; logo: string | null; countries: string[]; }
+export const foldText = (value: string): string => value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
 const QUALITY_SUFFIX_RE = /\s*(hd|full\s*hd|fhd|sd)\s*$/i;
-
-/**
- * Suffixes complets (qualite + pays) -- utilises pour extraire
- * la partie "base" du nom a des fins d'affichage, PAS de regroupement.
- */
 const ALL_SUFFIX_RE = /\s*(hd|full\s*hd|fhd|sd|fr|eu|us|uk|int|international|\+\d+|-\d+)\s*$/i;
-
-/**
- * Normalisation pour le regroupement : retire UNIQUEMENT les suffixes de qualite.
- * Deux chaines ne sont fusionnees que si leur nom de base (sans HD/SD/FHD) est identique.
- * "Piwi HD" et "Piwi SD" -> fusionnees. "Piwi FR" et "Piwi UK" -> NON fusionnes.
- */
-export const normalizeChannelName = (name: string): string => {
-  const folded = foldText(name);
-  const stripped = folded.replace(QUALITY_SUFFIX_RE, '').replace(/[^a-z0-9]+$/g, '');
-  return stripped || folded;
-};
-
-/**
- * Retire tous les suffixes (qualite + pays) pour l'affichage du nom court.
- */
-export const shortChannelName = (name: string): string => {
-  const folded = foldText(name);
-  const stripped = folded.replace(ALL_SUFFIX_RE, '').replace(/[^a-z0-9]+$/g, '');
-  return stripped || folded;
-};
-
-export const groupChannelVariants = (channels: NeahplusChannel[]): ChannelGroup[] => {
-  const byKey = new Map<string, ChannelGroup>();
-
-  for (const channel of channels) {
-    const key = normalizeChannelName(channel.name);
-    const existing = byKey.get(key);
-
-    if (existing) {
-      existing.variants.push(channel);
-      if (channel.name.length < existing.displayName.length) {
-        existing.displayName = channel.name;
-      }
-      if (!existing.logo && channel.logo) {
-        existing.logo = channel.logo;
-      }
-      for (const c of channel.countries) {
-        if (!existing.countries.includes(c)) existing.countries.push(c);
-      }
-    } else {
-      byKey.set(key, {
-        key,
-        displayName: channel.name,
-        variants: [channel],
-        hasStream: true,
-        isHistorical: false,
-        logo: channel.logo,
-        countries: [...channel.countries],
-      });
-    }
-  }
-
-  return [...byKey.values()].sort((a, b) =>
-    a.displayName.localeCompare(b.displayName, 'fr'),
-  );
-};
-
+export const normalizeChannelName = (name: string): string => { const folded = foldText(name); return folded.replace(QUALITY_SUFFIX_RE, '').replace(/[^a-z0-9]+$/g, '') || folded; };
+export const shortChannelName = (name: string): string => { const folded = foldText(name); return folded.replace(ALL_SUFFIX_RE, '').replace(/[^a-z0-9]+$/g, '') || folded; };
+export const groupChannelVariants = (channels: NeahplusChannel[]): ChannelGroup[] => { const byKey = new Map<string, ChannelGroup>(); for (const channel of channels) { const key = normalizeChannelName(channel.name); const existing = byKey.get(key); if (existing) { existing.variants.push(channel); if (channel.name.length < existing.displayName.length) existing.displayName = channel.name; if (!existing.logo && channel.logo) existing.logo = channel.logo; for (const country of channel.countries) if (!existing.countries.includes(country)) existing.countries.push(country); } else byKey.set(key, { key, displayName: channel.name, variants: [channel], hasStream: true, isHistorical: false, logo: channel.logo, countries: [...channel.countries] }); } return [...byKey.values()].sort((a, b) => a.displayName.localeCompare(b.displayName, 'fr')); };
 export const HISTORICAL_CHANNELS: ChannelGroup[] = [
   { key: 'historical:disney-channel', displayName: 'Disney Channel', variants: [], hasStream: false, isHistorical: true, logo: null, countries: ['France'] },
   { key: 'historical:disney-junior', displayName: 'Disney Junior', variants: [], hasStream: false, isHistorical: true, logo: null, countries: ['France'] },
@@ -90,81 +15,17 @@ export const HISTORICAL_CHANNELS: ChannelGroup[] = [
   { key: 'historical:national-geographic', displayName: 'National Geographic', variants: [], hasStream: false, isHistorical: true, logo: null, countries: ['France'] },
   { key: 'historical:national-geographic-wild', displayName: 'National Geographic Wild', variants: [], hasStream: false, isHistorical: true, logo: null, countries: ['France'] },
 ];
-
 const FAVORITES_KEY = 'neahplus:favorites';
-
-export const loadFavorites = (): Set<string> => {
-  try {
-    const raw = localStorage.getItem(FAVORITES_KEY);
-    if (!raw) return new Set();
-    const arr = JSON.parse(raw);
-    return Array.isArray(arr) ? new Set(arr) : new Set();
-  } catch {
-    return new Set();
-  }
-};
-
-export const saveFavorites = (favorites: Set<string>): void => {
-  try {
-    localStorage.setItem(FAVORITES_KEY, JSON.stringify([...favorites]));
-  } catch {
-    // localStorage indisponible
-  }
-};
-
-export const getProgramsForDay = (channel: NeahplusChannel, date: Date): NeahplusProgram[] =>
-  channel.programs
-    .filter((p) => isSameDay(new Date(p.start), date))
-    .sort((a, b) => Date.parse(a.start) - Date.parse(b.start));
-
-export const getNextProgram = (channel: NeahplusChannel, now: number): NeahplusProgram | null =>
-  channel.programs
-    .filter((p) => Date.parse(p.start) > now)
-    .sort((a, b) => Date.parse(a.start) - Date.parse(b.start))[0] ?? null;
-
-export const channelsWithEpg = (channels: NeahplusChannel[]): NeahplusChannel[] =>
-  channels.filter((c) => c.programs.length > 0);
-
-export const channelColor = (name: string): string => {
-  let hash = 0;
-  for (let i = 0; i < name.length; i++) {
-    hash = name.charCodeAt(i) + ((hash << 5) - hash);
-  }
-  return `hsl(${Math.abs(hash) % 360}, 45%, 35%)`;
-};
-
-/**
- * Formate un horaire en HH:MM selon la locale francaise.
- */
-export const formatTime = (iso: string): string => {
-  const d = new Date(iso);
-  return d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
-};
-
-/**
- * Chaines avec un programme en cours maintenant.
- */
-export const channelsCurrentlyPlaying = (channels: NeahplusChannel[], now: number): NeahplusChannel[] =>
-  channels
-    .filter((c) => c.programs.some((p) => {
-      const start = Date.parse(p.start);
-      const end = Date.parse(p.end);
-      return now >= start && now < end;
-    }))
-    .sort((a, b) => a.name.localeCompare(b.name, 'fr'));
-
-/**
- * Chaines recommandees : priorite a celles qui ont un programme en cours,
- * puis a celles avec EPG, puis au reste. Limite a count elements.
- */
-export const recommendedChannels = (channels: NeahplusChannel[], now: number, count: number): NeahplusChannel[] => {
-  const playing = channelsCurrentlyPlaying(channels, now);
-  const withEpg = channelsWithEpg(channels).filter((c) => !playing.includes(c));
-  const rest = channels.filter((c) => !playing.includes(c) && !withEpg.includes(c));
-
-  return [
-    ...playing.slice(0, Math.ceil(count / 2)),
-    ...withEpg.slice(0, Math.floor(count / 2)),
-    ...rest.slice(0, Math.max(0, count - playing.length - withEpg.length)),
-  ].slice(0, count);
-};
+export const loadFavorites = (): Set<string> => { try { const raw = localStorage.getItem(FAVORITES_KEY); if (!raw) return new Set(); const value: unknown = JSON.parse(raw); return Array.isArray(value) ? new Set(value.filter((item): item is string => typeof item === 'string')) : new Set(); } catch { return new Set(); } };
+export const saveFavorites = (favorites: Set<string>): void => { try { localStorage.setItem(FAVORITES_KEY, JSON.stringify([...favorites])); } catch { /* localStorage indisponible */ } };
+export const getProgramsForDay = (channel: NeahplusChannel, date: Date): NeahplusProgram[] => channel.programs.filter((program) => isSameDay(new Date(program.start), date)).sort((a, b) => Date.parse(a.start) - Date.parse(b.start));
+export const getNextProgram = (channel: NeahplusChannel, now: number): NeahplusProgram | null => channel.programs.filter((program) => Date.parse(program.start) > now).sort((a, b) => Date.parse(a.start) - Date.parse(b.start))[0] ?? null;
+export const channelsWithEpg = (channels: NeahplusChannel[]): NeahplusChannel[] => channels.filter((channel) => channel.programs.length > 0);
+export const channelColor = (name: string): string => { let hash = 0; for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash); return `hsl(${Math.abs(hash) % 360}, 45%, 35%)`; };
+export const formatTime = (iso: string): string => new Date(iso).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+export const channelsCurrentlyPlaying = (channels: NeahplusChannel[], now: number): NeahplusChannel[] => channels.filter((channel) => channel.programs.some((program) => now >= Date.parse(program.start) && now < Date.parse(program.end))).sort((a, b) => a.name.localeCompare(b.name, 'fr'));
+export const recommendedChannels = (channels: NeahplusChannel[], now: number, count: number): NeahplusChannel[] => { const playing = channelsCurrentlyPlaying(channels, now); const withEpg = channelsWithEpg(channels).filter((channel) => !playing.includes(channel)); const rest = channels.filter((channel) => !playing.includes(channel) && !withEpg.includes(channel)); return [...playing.slice(0, Math.ceil(count / 2)), ...withEpg.slice(0, Math.floor(count / 2)), ...rest.slice(0, Math.max(0, count - playing.length - withEpg.length))].slice(0, count); };
+export const formatDuration = (startIso: string, endIso: string): string => { const diff = Date.parse(endIso) - Date.parse(startIso); if (diff <= 0) return '0 min'; const minutes = Math.round(diff / 60000); if (minutes < 60) return `${minutes} min`; const hours = Math.floor(minutes / 60); const remaining = minutes % 60; return remaining ? `${hours} h ${remaining} min` : `${hours} h`; };
+export const formatRemaining = (endIso: string, now: number): string => { const diff = Date.parse(endIso) - now; if (diff <= 0) return 'Terminé'; const minutes = Math.floor(diff / 60000); if (minutes < 1) return "Moins d'une minute"; if (minutes < 60) return `${minutes} min restantes`; const hours = Math.floor(minutes / 60); const remaining = minutes % 60; return remaining ? `${hours} h ${remaining} min restantes` : `${hours} h restante${hours > 1 ? 's' : ''}`; };
+export const getEpgDates = (channel: NeahplusChannel): Date[] => { const dates = new Map<string, Date>(); for (const program of channel.programs) { const date = new Date(program.start); const key = `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`; if (!dates.has(key)) dates.set(key, new Date(date.getFullYear(), date.getMonth(), date.getDate())); } return [...dates.values()].sort((a, b) => a.getTime() - b.getTime()); };
+export const getUpcomingPrograms = (channel: NeahplusChannel, date: Date, now: number): NeahplusProgram[] => { const programs = getProgramsForDay(channel, date); const today = new Date(); const isToday = date.getFullYear() === today.getFullYear() && date.getMonth() === today.getMonth() && date.getDate() === today.getDate(); return isToday ? programs.filter((program) => Date.parse(program.start) >= now) : programs; };
