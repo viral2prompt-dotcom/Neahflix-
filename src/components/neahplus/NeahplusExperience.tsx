@@ -37,6 +37,7 @@ import {
   groupMatchesCountry,
   historicalChannelsWithoutDuplicates,
   loadFavorites,
+  migrateLegacyFavorites,
   getNextProgram,
   recommendedChannels,
   saveFavorites,
@@ -331,6 +332,15 @@ const NeahplusExperience = () => {
     () => [...realGroups, ...historicalChannelsWithoutDuplicates(realGroups)],
     [realGroups],
   );
+
+  useEffect(() => {
+    if (realGroups.length === 0) return;
+    setFavorites((prev) => {
+      const { favorites: migrated, changed } = migrateLegacyFavorites(prev, realGroups);
+      if (changed) saveFavorites(migrated);
+      return changed ? migrated : prev;
+    });
+  }, [realGroups]);
 
   useEffect(() => {
     if (catalog && !country) {
