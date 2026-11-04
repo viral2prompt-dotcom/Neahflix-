@@ -14,11 +14,36 @@ export interface ChannelGroup {
 export const foldText = (value: string): string =>
   value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
 
-const SUFFIX_RE = /\s*(hd|full\s*hd|fhd|sd|fr|eu|us|uk|int|international|\+\d+|-\d+)\s*$/i;
+/**
+ * Suffixes de qualite uniquement -- fusion sure.
+ * Les suffixes de pays (FR, UK, EU, US, INT...) NE sont PAS inclus
+ * car ils indiquent des versions nationales potentiellement differentes.
+ */
+const QUALITY_SUFFIX_RE = /\s*(hd|full\s*hd|fhd|sd)\s*$/i;
 
+/**
+ * Suffixes complets (qualite + pays) -- utilises pour extraire
+ * la partie "base" du nom a des fins d'affichage, PAS de regroupement.
+ */
+const ALL_SUFFIX_RE = /\s*(hd|full\s*hd|fhd|sd|fr|eu|us|uk|int|international|\+\d+|-\d+)\s*$/i;
+
+/**
+ * Normalisation pour le regroupement : retire UNIQUEMENT les suffixes de qualite.
+ * Deux chaines ne sont fusionnees que si leur nom de base (sans HD/SD/FHD) est identique.
+ * "Piwi HD" et "Piwi SD" -> fusionnees. "Piwi FR" et "Piwi UK" -> NON fusionnes.
+ */
 export const normalizeChannelName = (name: string): string => {
   const folded = foldText(name);
-  const stripped = folded.replace(SUFFIX_RE, '').replace(/[^a-z0-9]+$/g, '');
+  const stripped = folded.replace(QUALITY_SUFFIX_RE, '').replace(/[^a-z0-9]+$/g, '');
+  return stripped || folded;
+};
+
+/**
+ * Retire tous les suffixes (qualite + pays) pour l'affichage du nom court.
+ */
+export const shortChannelName = (name: string): string => {
+  const folded = foldText(name);
+  const stripped = folded.replace(ALL_SUFFIX_RE, '').replace(/[^a-z0-9]+$/g, '');
   return stripped || folded;
 };
 
@@ -28,6 +53,7 @@ export const groupChannelVariants = (channels: NeahplusChannel[]): ChannelGroup[
   for (const channel of channels) {
     const key = normalizeChannelName(channel.name);
     const existing = byKey.get(key);
+
     if (existing) {
       existing.variants.push(channel);
       if (channel.name.length < existing.displayName.length) {
@@ -105,4 +131,40 @@ export const channelColor = (name: string): string => {
     hash = name.charCodeAt(i) + ((hash << 5) - hash);
   }
   return `hsl(${Math.abs(hash) % 360}, 45%, 35%)`;
+};
+
+/**
+ * Formate un horaire en HH:MM selon la locale francaise.
+ */
+export const formatTime = (iso: string): string => {
+  const d = new Date(iso);
+  return d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+};
+
+/**
+ * Chaines avec un programme en cours maintenant.
+ */
+export const channelsCurrentlyPlaying = (channels: NeahplusChannel[], now: number): NeahplusChannel[] =>
+  channels
+    .filter((c) => c.programs.some((p) => {
+      const start = Date.parse(p.start);
+      const end = Date.parse(p.end);
+      return now >= start && now < end;
+    }))
+    .sort((a, b) => a.name.localeCompare(b.name, 'fr'));
+
+/**
+ * Chaines recommandees : priorite a celles qui ont un programme en cours,
+ * puis a celles avec EPG, puis au reste. Limite a count elements.
+ */
+export const recommendedChannels = (channels: NeahplusChannel[], now: number, count: number): NeahplusChannel[] => {
+  const playing = channelsCurrentlyPlaying(channels, now);
+  const withEpg = channelsWithEpg(channels).filter((c) => !playing.includes(c));
+  const rest = channels.filter((c) => !playing.includes(c) && !withEpg.includes(c));
+
+  return [
+    ...playing.slice(0, Math.ceil(count / 2)),
+    ...withEpg.slice(0, Math.floor(count / 2)),
+    ...rest.slice(0, Math.max(0, count - playing.length - withEpg.length)),
+  ].slice(0, count);
 };

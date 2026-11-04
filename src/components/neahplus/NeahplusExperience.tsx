@@ -16,20 +16,25 @@ import NeahplusPlayer from './NeahplusPlayer';
 import {
   currentProgram,
   loadNeahplusCatalog,
+  resolveNeahplusStream,
   type NeahplusCatalog,
   type NeahplusChannel,
 } from './neahplusCatalog';
 import {
   channelColor,
+  channelsCurrentlyPlaying,
   channelsWithEpg,
   ChannelGroup,
   foldText,
+  formatTime,
   getProgramsForDay,
   groupChannelVariants,
   HISTORICAL_CHANNELS,
   loadFavorites,
   getNextProgram,
+  recommendedChannels,
   saveFavorites,
+  shortChannelName,
 } from './neahplusTvUtils';
 
 type Tab = 'home' | 'all' | 'guide' | 'favorites' | 'world';
@@ -43,6 +48,7 @@ const TABS: { id: Tab; label: string; icon: typeof HomeIcon }[] = [
 ];
 
 const PAGE_SIZE = 60;
+const HOME_SECTION_COUNT = 12;
 
 /* ===================== Channel card ===================== */
 
@@ -50,6 +56,7 @@ interface ChannelCardProps {
   group: ChannelGroup;
   selected: boolean;
   favorited: boolean;
+  resolving: boolean;
   onSelect: () => void;
   onToggleFavorite: () => void;
   index: number;
@@ -60,6 +67,7 @@ const ChannelCard = ({
   group,
   selected,
   favorited,
+  resolving,
   onSelect,
   onToggleFavorite,
   index,
@@ -114,6 +122,9 @@ const ChannelCard = ({
           {group.variants.length > 1 && (
             <span className="text-[10px] text-sky-300/80">{group.variants.length} variantes</span>
           )}
+          {resolving && (
+            <span className="text-[10px] text-sky-300/80">Vérification…</span>
+          )}
         </div>
         <button
           type="button"
@@ -148,8 +159,14 @@ interface EpgRowProps {
 const EpgRow = ({ channel, date, onPlay, index, registerRef }: EpgRowProps) => {
   const programs = useMemo(() => getProgramsForDay(channel, date), [channel, date]);
   const now = Date.now();
-  const current = currentProgram(channel, now);
-  const next = getNextProgram(channel, now);
+  const isToday = useMemo(() => {
+    const today = new Date();
+    return date.getFullYear() === today.getFullYear() &&
+      date.getMonth() === today.getMonth() &&
+      date.getDate() === today.getDate();
+  }, [date]);
+  const current = isToday ? currentProgram(channel, now) : null;
+  const next = isToday ? getNextProgram(channel, now) : null;
 
   return (
     <button
@@ -175,21 +192,85 @@ const EpgRow = ({ channel, date, onPlay, index, registerRef }: EpgRowProps) => {
           {current && (
             <p className="text-xs text-sky-300">
               <span className="font-semibold">En cours : </span>
-              {current.title}
+              {current.title} ({formatTime(current.start)}–{formatTime(current.end)})
             </p>
           )}
           {next && (
             <p className="text-xs text-white/50">
               <span className="font-semibold">Suivant : </span>
-              {next.title}
+              {next.title} ({formatTime(next.start)})
             </p>
           )}
-          {!current && !next && programs.length > 0 && (
-            <p className="text-xs text-white/50">{programs.length} programmes disponibles</p>
+          {!current && !next && (
+            <div className="flex flex-col gap-0.5">
+              {programs.slice(0, 3).map((p) => (
+                <p key={p.start} className="text-xs text-white/50">
+                  {formatTime(p.start)} — {p.title}
+                </p>
+              ))}
+              {programs.length > 3 && (
+                <p className="text-xs text-white/40">+{programs.length - 3} autres programmes</p>
+              )}
+            </div>
           )}
         </div>
       )}
     </button>
+  );
+};
+
+/* ===================== Home section ===================== */
+
+interface HomeSectionProps {
+  title: string;
+  channels: NeahplusChannel[];
+  groups: ChannelGroup[];
+  favorites: Set<string>;
+  selectedGroupKey: string | null;
+  resolvingKey: string | null;
+  onSelectChannel: (channel: NeahplusChannel) => void;
+  onToggleFavorite: (key: string) => void;
+  registerRef: (el: HTMLButtonElement | null, index: number) => void;
+  startIndex: number;
+}
+
+const HomeSection = ({
+  title,
+  channels,
+  groups,
+  favorites,
+  selectedGroupKey,
+  resolvingKey,
+  onSelectChannel,
+  onToggleFavorite,
+  registerRef,
+  startIndex,
+}: HomeSectionProps) => {
+  if (channels.length === 0) return null;
+
+  return (
+    <div className="flex flex-col gap-2">
+      <h3 className="px-1 text-sm font-bold text-white/80">{title}</h3>
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-3">
+        {channels.map((channel, i) => {
+          const group = groups.find((g) => g.variants.some((v) => v.id === channel.id));
+          if (!group) return null;
+          return (
+            <ChannelCard
+              key={channel.id}
+              group={group}
+              selected={group.key === selectedGroupKey}
+              favorited={favorites.has(group.key)}
+              resolving={group.key === resolvingKey}
+              onSelect={() => onSelectChannel(channel)}
+              onToggleFavorite={() => onToggleFavorite(group.key)}
+              index={startIndex + i}
+              registerRef={registerRef}
+            />
+          );
+        })}
+      </div>
+    </div>
   );
 };
 
@@ -207,9 +288,11 @@ const NeahplusExperience = () => {
   const [activeVariantIndex, setActiveVariantIndex] = useState(0);
   const [favorites, setFavorites] = useState<Set<string>>(new Set());
   const [guideDate, setGuideDate] = useState(() => new Date());
+  const [resolvingKey, setResolvingKey] = useState<string | null>(null);
   const gridRef = useRef<HTMLDivElement>(null);
   const itemRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const gridFocusIndex = useRef(0);
+  const tabButtonsRef = useRef<(HTMLButtonElement | null)[]>([]);
 
   /* ---- Load catalog ---- */
   useEffect(() => {
@@ -241,7 +324,7 @@ const NeahplusExperience = () => {
     });
   }, []);
 
-  /* ---- Groups with variants ---- */
+  /* ---- Groups with variants (strict grouping) ---- */
   const realGroups = useMemo(() => groupChannelVariants(catalog?.channels ?? []), [catalog]);
   const allGroups = useMemo(() => [...realGroups, ...HISTORICAL_CHANNELS], [realGroups]);
 
@@ -258,14 +341,10 @@ const NeahplusExperience = () => {
     const needle = foldText(query.trim());
     const base = tab === 'favorites'
       ? allGroups.filter((g) => favorites.has(g.key))
-      : tab === 'world'
-        ? allGroups
-        : allGroups;
+      : allGroups;
 
     return base.filter((g) => {
-      if (country && tab !== 'world' && !g.countries.includes(country)) {
-        if (tab !== 'world') return false;
-      }
+      if (country && tab !== 'world' && !g.countries.includes(country)) return false;
       if (needle && !foldText(g.displayName).includes(needle)) return false;
       return true;
     });
@@ -281,10 +360,50 @@ const NeahplusExperience = () => {
   const selectedGroup = allGroups.find((g) => g.key === selectedGroupKey) ?? null;
   const activeVariant = selectedGroup?.variants[activeVariantIndex] ?? null;
 
+  /* ---- Auto-resolve: find first working variant ---- */
+  const resolvingRef = useRef<AbortController | null>(null);
+
+  const resolveBestVariant = useCallback(async (group: ChannelGroup) => {
+    if (group.variants.length === 0) return;
+    resolvingRef.current?.abort();
+    const controller = new AbortController();
+    resolvingRef.current = controller;
+    setResolvingKey(group.key);
+
+    for (let i = 0; i < group.variants.length; i++) {
+      if (controller.signal.aborted) return;
+      try {
+        await resolveNeahplusStream(group.variants[i].id, controller.signal);
+        if (controller.signal.aborted) return;
+        setActiveVariantIndex(i);
+        setResolvingKey(null);
+        return;
+      } catch {
+        // Cette variante ne fonctionne pas, on essaie la suivante
+      }
+    }
+
+    if (!controller.signal.aborted) {
+      setActiveVariantIndex(0);
+      setResolvingKey(null);
+    }
+  }, []);
+
   const handleSelectGroup = useCallback((group: ChannelGroup) => {
     setSelectedGroupKey(group.key);
     setActiveVariantIndex(0);
-  }, []);
+    if (group.variants.length > 1) {
+      void resolveBestVariant(group);
+    }
+  }, [resolveBestVariant]);
+
+  const handleSelectChannel = useCallback((channel: NeahplusChannel) => {
+    const group = allGroups.find((g) => g.variants.some((v) => v.id === channel.id));
+    if (!group) return;
+    setSelectedGroupKey(group.key);
+    const vIdx = group.variants.findIndex((v) => v.id === channel.id);
+    setActiveVariantIndex(vIdx >= 0 ? vIdx : 0);
+  }, [allGroups]);
 
   const cycleVariant = useCallback((direction: 1 | -1) => {
     if (!selectedGroup || selectedGroup.variants.length <= 1) return;
@@ -304,6 +423,28 @@ const NeahplusExperience = () => {
 
   const epgVisible = epgChannels.slice(0, visibleCount);
 
+  /* ---- Home data ---- */
+  const now = Date.now();
+  const favoriteChannels = useMemo(() => {
+    if (!catalog) return [];
+    return catalog.channels
+      .filter((c) => {
+        const key = groupChannelVariants([c])[0]?.key;
+        return key ? favorites.has(key) : false;
+      })
+      .slice(0, HOME_SECTION_COUNT);
+  }, [catalog, favorites]);
+
+  const playingChannels = useMemo(() => {
+    if (!catalog) return [];
+    return channelsCurrentlyPlaying(catalog.channels, now).slice(0, HOME_SECTION_COUNT);
+  }, [catalog, now]);
+
+  const recommendedChannelList = useMemo(() => {
+    if (!catalog) return [];
+    return recommendedChannels(catalog.channels, now, HOME_SECTION_COUNT);
+  }, [catalog, now]);
+
   /* ---- Grid focus management ---- */
   const registerRef = useCallback((el: HTMLButtonElement | null, index: number) => {
     itemRefs.current[index] = el;
@@ -316,6 +457,14 @@ const NeahplusExperience = () => {
     itemRefs.current[clamped]?.focus();
   }, [tab, epgVisible.length, visibleGroups.length]);
 
+  /* ---- Tab navigation ---- */
+  const focusTab = useCallback((index: number) => {
+    const clamped = Math.max(0, Math.min(index, TABS.length - 1));
+    tabButtonsRef.current[clamped]?.focus();
+  }, []);
+
+  const currentTabIndex = TABS.findIndex((t) => t.id === tab);
+
   /* ---- Keyboard navigation (remote control) ---- */
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
@@ -323,7 +472,14 @@ const NeahplusExperience = () => {
       const isInInput = target.tagName === 'INPUT' || target.tagName === 'SELECT' || target.tagName === 'TEXTAREA';
       if (isInInput && e.key !== 'Escape') return;
 
-      const items = tab === 'guide' ? epgVisible : visibleGroups;
+      if (e.key === 'Escape') {
+        if (isInInput) {
+          (target as HTMLInputElement).blur();
+          focusGridItem(0);
+        }
+        e.preventDefault();
+        return;
+      }
 
       switch (e.key) {
         case 'ArrowDown':
@@ -332,7 +488,11 @@ const NeahplusExperience = () => {
           break;
         case 'ArrowUp':
           e.preventDefault();
-          focusGridItem(gridFocusIndex.current - 1);
+          if (gridFocusIndex.current === 0) {
+            focusTab(currentTabIndex);
+          } else {
+            focusGridItem(gridFocusIndex.current - 1);
+          }
           break;
         case 'ArrowRight':
           if (selectedGroup && selectedGroup.variants.length > 1) {
@@ -357,21 +517,22 @@ const NeahplusExperience = () => {
           focusGridItem(gridFocusIndex.current + 10);
           break;
         case 'Enter':
-          // Le bouton focusé gère lui-même le Enter
-          break;
-        case 'Escape':
           break;
       }
     };
 
     window.addEventListener('keydown', handleKey);
     return () => window.removeEventListener('keydown', handleKey);
-  }, [tab, epgVisible, visibleGroups, focusGridItem, cycleVariant]);
+  }, [tab, epgVisible, visibleGroups, focusGridItem, focusTab, currentTabIndex, cycleVariant, selectedGroup]);
 
   /* ---- Reset focus on tab change ---- */
   useEffect(() => {
     gridFocusIndex.current = 0;
     itemRefs.current = [];
+    const timer = setTimeout(() => {
+      itemRefs.current[0]?.focus();
+    }, 50);
+    return () => clearTimeout(timer);
   }, [tab]);
 
   /* ---- Loading / Error states ---- */
@@ -403,13 +564,18 @@ const NeahplusExperience = () => {
     );
   }
 
+  const variantLabel = (variant: NeahplusChannel, baseName: string): string => {
+    const suffix = variant.name.replace(baseName, '').trim();
+    return suffix || `Source`;
+  };
+
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-slate-950 text-white">
-      {/* ---- Tab bar ---- */}
       <nav className="flex shrink-0 items-center gap-1 overflow-x-auto border-b border-white/10 bg-slate-950/95 px-2 py-2 backdrop-blur sm:px-4" aria-label="Rubriques NEAHPLUS TV">
-        {TABS.map(({ id, label, icon: Icon }) => (
+        {TABS.map(({ id, label, icon: Icon }, i) => (
           <button
             key={id}
+            ref={(el) => { tabButtonsRef.current[i] = el; }}
             type="button"
             onClick={() => setTab(id)}
             aria-current={tab === id ? 'true' : undefined}
@@ -425,9 +591,7 @@ const NeahplusExperience = () => {
         ))}
       </nav>
 
-      {/* ---- Main layout ---- */}
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden lg:flex-row">
-        {/* ---- Player column ---- */}
         <section className="flex min-h-0 shrink-0 flex-col gap-2 p-3 lg:w-[45%] lg:p-4">
           {activeVariant && selectedGroup ? (
             <>
@@ -480,7 +644,7 @@ const NeahplusExperience = () => {
                           : 'bg-white/5 text-white/50 hover:bg-white/10'
                       }`}
                     >
-                      {v.name.replace(selectedGroup.displayName, '').trim() || `Source ${i + 1}`}
+                      {variantLabel(v, shortChannelName(selectedGroup.displayName))}
                     </button>
                   ))}
                 </div>
@@ -498,9 +662,7 @@ const NeahplusExperience = () => {
           )}
         </section>
 
-        {/* ---- Content column ---- */}
         <section className="flex min-h-0 flex-1 flex-col overflow-hidden">
-          {/* ---- Search + filters ---- */}
           <div className="flex flex-col gap-2 border-b border-white/10 p-3 sm:flex-row sm:items-center">
             <label className="relative flex-1">
               <span className="sr-only">Rechercher une chaîne</span>
@@ -513,7 +675,7 @@ const NeahplusExperience = () => {
                 className="w-full rounded-lg border border-white/10 bg-white/5 py-2 pl-9 pr-3 text-sm text-white placeholder:text-white/40 focus:border-sky-400 focus:outline-none"
               />
             </label>
-            {tab !== 'world' && catalog.countries.length > 0 && (
+            {tab !== 'world' && tab !== 'home' && catalog.countries.length > 0 && (
               <label className="sm:w-48">
                 <span className="sr-only">Filtrer par pays</span>
                 <select
@@ -537,7 +699,6 @@ const NeahplusExperience = () => {
             )}
           </div>
 
-          {/* ---- Guide date navigation ---- */}
           {tab === 'guide' && (
             <div className="flex items-center gap-2 border-b border-white/10 p-3">
               <button
@@ -569,17 +730,65 @@ const NeahplusExperience = () => {
             </div>
           )}
 
-          {/* ---- Count ---- */}
-          {tab !== 'guide' && (
+          {tab !== 'guide' && tab !== 'home' && (
             <p className="px-3 py-1.5 text-xs text-white/50" aria-live="polite">
               {filteredGroups.length} chaîne{filteredGroups.length > 1 ? 's' : ''}
               {tab === 'favorites' && favorites.size === 0 && ' — Ajoutez des chaînes avec l\'étoile'}
             </p>
           )}
 
-          {/* ---- Grid / EPG list ---- */}
           <div ref={gridRef} className="flex min-h-0 flex-1 flex-col overflow-y-auto p-3" data-lenis-prevent>
-            {tab === 'guide' ? (
+            {tab === 'home' ? (
+              <div className="flex flex-col gap-4">
+                {favoriteChannels.length > 0 && (
+                  <HomeSection
+                    title="Mes favoris"
+                    channels={favoriteChannels}
+                    groups={allGroups}
+                    favorites={favorites}
+                    selectedGroupKey={selectedGroupKey}
+                    resolvingKey={resolvingKey}
+                    onSelectChannel={handleSelectChannel}
+                    onToggleFavorite={toggleFavorite}
+                    registerRef={registerRef}
+                    startIndex={0}
+                  />
+                )}
+                {playingChannels.length > 0 && (
+                  <HomeSection
+                    title="En cours maintenant"
+                    channels={playingChannels}
+                    groups={allGroups}
+                    favorites={favorites}
+                    selectedGroupKey={selectedGroupKey}
+                    resolvingKey={resolvingKey}
+                    onSelectChannel={handleSelectChannel}
+                    onToggleFavorite={toggleFavorite}
+                    registerRef={registerRef}
+                    startIndex={favoriteChannels.length}
+                  />
+                )}
+                {recommendedChannelList.length > 0 && (
+                  <HomeSection
+                    title="À découvrir"
+                    channels={recommendedChannelList}
+                    groups={allGroups}
+                    favorites={favorites}
+                    selectedGroupKey={selectedGroupKey}
+                    resolvingKey={resolvingKey}
+                    onSelectChannel={handleSelectChannel}
+                    onToggleFavorite={toggleFavorite}
+                    registerRef={registerRef}
+                    startIndex={favoriteChannels.length + playingChannels.length}
+                  />
+                )}
+                {favoriteChannels.length === 0 && playingChannels.length === 0 && recommendedChannelList.length === 0 && (
+                  <p className="py-10 text-center text-sm text-white/50">
+                    Aucune chaîne disponible pour le moment.
+                  </p>
+                )}
+              </div>
+            ) : tab === 'guide' ? (
               epgChannels.length === 0 ? (
                 <p className="py-10 text-center text-sm text-white/50">
                   Aucune chaîne avec programme TV (EPG) disponible.
@@ -593,14 +802,7 @@ const NeahplusExperience = () => {
                       date={guideDate}
                       index={i}
                       registerRef={registerRef}
-                      onPlay={() => {
-                        const group = allGroups.find((g) => g.variants.some((v) => v.id === channel.id));
-                        if (group) {
-                          setSelectedGroupKey(group.key);
-                          const vIdx = group.variants.findIndex((v) => v.id === channel.id);
-                          setActiveVariantIndex(vIdx >= 0 ? vIdx : 0);
-                        }
-                      }}
+                      onPlay={() => handleSelectChannel(channel)}
                     />
                   ))}
                   {visibleCount < epgChannels.length && (
@@ -628,6 +830,7 @@ const NeahplusExperience = () => {
                     group={group}
                     selected={group.key === selectedGroupKey}
                     favorited={favorites.has(group.key)}
+                    resolving={group.key === resolvingKey}
                     onSelect={() => handleSelectGroup(group)}
                     onToggleFavorite={() => toggleFavorite(group.key)}
                     index={i}
@@ -649,7 +852,6 @@ const NeahplusExperience = () => {
         </section>
       </div>
 
-      {/* ---- Footer disclaimer ---- */}
       <footer className="shrink-0 border-t border-white/10 bg-slate-950 px-3 py-2">
         <p className="text-center text-[10px] text-white/35">
           NEAHPLUS TV — Guide indépendant. Cette interface organise les chaînes et leurs sources disponibles.
