@@ -21,8 +21,8 @@ const DIR = 'src/components/neahplus';
 const catalog = loadTs(`${DIR}/neahplusCatalog.ts`);
 const utils = loadTs(`${DIR}/neahplusTvUtils.ts`);
 
-const channel = (id, name, countries = ['France'], logo = null) => ({
-  id, name, countries, categories: [], logo, programs: [],
+const channel = (id, name, countries = ['France'], logo = null, categories = []) => ({
+  id, name, countries, categories, logo, programs: [],
 });
 
 const installStorage = (initial = {}) => {
@@ -33,6 +33,8 @@ const installStorage = (initial = {}) => {
   };
   return store;
 };
+
+const favoriteGroups = (groups, favorites) => groups.filter((g) => favorites.has(g.key));
 
 test('des homonymes de pays différents restent deux groupes distincts', () => {
   const groups = utils.groupChannelVariants([
@@ -69,9 +71,12 @@ test('des chaînes aux noms différents ne sont pas fusionnées artificiellement
   assert.equal(groups.length, 2);
 });
 
-test('le nom complet d\'une chaîne unique est conservé', () => {
-  const [group] = utils.groupChannelVariants([channel('x', 'Canal+ Sport HD', ['France'])]);
+test('le nom complet et le logo d\'une chaîne sont conservés', () => {
+  const [group] = utils.groupChannelVariants([
+    channel('x', 'Canal+ Sport HD', ['France'], 'https://logo.test/sport.png'),
+  ]);
   assert.equal(group.displayName, 'Canal+ Sport HD');
+  assert.equal(group.logo, 'https://logo.test/sport.png');
 });
 
 test('le pays principal France garde la clé historique et les autres pays sont suffixés', () => {
@@ -79,19 +84,54 @@ test('le pays principal France garde la clé historique et les autres pays sont 
     channel('be', 'RTL', ['Belgique']),
     channel('fr', 'RTL', ['France']),
   ]);
-  const keys = groups.map((g) => g.key).sort();
-  assert.deepEqual(keys, ['rtl', 'rtl@belgique']);
+  assert.deepEqual(groups.map((g) => g.key).sort(), ['rtl', 'rtl@belgique']);
 });
 
-test('France Sport est une catégorie et non un pays', () => {
-  assert.deepEqual(catalog.splitChannelTags(['France', 'France Sport']), {
-    countries: ['France'],
-    categories: ['France Sport'],
-  });
-  assert.deepEqual(catalog.splitChannelTags(['Belgique']), {
-    countries: ['Belgique'],
-    categories: [],
-  });
+test('un canal multi-pays reçoit la même clé quel que soit l\'ordre de ses tags', () => {
+  const a = utils.groupChannelVariants([channel('m', 'Arte', ['Belgique', 'France'])]);
+  const b = utils.groupChannelVariants([channel('m', 'Arte', ['France', 'Belgique'])]);
+  assert.equal(a[0].key, b[0].key);
+  assert.deepEqual(a[0].countries, ['Belgique', 'France']);
+});
+
+test('les clés restent identiques quel que soit l\'ordre du catalogue', () => {
+  const channels = [
+    channel('be', 'TF1', ['Belgique']),
+    channel('fr', 'TF1', ['France']),
+    channel('ch', 'TF1', ['Suisse']),
+  ];
+  const keysOf = (list) => Object.fromEntries(
+    utils.groupChannelVariants(list).flatMap((g) => g.variants.map((v) => [v.id, g.key])),
+  );
+  assert.deepEqual(keysOf(channels), keysOf([...channels].reverse()));
+});
+
+test('les favoris belges sont retrouvés avec la même clé dans toutes les vues', () => {
+  const channels = [
+    channel('fr', 'TF1', ['France']),
+    channel('be', 'TF1', ['Belgique']),
+  ];
+  const groups = utils.groupChannelVariants(channels);
+  const belgianKey = groups.find((g) => g.countries.includes('Belgique')).key;
+  const favorites = new Set([belgianKey]);
+
+  const inFavorites = favoriteGroups(groups, favorites);
+  assert.equal(inFavorites.length, 1);
+  assert.deepEqual(inFavorites[0].variants.map((v) => v.id), ['be']);
+
+  const homeChannelIds = inFavorites.map((g) => g.variants[0].id);
+  assert.deepEqual(homeChannelIds, ['be']);
+  assert.equal(groups.find((g) => g.variants.some((v) => v.id === 'be')).key, belgianKey);
+});
+
+test('les favoris français restent liés au groupe France', () => {
+  const groups = utils.groupChannelVariants([
+    channel('fr', 'TF1', ['France']),
+    channel('be', 'TF1', ['Belgique']),
+  ]);
+  const inFavorites = favoriteGroups(groups, new Set(['tf1']));
+  assert.equal(inFavorites.length, 1);
+  assert.deepEqual(inFavorites[0].countries, ['France']);
 });
 
 test('les anciens favoris restent lisibles et aucune clé stockée n\'est supprimée', () => {
@@ -104,14 +144,38 @@ test('les anciens favoris restent lisibles et aucune clé stockée n\'est suppri
     channel('fr', 'TF1', ['France']),
     channel('be', 'TF1', ['Belgique']),
   ]);
-  assert.ok(groups.some((g) => favorites.has(g.key) && g.key === 'tf1'));
-  assert.ok(groups.some((g) => favorites.has(g.key) && g.key === 'tf1@belgique'));
+  assert.equal(favoriteGroups(groups, favorites).length, 2);
 });
 
-test('un favori stocké avec une clé ambiguë est conservé à l\'enregistrement', () => {
+test('un favori stocké avec une clé inconnue est conservé à l\'enregistrement', () => {
   const store = installStorage();
   utils.saveFavorites(new Set(['tf1', 'cle-inconnue']));
   assert.deepEqual(JSON.parse(store.get('neahplus:favorites')).sort(), ['cle-inconnue', 'tf1']);
+});
+
+test('une chaîne France Sport sans pays reste visible dans la vue France par défaut', () => {
+  const split = catalog.splitChannelTags(['France Sport']);
+  assert.deepEqual(split.countries, []);
+  assert.deepEqual(split.categories, ['France Sport']);
+
+  const [group] = utils.groupChannelVariants([
+    channel('sport', 'Eurosport Sport', split.countries, null, split.categories),
+  ]);
+  assert.deepEqual(group.countries, []);
+  assert.deepEqual(group.categories, ['France Sport']);
+  assert.equal(utils.groupMatchesCountry(group, 'France'), true);
+  assert.equal(utils.groupMatchesCountry(group, 'Belgique'), false);
+});
+
+test('France Sport n\'ajoute jamais une catégorie dans les pays', () => {
+  assert.deepEqual(catalog.splitChannelTags(['France', 'France Sport']), {
+    countries: ['France'],
+    categories: ['France Sport'],
+  });
+  assert.deepEqual(catalog.splitChannelTags(['Belgique']), {
+    countries: ['Belgique'],
+    categories: [],
+  });
 });
 
 test('une chaîne historique déjà présente dans le catalogue réel n\'est pas dupliquée', () => {
@@ -123,10 +187,11 @@ test('une chaîne historique déjà présente dans le catalogue réel n\'est pas
   assert.ok(historical.includes('National Geographic'));
 });
 
-test('une chaîne historique sans correspondance réelle est conservée', () => {
+test('une chaîne historique sans correspondance réelle reste visible', () => {
   const real = utils.groupChannelVariants([channel('be', 'National Geographic', ['Belgique'])]);
-  const historical = utils.historicalChannelsWithoutDuplicates(real).map((g) => g.displayName);
+  const historical = utils.historicalChannelsWithoutDuplicates(real);
 
-  assert.ok(historical.includes('National Geographic'));
+  assert.ok(historical.some((g) => g.displayName === 'National Geographic'));
   assert.equal(historical.length, utils.HISTORICAL_CHANNELS.length);
+  assert.ok(historical.every((g) => utils.groupMatchesCountry(g, 'France')));
 });
