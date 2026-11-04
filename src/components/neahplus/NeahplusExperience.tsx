@@ -34,7 +34,8 @@ import {
   formatTime,
   getProgramsForDay,
   groupChannelVariants,
-  HISTORICAL_CHANNELS,
+  groupMatchesCountry,
+  historicalChannelsWithoutDuplicates,
   loadFavorites,
   getNextProgram,
   recommendedChannels,
@@ -326,7 +327,10 @@ const NeahplusExperience = () => {
   }, []);
 
   const realGroups = useMemo(() => groupChannelVariants(catalog?.channels ?? []), [catalog]);
-  const allGroups = useMemo(() => [...realGroups, ...HISTORICAL_CHANNELS], [realGroups]);
+  const allGroups = useMemo(
+    () => [...realGroups, ...historicalChannelsWithoutDuplicates(realGroups)],
+    [realGroups],
+  );
 
   useEffect(() => {
     if (catalog && !country) {
@@ -342,7 +346,7 @@ const NeahplusExperience = () => {
       : allGroups;
 
     return base.filter((g) => {
-      if (country && tab !== 'world' && !g.countries.includes(country)) return false;
+      if (country && tab !== 'world' && !groupMatchesCountry(g, country)) return false;
       if (needle && !foldText(g.displayName).includes(needle)) return false;
       return true;
     });
@@ -438,14 +442,11 @@ const NeahplusExperience = () => {
 
   const now = Date.now();
   const favoriteChannels = useMemo(() => {
-    if (!catalog) return [];
-    return catalog.channels
-      .filter((c) => {
-        const key = groupChannelVariants([c])[0]?.key;
-        return key ? favorites.has(key) : false;
-      })
+    return realGroups
+      .filter((g) => favorites.has(g.key))
+      .map((g) => g.variants[0])
       .slice(0, HOME_SECTION_COUNT);
-  }, [catalog, favorites]);
+  }, [realGroups, favorites]);
 
   const playingChannels = useMemo(() => {
     if (!catalog) return [];
