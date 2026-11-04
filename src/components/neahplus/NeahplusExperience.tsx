@@ -7,11 +7,13 @@ import {
   Heart,
   Home as HomeIcon,
   Info,
+  List,
   Loader2,
   RotateCcw,
   Search,
   Star,
   Tv,
+  X,
 } from 'lucide-react';
 import NeahplusPlayer from './NeahplusPlayer';
 import ChannelCarousel from './ChannelCarousel';
@@ -47,11 +49,11 @@ import {
 type Tab = 'home' | 'all' | 'guide' | 'favorites' | 'world';
 
 const TABS: { id: Tab; label: string; icon: typeof HomeIcon }[] = [
-  { id: 'home', label: 'Accueil TV', icon: HomeIcon },
-  { id: 'all', label: 'Toutes les chaînes', icon: Tv },
-  { id: 'guide', label: 'Programme TV', icon: Star },
-  { id: 'favorites', label: 'Mes favoris', icon: Heart },
-  { id: 'world', label: 'TV mondial', icon: Globe },
+  { id: 'home', label: 'Accueil', icon: HomeIcon },
+  { id: 'all', label: 'Chaînes', icon: Tv },
+  { id: 'guide', label: 'Guide TV', icon: List },
+  { id: 'favorites', label: 'Favoris', icon: Heart },
+  { id: 'world', label: 'Monde', icon: Globe },
 ];
 
 const PAGE_SIZE = 60;
@@ -86,10 +88,10 @@ const ChannelCard = ({
 
   return (
     <div
-      className={`group relative overflow-hidden rounded-xl border transition-all duration-200 ${
+      className={`group relative overflow-hidden rounded-2xl border transition-all duration-300 ${
         selected
-          ? 'border-red-500/60 bg-red-500/10 ring-1 ring-red-500/40'
-          : 'border-white/10 bg-white/[0.03] hover:border-white/20 hover:bg-white/[0.06]'
+          ? 'border-red-500/50 bg-red-500/10 ring-1 ring-red-500/40 shadow-lg shadow-red-500/10'
+          : 'border-white/[0.06] bg-gradient-to-b from-white/[0.04] to-white/[0.01] hover:border-white/20 hover:from-white/[0.07] hover:to-white/[0.02]'
       }`}
     >
       <button
@@ -97,40 +99,46 @@ const ChannelCard = ({
         type="button"
         onClick={onSelect}
         aria-current={selected ? 'true' : undefined}
-        className="flex w-full items-center gap-3 p-3 pr-12 text-left"
+        className="flex w-full items-center gap-3.5 p-3.5 pr-12 text-left"
       >
-        {group.logo ? (
-          <img
-            src={group.logo}
-            alt=""
-            loading="lazy"
-            decoding="async"
-            className="h-12 w-12 shrink-0 rounded-lg bg-white/5 object-contain p-1"
-          />
-        ) : (
-          <span
-            className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg text-sm font-black uppercase text-white/90"
-            style={{ background: bgColor }}
-            aria-hidden="true"
-          >
-            {initials}
-          </span>
-        )}
+        <div className="relative shrink-0">
+          {group.logo ? (
+            <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-white/[0.06] ring-1 ring-white/5">
+              <img
+                src={group.logo}
+                alt=""
+                loading="lazy"
+                decoding="async"
+                className="h-11 w-11 rounded-lg object-contain p-1"
+              />
+            </div>
+          ) : (
+            <div
+              className="flex h-14 w-14 items-center justify-center rounded-xl text-sm font-black uppercase text-white/90 ring-1 ring-white/5"
+              style={{ background: bgColor }}
+              aria-hidden="true"
+            >
+              {initials}
+            </div>
+          )}
+          {group.variants.length > 1 && (
+            <span className="absolute -bottom-1 -right-1 rounded-full bg-red-500 px-1.5 py-0.5 text-[8px] font-bold text-white shadow-sm">
+              {group.variants.length}
+            </span>
+          )}
+        </div>
         <span className="min-w-0 flex-1">
-          <span className="block truncate text-sm font-bold text-white">{group.displayName}</span>
-          <span className="block truncate text-xs text-white/50">
+          <span className="block truncate text-sm font-bold tracking-tight text-white">{group.displayName}</span>
+          <span className="mt-0.5 block truncate text-xs text-white/45">
             {group.isHistorical
               ? 'Chaîne historique'
               : prog?.title ?? group.countries.join(', ') ?? '—'}
           </span>
           {!group.hasStream && (
-            <span className="block text-[10px] text-amber-300/80">Flux non disponible</span>
-          )}
-          {group.variants.length > 1 && (
-            <span className="block text-[10px] text-red-300/80">{group.variants.length} variantes</span>
+            <span className="mt-0.5 block text-[10px] text-amber-300/70">Flux non disponible</span>
           )}
           {resolving && (
-            <span className="block text-[10px] text-red-300/80">Vérification…</span>
+            <span className="mt-0.5 block text-[10px] text-red-300/80">Vérification…</span>
           )}
         </span>
       </button>
@@ -142,10 +150,10 @@ const ChannelCard = ({
         }}
         aria-label={favorited ? 'Retirer des favoris' : 'Ajouter aux favoris'}
         aria-pressed={favorited}
-        className={`absolute right-2 top-1/2 -translate-y-1/2 rounded-lg p-2 transition-colors ${
+        className={`absolute right-3 top-1/2 -translate-y-1/2 rounded-xl p-2.5 transition-all duration-200 ${
           favorited
-            ? 'text-amber-400 hover:bg-amber-400/10'
-            : 'text-white/30 hover:bg-white/10 hover:text-white/60'
+            ? 'bg-amber-400/15 text-amber-400 hover:bg-amber-400/25'
+            : 'text-white/20 hover:bg-white/10 hover:text-white/50'
         }`}
       >
         <Star className="h-4 w-4" fill={favorited ? 'currentColor' : 'none'} aria-hidden="true" />
@@ -179,48 +187,52 @@ const EpgRow = ({ channel, date, onPlay, index, registerRef }: EpgRowProps) => {
       ref={(el) => registerRef(el, index)}
       type="button"
       onClick={onPlay}
-      className="flex w-full flex-col gap-1 rounded-xl border border-white/10 bg-white/[0.03] p-3 text-left transition hover:border-red-500/40 hover:bg-white/[0.06]"
+      className="group flex w-full items-stretch gap-0 overflow-hidden rounded-2xl border border-white/[0.06] bg-gradient-to-b from-white/[0.03] to-transparent text-left transition-all duration-200 hover:border-white/15 hover:from-white/[0.06]"
     >
-      <div className="flex items-center gap-2">
+      <div className="flex w-32 shrink-0 flex-col items-center justify-center gap-1.5 border-r border-white/[0.06] bg-white/[0.02] p-3">
         {channel.logo ? (
-          <img src={channel.logo} alt="" loading="lazy" className="h-8 w-8 rounded-md bg-white/5 object-contain p-0.5" />
+          <img src={channel.logo} alt="" loading="lazy" className="h-9 w-9 rounded-lg bg-white/5 object-contain p-0.5" />
         ) : (
-          <span className="flex h-8 w-8 items-center justify-center rounded-md bg-slate-800 text-red-200">
-            <Tv className="h-4 w-4" />
+          <span className="flex h-9 w-9 items-center justify-center rounded-lg text-xs font-black uppercase text-white/90" style={{ background: channelColor(channel.name) }}>
+            {channel.name.slice(0, 2).toUpperCase()}
           </span>
         )}
-        <span className="truncate text-sm font-semibold text-white">{channel.name}</span>
+        <span className="block w-full truncate text-center text-[11px] font-semibold text-white/75">{channel.name}</span>
       </div>
-      {programs.length === 0 ? (
-        <p className="text-xs text-white/40">Programme non disponible pour cette date.</p>
-      ) : (
-        <div className="flex flex-col gap-0.5">
-          {current && (
-            <p className="text-xs text-red-300">
-              <span className="font-semibold">En cours : </span>
-              {current.title} ({formatTime(current.start)}–{formatTime(current.end)})
-            </p>
-          )}
-          {next && (
-            <p className="text-xs text-white/50">
-              <span className="font-semibold">Suivant : </span>
-              {next.title} ({formatTime(next.start)})
-            </p>
-          )}
-          {!current && !next && (
-            <div className="flex flex-col gap-0.5">
-              {programs.slice(0, 3).map((p) => (
-                <p key={p.start} className="text-xs text-white/50">
-                  {formatTime(p.start)} — {p.title}
-                </p>
-              ))}
-              {programs.length > 3 && (
-                <p className="text-xs text-white/40">+{programs.length - 3} autres programmes</p>
-              )}
-            </div>
-          )}
-        </div>
-      )}
+      <div className="min-w-0 flex-1 p-3">
+        {programs.length === 0 ? (
+          <p className="py-3 text-xs text-white/35">Programme non disponible.</p>
+        ) : (
+          <div className="flex flex-col gap-1">
+            {current && (
+              <div className="flex items-center gap-2">
+                <span className="rounded bg-red-500/20 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-red-300">Live</span>
+                <p className="truncate text-sm font-bold text-white">{current.title}</p>
+                <span className="ml-auto shrink-0 text-[10px] text-white/40 tabular-nums">{formatTime(current.start)}–{formatTime(current.end)}</span>
+              </div>
+            )}
+            {next && (
+              <div className="flex items-center gap-2 pl-1">
+                <span className="text-[9px] font-semibold uppercase tracking-wide text-white/35">Suivant</span>
+                <p className="truncate text-xs text-white/55">{next.title}</p>
+                <span className="ml-auto shrink-0 text-[10px] text-white/35 tabular-nums">{formatTime(next.start)}</span>
+              </div>
+            )}
+            {!current && !next && (
+              <div className="flex flex-col gap-0.5">
+                {programs.slice(0, 3).map((p) => (
+                  <p key={p.start} className="truncate text-xs text-white/50">
+                    <span className="tabular-nums text-white/35">{formatTime(p.start)}</span> — {p.title}
+                  </p>
+                ))}
+                {programs.length > 3 && (
+                  <p className="text-[10px] text-white/30">+{programs.length - 3} autres</p>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
     </button>
   );
 };
@@ -253,9 +265,9 @@ const HomeSection = ({
   if (channels.length === 0) return null;
 
   return (
-    <div className="flex flex-col gap-2">
-      <h3 className="px-1 text-sm font-bold text-white/80">{title}</h3>
-      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-3">
+    <div className="flex flex-col gap-3">
+      <h3 className="px-1 text-sm font-bold tracking-tight text-white/85">{title}</h3>
+      <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 xl:grid-cols-3">
         {channels.map((channel, i) => {
           const group = groups.find((g) => g.variants.some((v) => v.id === channel.id));
           if (!group) return null;
@@ -293,6 +305,7 @@ const NeahplusExperience = () => {
   const [resolvingKey, setResolvingKey] = useState<string | null>(null);
   const [showInfoPanel, setShowInfoPanel] = useState(false);
   const [showQuickSearch, setShowQuickSearch] = useState(false);
+  const [showChannelList, setShowChannelList] = useState(false);
   const [prevGroupKey, setPrevGroupKey] = useState<string | null>(null);
   const gridRef = useRef<HTMLDivElement>(null);
   const itemRefs = useRef<(HTMLButtonElement | null)[]>([]);
@@ -520,6 +533,14 @@ const NeahplusExperience = () => {
         }
       }
 
+      if (e.key === 'l' || e.key === 'L') {
+        if (!isInInput) {
+          e.preventDefault();
+          setShowChannelList((v) => !v);
+          return;
+        }
+      }
+
       switch (e.key) {
         case 'ArrowDown':
           e.preventDefault();
@@ -576,14 +597,16 @@ const NeahplusExperience = () => {
   if (loadError) {
     return (
       <div className="flex flex-1 flex-col items-center justify-center gap-4 p-6 text-center">
-        <AlertTriangle className="h-10 w-10 text-amber-300" aria-hidden="true" />
-        <p className="max-w-md text-sm leading-6 text-white/80">
+        <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-red-500/10 ring-1 ring-red-500/20">
+          <AlertTriangle className="h-10 w-10 text-amber-300" aria-hidden="true" />
+        </div>
+        <p className="max-w-md text-sm leading-6 text-white/70">
           Le catalogue NEAHPLUS ne répond pas pour le moment. {loadError}.
         </p>
         <button
           type="button"
           onClick={() => setAttempt((v) => v + 1)}
-          className="inline-flex items-center gap-2 rounded-lg bg-red-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-400"
+          className="inline-flex items-center gap-2 rounded-xl bg-red-500 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-red-400 active:scale-[0.98]"
         >
           <RotateCcw className="h-4 w-4" aria-hidden="true" />
           Réessayer
@@ -594,9 +617,14 @@ const NeahplusExperience = () => {
 
   if (!catalog) {
     return (
-      <div className="flex flex-1 flex-col items-center justify-center gap-3 p-6 text-center">
-        <Loader2 className="h-8 w-8 animate-spin text-red-400 motion-reduce:animate-none" aria-hidden="true" />
-        <p className="text-sm text-white/75">Chargement du catalogue des chaînes</p>
+      <div className="flex flex-1 flex-col items-center justify-center gap-4 p-6 text-center">
+        <div className="relative">
+          <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-red-500/10 ring-1 ring-red-500/20">
+            <Loader2 className="h-8 w-8 animate-spin text-red-400 motion-reduce:animate-none" aria-hidden="true" />
+          </div>
+        </div>
+        <p className="text-sm font-medium text-white/60">Chargement du catalogue</p>
+        <p className="text-xs text-white/30">Récupération des chaînes et programmes en cours…</p>
       </div>
     );
   }
@@ -606,101 +634,195 @@ const NeahplusExperience = () => {
     return suffix || `Source`;
   };
 
+  const activeProgram = activeVariant ? currentProgram(activeVariant, Date.now()) : null;
+
   return (
-    <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-slate-950 text-white">
-      <nav className="flex shrink-0 items-center gap-1 overflow-x-auto border-b border-white/10 bg-slate-950/95 px-2 py-2 backdrop-blur sm:px-4" aria-label="Rubriques NEAHPLUS TV">
-        {TABS.map(({ id, label, icon: Icon }, i) => (
+    <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-[#0a0a0f] text-white">
+      {/* Top navigation bar */}
+      <nav className="flex shrink-0 items-center gap-1 border-b border-white/[0.06] bg-[#0d0d14]/95 px-3 py-2.5 backdrop-blur-xl sm:px-5" aria-label="Navigation NEAHPLUS TV">
+        <div className="mr-2 flex items-center gap-2 sm:mr-4">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-red-500 to-red-700 shadow-lg shadow-red-500/20">
+            <Tv className="h-4 w-4 text-white" aria-hidden="true" />
+          </div>
+          <span className="hidden text-sm font-black tracking-tight text-white sm:inline">NEAH<span className="text-red-400">PLUS</span></span>
+        </div>
+        <div className="flex items-center gap-0.5 overflow-x-auto [&::-webkit-scrollbar]:hidden [scrollbar-width:none]">
+          {TABS.map(({ id, label, icon: Icon }, i) => (
+            <button
+              key={id}
+              ref={(el) => { tabButtonsRef.current[i] = el; }}
+              type="button"
+              onClick={() => setTab(id)}
+              aria-current={tab === id ? 'true' : undefined}
+              className={`inline-flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-semibold transition-all duration-200 sm:text-sm ${
+                tab === id
+                  ? 'bg-white/10 text-white'
+                  : 'text-white/45 hover:bg-white/5 hover:text-white/80'
+              }`}
+            >
+              <Icon className="h-4 w-4" aria-hidden="true" />
+              <span className="hidden sm:inline">{label}</span>
+            </button>
+          ))}
+        </div>
+        <div className="ml-auto flex items-center gap-1.5">
           <button
-            key={id}
-            ref={(el) => { tabButtonsRef.current[i] = el; }}
             type="button"
-            onClick={() => setTab(id)}
-            aria-current={tab === id ? 'true' : undefined}
-            className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors sm:text-sm ${
-              tab === id
+            onClick={() => setShowChannelList((v) => !v)}
+            aria-label="Liste des chaînes"
+            aria-pressed={showChannelList}
+            className={`inline-flex items-center gap-1.5 rounded-xl px-2.5 py-2 text-xs font-semibold transition-all duration-200 sm:text-sm ${
+              showChannelList
                 ? 'bg-red-500/15 text-red-200 ring-1 ring-red-500/30'
-                : 'text-white/55 hover:bg-white/5 hover:text-white/80'
+                : 'text-white/45 hover:bg-white/5 hover:text-white/80'
             }`}
           >
-            <Icon className="h-4 w-4" aria-hidden="true" />
-            <span className="hidden sm:inline">{label}</span>
+            <List className="h-4 w-4" aria-hidden="true" />
+            <span className="hidden lg:inline">Liste</span>
           </button>
-        ))}
-        <button
-          type="button"
-          onClick={() => setShowQuickSearch(true)}
-          aria-label="Recherche rapide"
-          className="ml-auto inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-white/55 transition hover:bg-white/5 hover:text-white/80 sm:text-sm"
-        >
-          <Search className="h-4 w-4" aria-hidden="true" />
-          <span className="hidden sm:inline">Rechercher</span>
-        </button>
+          <button
+            type="button"
+            onClick={() => setShowQuickSearch(true)}
+            aria-label="Recherche rapide"
+            className="inline-flex items-center gap-1.5 rounded-xl px-2.5 py-2 text-xs font-semibold text-white/45 transition-all duration-200 hover:bg-white/5 hover:text-white/80 sm:text-sm"
+          >
+            <Search className="h-4 w-4" aria-hidden="true" />
+            <span className="hidden sm:inline">Rechercher</span>
+          </button>
+        </div>
       </nav>
 
-      <div className="flex min-h-0 flex-1 flex-col overflow-hidden lg:flex-row">
-        <section className="flex min-h-0 shrink-0 flex-col gap-2 p-3 lg:w-[45%] lg:p-4">
+      {/* Main content area */}
+      <div className="flex min-h-0 flex-1 overflow-hidden">
+        {/* Channel list sidebar */}
+        {showChannelList && (
+          <aside className="absolute inset-y-0 left-0 z-40 flex w-72 flex-col border-r border-white/[0.06] bg-[#0d0d14] shadow-2xl lg:relative lg:z-0 lg:shadow-none" aria-label="Liste latérale des chaînes">
+            <div className="flex items-center justify-between border-b border-white/[0.06] px-4 py-3">
+              <h2 className="flex items-center gap-2 text-sm font-bold text-white">
+                <List className="h-4 w-4 text-red-400" />
+                Chaînes
+              </h2>
+              <button
+                type="button"
+                onClick={() => setShowChannelList(false)}
+                aria-label="Fermer la liste"
+                className="rounded-lg p-1 text-white/50 transition hover:bg-white/10 hover:text-white lg:hidden"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <div className="min-h-0 flex-1 overflow-y-auto p-2" data-lenis-prevent>
+              <div className="flex flex-col gap-1">
+                {carouselGroups.map((group) => {
+                  const isSelected = group.key === selectedGroupKey;
+                  const isFavorited = favorites.has(group.key);
+                  return (
+                    <button
+                      key={group.key}
+                      type="button"
+                      onClick={() => { handleSelectGroup(group); }}
+                      className={`group flex items-center gap-3 rounded-xl p-2.5 text-left transition-all duration-200 ${
+                        isSelected
+                          ? 'bg-red-500/15 ring-1 ring-red-500/30'
+                          : 'hover:bg-white/5'
+                      }`}
+                    >
+                      {group.logo ? (
+                        <img src={group.logo} alt="" loading="lazy" className="h-9 w-9 shrink-0 rounded-lg bg-white/5 object-contain p-0.5" />
+                      ) : (
+                        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-[10px] font-black uppercase text-white/90" style={{ background: channelColor(group.displayName) }}>
+                          {group.displayName.slice(0, 2).toUpperCase()}
+                        </span>
+                      )}
+                      <span className="min-w-0 flex-1">
+                        <span className={`block truncate text-xs font-semibold ${isSelected ? 'text-white' : 'text-white/75'}`}>{group.displayName}</span>
+                        <span className="block truncate text-[10px] text-white/35">{group.countries.join(', ') || 'France'}</span>
+                      </span>
+                      {isFavorited && (
+                        <Star className="h-3 w-3 shrink-0 fill-amber-400 text-amber-400" aria-hidden="true" />
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </aside>
+        )}
+
+        {/* Overlay for mobile sidebar */}
+        {showChannelList && (
+          <div
+            className="absolute inset-0 z-30 bg-black/60 lg:hidden"
+            onClick={() => setShowChannelList(false)}
+            aria-hidden="true"
+          />
+        )}
+
+        {/* Left: Player + info */}
+        <section className="flex min-h-0 shrink-0 flex-col gap-3 p-3 lg:w-[42%] lg:p-4 xl:w-[40%]">
           {activeVariant && selectedGroup ? (
             <>
-              <NeahplusPlayer
-                key={activeVariant.id}
-                channelId={activeVariant.id}
-                channelName={selectedGroup.displayName}
-                onInfo={() => setShowInfoPanel(true)}
-                onPrevChannel={prevGroupKey ? goToPrevChannel : undefined}
-                onGuide={() => setTab('guide')}
-              />
-              <div className="flex items-center justify-between gap-2">
-                <div className="min-w-0">
-                  <h2 className="truncate text-base font-bold text-white">{selectedGroup.displayName}</h2>
-                  <p className="truncate text-xs text-white/55">
-                    {currentProgram(activeVariant, Date.now())?.title ?? selectedGroup.countries.join(', ')}
+              <div className="group relative">
+                <NeahplusPlayer
+                  key={activeVariant.id}
+                  channelId={activeVariant.id}
+                  channelName={selectedGroup.displayName}
+                  onInfo={() => setShowInfoPanel(true)}
+                  onPrevChannel={prevGroupKey ? goToPrevChannel : undefined}
+                  onGuide={() => setTab('guide')}
+                />
+              </div>
+
+              {/* Channel info bar */}
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0 flex-1">
+                  <h2 className="truncate text-lg font-bold tracking-tight text-white">{selectedGroup.displayName}</h2>
+                  <p className="mt-0.5 truncate text-xs text-white/50">
+                    {activeProgram?.title ?? selectedGroup.countries.join(', ') ?? '—'}
                   </p>
+                  {activeProgram && (
+                    <p className="mt-0.5 text-[10px] text-red-300/70 tabular-nums">
+                      {formatTime(activeProgram.start)} – {formatTime(activeProgram.end)}
+                    </p>
+                  )}
                 </div>
-                <div className="flex items-center gap-1">
+                <div className="flex items-center gap-1.5">
                   <button
                     type="button"
                     onClick={() => setShowInfoPanel(true)}
                     aria-label="Informations programme"
-                    className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/5 text-white/70 transition hover:bg-white/10 hover:text-white"
+                    className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/5 text-white/60 transition hover:bg-white/10 hover:text-white"
                   >
                     <Info className="h-4 w-4" />
                   </button>
-                  {selectedGroup.variants.length > 1 && (
-                    <div className="flex items-center gap-1">
-                      <button
-                        type="button"
-                        onClick={() => cycleVariant(-1)}
-                        className="rounded-lg bg-white/5 p-1.5 text-white/70 transition hover:bg-white/10"
-                        aria-label="Variante précédente"
-                      >
-                        <ChevronLeft className="h-4 w-4" />
-                      </button>
-                      <span className="text-xs text-white/50">
-                        {activeVariantIndex + 1}/{selectedGroup.variants.length}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => cycleVariant(1)}
-                        className="rounded-lg bg-white/5 p-1.5 text-white/70 transition hover:bg-white/10"
-                        aria-label="Variante suivante"
-                      >
-                        <ChevronRight className="h-4 w-4" />
-                      </button>
-                    </div>
-                  )}
+                  <button
+                    type="button"
+                    onClick={() => toggleFavorite(selectedGroup.key)}
+                    aria-label={favorites.has(selectedGroup.key) ? 'Retirer des favoris' : 'Ajouter aux favoris'}
+                    aria-pressed={favorites.has(selectedGroup.key)}
+                    className={`flex h-9 w-9 items-center justify-center rounded-xl transition ${
+                      favorites.has(selectedGroup.key)
+                        ? 'bg-amber-400/15 text-amber-400 hover:bg-amber-400/25'
+                        : 'bg-white/5 text-white/40 hover:bg-white/10 hover:text-white/70'
+                    }`}
+                  >
+                    <Star className="h-4 w-4" fill={favorites.has(selectedGroup.key) ? 'currentColor' : 'none'} />
+                  </button>
                 </div>
               </div>
+
+              {/* Variant selector */}
               {selectedGroup.variants.length > 1 && (
-                <div className="flex flex-wrap gap-1">
+                <div className="flex flex-wrap gap-1.5">
                   {selectedGroup.variants.map((v, i) => (
                     <button
                       key={v.id}
                       type="button"
                       onClick={() => setActiveVariantIndex(i)}
-                      className={`rounded-md px-2 py-1 text-xs font-medium transition ${
+                      className={`rounded-lg px-2.5 py-1 text-xs font-medium transition-all duration-200 ${
                         i === activeVariantIndex
                           ? 'bg-red-500/20 text-red-200 ring-1 ring-red-500/30'
-                          : 'bg-white/5 text-white/50 hover:bg-white/10'
+                          : 'bg-white/5 text-white/45 hover:bg-white/10 hover:text-white/70'
                       }`}
                     >
                       {variantLabel(v, shortChannelName(selectedGroup.displayName))}
@@ -708,52 +830,65 @@ const NeahplusExperience = () => {
                   ))}
                 </div>
               )}
+
+              {/* Channel carousel */}
+              <ChannelCarousel
+                groups={carouselGroups}
+                selectedKey={selectedGroupKey}
+                favoritedKeys={favorites}
+                onSelectGroup={handleSelectGroup}
+                onToggleFavorite={toggleFavorite}
+              />
+
+              {/* Program synopsis */}
+              <ProgramSynopsis
+                channel={activeVariant}
+                channelDisplayName={selectedGroup?.displayName ?? ''}
+              />
             </>
           ) : (
-            <div className="flex aspect-video w-full items-center justify-center rounded-2xl bg-black/60 ring-1 ring-white/10">
-              <div className="text-center">
-                <Tv className="mx-auto h-12 w-12 text-white/20" aria-hidden="true" />
-                <p className="mt-3 px-6 text-sm text-white/60">
-                  Sélectionnez une chaîne pour commencer à regarder.
-                </p>
+            <div className="flex flex-col items-center justify-center gap-4 rounded-2xl border border-white/[0.06] bg-gradient-to-b from-white/[0.03] to-transparent p-8 text-center">
+              <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-white/[0.04] ring-1 ring-white/5">
+                <Tv className="h-10 w-10 text-white/15" aria-hidden="true" />
               </div>
+              <div>
+                <p className="text-sm font-medium text-white/50">Sélectionnez une chaîne</p>
+                <p className="mt-1 text-xs text-white/30">Choisissez une chaîne dans la liste ou le carrousel pour commencer à regarder.</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowChannelList(true)}
+                className="inline-flex items-center gap-2 rounded-xl bg-white/5 px-4 py-2 text-xs font-semibold text-white/60 transition hover:bg-white/10 hover:text-white"
+              >
+                <List className="h-4 w-4" />
+                Ouvrir la liste des chaînes
+              </button>
             </div>
           )}
-
-          <ChannelCarousel
-            groups={carouselGroups}
-            selectedKey={selectedGroupKey}
-            favoritedKeys={favorites}
-            onSelectGroup={handleSelectGroup}
-            onToggleFavorite={toggleFavorite}
-          />
-
-          <ProgramSynopsis
-            channel={activeVariant}
-            channelDisplayName={selectedGroup?.displayName ?? ''}
-          />
         </section>
 
-        <section className="flex min-h-0 flex-1 flex-col overflow-hidden">
-          <div className="flex flex-col gap-2 border-b border-white/10 p-3 sm:flex-row sm:items-center">
+        {/* Right: Browse / Guide / Home */}
+        <section className="flex min-h-0 flex-1 flex-col overflow-hidden border-l border-white/[0.04]">
+          {/* Search + filters bar */}
+          <div className="flex flex-col gap-2 border-b border-white/[0.06] p-3 sm:flex-row sm:items-center sm:gap-3">
             <label className="relative flex-1">
               <span className="sr-only">Rechercher une chaîne</span>
-              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/40" aria-hidden="true" />
+              <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-white/30" aria-hidden="true" />
               <input
                 type="search"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="Rechercher une chaîne"
-                className="w-full rounded-lg border border-white/10 bg-white/5 py-2 pl-9 pr-3 text-sm text-white placeholder:text-white/40 focus:border-red-500 focus:outline-none"
+                placeholder="Rechercher une chaîne…"
+                className="w-full rounded-xl border border-white/[0.08] bg-white/[0.03] py-2.5 pl-10 pr-3 text-sm text-white placeholder:text-white/30 focus:border-red-500/50 focus:bg-white/[0.05] focus:outline-none focus:ring-1 focus:ring-red-500/20"
               />
             </label>
             {tab !== 'world' && tab !== 'home' && catalog.countries.length > 0 && (
-              <label className="sm:w-48">
+              <label className="sm:w-52">
                 <span className="sr-only">Filtrer par pays</span>
                 <select
                   value={country}
                   onChange={(e) => setCountry(e.target.value)}
-                  className="w-full rounded-lg border border-white/10 bg-slate-900 px-3 py-2 text-sm text-white focus:border-red-500 focus:outline-none"
+                  className="w-full rounded-xl border border-white/[0.08] bg-white/[0.03] px-3.5 py-2.5 text-sm text-white focus:border-red-500/50 focus:outline-none focus:ring-1 focus:ring-red-500/20"
                 >
                   <option value="">Tous les pays</option>
                   {catalog.countries.map((c) => (
@@ -765,29 +900,30 @@ const NeahplusExperience = () => {
               </label>
             )}
             {tab === 'world' && (
-              <span className="text-xs text-white/50">
-                {catalog.countries.length} pays • {catalog.channels.length} chaînes
+              <span className="text-xs font-medium text-white/40">
+                {catalog.countries.length} pays · {catalog.channels.length} chaînes
               </span>
             )}
           </div>
 
+          {/* Guide date navigator */}
           {tab === 'guide' && (
-            <div className="flex items-center gap-2 border-b border-white/10 p-3">
+            <div className="flex items-center gap-2 border-b border-white/[0.06] px-3 py-2.5">
               <button
                 type="button"
                 onClick={() => setGuideDate((d) => new Date(d.getTime() - 86400000))}
-                className="rounded-lg bg-white/5 p-1.5 text-white/70 transition hover:bg-white/10"
+                className="rounded-xl bg-white/5 p-2 text-white/60 transition hover:bg-white/10 hover:text-white"
                 aria-label="Jour précédent"
               >
                 <ChevronLeft className="h-4 w-4" />
               </button>
-              <span className="text-sm font-semibold text-white">
+              <span className="text-sm font-bold tracking-tight text-white">
                 {guideDate.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })}
               </span>
               <button
                 type="button"
                 onClick={() => setGuideDate((d) => new Date(d.getTime() + 86400000))}
-                className="rounded-lg bg-white/5 p-1.5 text-white/70 transition hover:bg-white/10"
+                className="rounded-xl bg-white/5 p-2 text-white/60 transition hover:bg-white/10 hover:text-white"
                 aria-label="Jour suivant"
               >
                 <ChevronRight className="h-4 w-4" />
@@ -795,23 +931,25 @@ const NeahplusExperience = () => {
               <button
                 type="button"
                 onClick={() => setGuideDate(new Date())}
-                className="ml-auto rounded-lg bg-white/5 px-2 py-1 text-xs text-white/60 transition hover:bg-white/10"
+                className="ml-auto rounded-xl bg-white/5 px-3 py-1.5 text-xs font-semibold text-white/50 transition hover:bg-white/10 hover:text-white/80"
               >
                 Aujourd'hui
               </button>
             </div>
           )}
 
+          {/* Result count */}
           {tab !== 'guide' && tab !== 'home' && (
-            <p className="px-3 py-1.5 text-xs text-white/50" aria-live="polite">
+            <p className="px-3 py-2 text-xs font-medium text-white/40" aria-live="polite">
               {filteredGroups.length} chaîne{filteredGroups.length > 1 ? 's' : ''}
               {tab === 'favorites' && favorites.size === 0 && ' — Ajoutez des chaînes avec l\'étoile'}
             </p>
           )}
 
+          {/* Content grid */}
           <div ref={gridRef} className="flex min-h-0 flex-1 flex-col overflow-y-auto p-3" data-lenis-prevent>
             {tab === 'home' ? (
-              <div className="flex flex-col gap-4">
+              <div className="flex flex-col gap-6">
                 {favoriteChannels.length > 0 && (
                   <HomeSection
                     title="Mes favoris"
@@ -855,14 +993,14 @@ const NeahplusExperience = () => {
                   />
                 )}
                 {favoriteChannels.length === 0 && playingChannels.length === 0 && recommendedChannelList.length === 0 && (
-                  <p className="py-10 text-center text-sm text-white/50">
+                  <p className="py-16 text-center text-sm text-white/40">
                     Aucune chaîne disponible pour le moment.
                   </p>
                 )}
               </div>
             ) : tab === 'guide' ? (
               epgChannels.length === 0 ? (
-                <p className="py-10 text-center text-sm text-white/50">
+                <p className="py-16 text-center text-sm text-white/40">
                   Aucune chaîne avec programme TV (EPG) disponible.
                 </p>
               ) : (
@@ -881,7 +1019,7 @@ const NeahplusExperience = () => {
                     <button
                       type="button"
                       onClick={() => setVisibleCount((v) => v + PAGE_SIZE)}
-                      className="w-full rounded-xl py-3 text-sm font-semibold text-red-200 transition hover:bg-white/5"
+                      className="mt-2 w-full rounded-xl border border-white/[0.06] bg-white/[0.02] py-3.5 text-sm font-semibold text-white/50 transition hover:bg-white/[0.05] hover:text-white/80"
                     >
                       Afficher plus de chaînes
                     </button>
@@ -889,13 +1027,13 @@ const NeahplusExperience = () => {
                 </div>
               )
             ) : filteredGroups.length === 0 ? (
-              <p className="py-10 text-center text-sm text-white/50">
+              <p className="py-16 text-center text-sm text-white/40">
                 {tab === 'favorites'
                   ? 'Aucune chaîne dans vos favoris. Cliquez sur l\'étoile d\'une chaîne pour l\'ajouter.'
                   : 'Aucune chaîne ne correspond à votre recherche.'}
               </p>
             ) : (
-              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-3">
+              <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 xl:grid-cols-3">
                 {visibleGroups.map((group, i) => (
                   <ChannelCard
                     key={group.key}
@@ -913,7 +1051,7 @@ const NeahplusExperience = () => {
                   <button
                     type="button"
                     onClick={() => setVisibleCount((v) => v + PAGE_SIZE)}
-                    className="col-span-full w-full rounded-xl py-3 text-sm font-semibold text-red-200 transition hover:bg-white/5"
+                    className="col-span-full mt-2 w-full rounded-xl border border-white/[0.06] bg-white/[0.02] py-3.5 text-sm font-semibold text-white/50 transition hover:bg-white/[0.05] hover:text-white/80"
                   >
                     Afficher plus de chaînes
                   </button>
@@ -924,13 +1062,15 @@ const NeahplusExperience = () => {
         </section>
       </div>
 
-      <footer className="shrink-0 border-t border-white/10 bg-slate-950 px-3 py-2">
-        <p className="text-center text-[10px] text-white/35">
+      {/* Footer */}
+      <footer className="shrink-0 border-t border-white/[0.06] bg-[#0d0d14] px-3 py-2">
+        <p className="text-center text-[10px] text-white/25">
           NEAHPLUS TV — Guide indépendant. Cette interface organise les chaînes et leurs sources disponibles.
           Elle n'est ni affiliée à CANAL+ ni exploitée par CANAL+.
         </p>
       </footer>
 
+      {/* Overlays */}
       {showInfoPanel && activeVariant && (
         <InfoPanel
           channel={activeVariant}
