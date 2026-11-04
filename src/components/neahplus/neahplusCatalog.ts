@@ -5,6 +5,7 @@ const PLAY_ORIGIN = 'https://oha.to/live/play/';
 const STREAM_PATH_PREFIX = `${NEAHPLUS_API}/__stream?`;
 const MAX_PAGES = 500;
 const CACHE_TTL_MS = 30 * 60 * 1000;
+const CATEGORY_TAGS = new Set(['France Sport']);
 
 export interface NeahplusProgram {
   title: string;
@@ -16,6 +17,7 @@ export interface NeahplusChannel {
   id: string;
   name: string;
   countries: string[];
+  categories: string[];
   logo: string | null;
   programs: NeahplusProgram[];
 }
@@ -43,6 +45,11 @@ const isRecord = (value: unknown): value is Json =>
 const text = (value: unknown): string | null =>
   typeof value === 'string' && value.trim() ? value.trim() : null;
 
+export const splitChannelTags = (tags: string[]): { countries: string[]; categories: string[] } => ({
+  countries: tags.filter((tag) => !CATEGORY_TAGS.has(tag)),
+  categories: tags.filter((tag) => CATEGORY_TAGS.has(tag)),
+});
+
 const normalizeLogo = (value: string | null): string | null => {
   if (!value) return null;
   if (value.startsWith('/live2/')) return `${NEAHPLUS_API}${value}`;
@@ -66,13 +73,15 @@ const parseChannel = (raw: unknown): NeahplusChannel | null => {
   const name = text(raw.name);
   if (!id || !name) return null;
   const images = isRecord(raw.images) ? raw.images : {};
-  const countries = Array.isArray(raw.tags)
+  const tags = Array.isArray(raw.tags)
     ? raw.tags.map(text).filter((tag): tag is string => tag !== null)
     : [];
+  const { countries, categories } = splitChannelTags(tags);
   return {
     id,
     name,
     countries,
+    categories,
     logo: normalizeLogo(text(images.logo)),
     programs: parsePrograms(raw.epg),
   };
