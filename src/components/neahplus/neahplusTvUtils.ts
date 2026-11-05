@@ -64,7 +64,9 @@ export const groupChannelVariants = (channels: NeahplusChannel[]): ChannelGroup[
     const name = normalizeChannelName(channel.name);
     const byCountry = byName.get(name) ?? new Map<string, NeahplusChannel[]>();
     const country = primaryCountryKey(channel);
-    byCountry.set(country, [...(byCountry.get(country) ?? []), channel]);
+    const variants = byCountry.get(country) ?? [];
+    variants.push(channel);
+    byCountry.set(country, variants);
     byName.set(name, byCountry);
   }
 
@@ -78,6 +80,18 @@ export const groupChannelVariants = (channels: NeahplusChannel[]): ChannelGroup[
     }
   }
   return groups.sort((a, b) => a.displayName.localeCompare(b.displayName, 'fr') || a.key.localeCompare(b.key));
+};
+
+export const indexChannelGroupsByChannelId = (
+  groups: ChannelGroup[],
+): Map<string, ChannelGroup> => {
+  const index = new Map<string, ChannelGroup>();
+  for (const group of groups) {
+    for (const channel of group.variants) {
+      if (!index.has(channel.id)) index.set(channel.id, group);
+    }
+  }
+  return index;
 };
 
 export const groupMatchesCountry = (group: ChannelGroup, country: string): boolean =>
@@ -146,8 +160,18 @@ export const migrateLegacyFavorites = (
 export const getProgramsForDay = (channel: NeahplusChannel, date: Date): NeahplusProgram[] =>
   channel.programs.filter((program) => isSameDay(new Date(program.start), date)).sort((a, b) => Date.parse(a.start) - Date.parse(b.start));
 
-export const getNextProgram = (channel: NeahplusChannel, now: number): NeahplusProgram | null =>
-  channel.programs.filter((program) => Date.parse(program.start) > now).sort((a, b) => Date.parse(a.start) - Date.parse(b.start))[0] ?? null;
+export const getNextProgram = (channel: NeahplusChannel, now: number): NeahplusProgram | null => {
+  let next: NeahplusProgram | null = null;
+  let nextStart = Number.POSITIVE_INFINITY;
+  for (const program of channel.programs) {
+    const start = Date.parse(program.start);
+    if (start > now && start < nextStart) {
+      next = program;
+      nextStart = start;
+    }
+  }
+  return next;
+};
 
 export const channelsWithEpg = (channels: NeahplusChannel[]): NeahplusChannel[] =>
   channels.filter((channel) => channel.programs.length > 0);
@@ -168,8 +192,10 @@ export const channelsCurrentlyPlaying = (channels: NeahplusChannel[], now: numbe
 
 export const recommendedChannels = (channels: NeahplusChannel[], now: number, count: number): NeahplusChannel[] => {
   const playing = channelsCurrentlyPlaying(channels, now);
-  const withEpg = channelsWithEpg(channels).filter((channel) => !playing.includes(channel));
-  const rest = channels.filter((channel) => !playing.includes(channel) && !withEpg.includes(channel));
+  const playingIds = new Set(playing.map((channel) => channel.id));
+  const withEpg = channelsWithEpg(channels).filter((channel) => !playingIds.has(channel.id));
+  const withEpgIds = new Set(withEpg.map((channel) => channel.id));
+  const rest = channels.filter((channel) => !playingIds.has(channel.id) && !withEpgIds.has(channel.id));
   return [
     ...playing.slice(0, Math.ceil(count / 2)),
     ...withEpg.slice(0, Math.floor(count / 2)),
@@ -210,7 +236,7 @@ export const getEpgDates = (channel: NeahplusChannel): Date[] => {
 
 export const getUpcomingPrograms = (channel: NeahplusChannel, date: Date, now: number): NeahplusProgram[] => {
   const programs = getProgramsForDay(channel, date);
-  const today = new Date();
+  const today = new Date(now);
   const isToday = date.getFullYear() === today.getFullYear() && date.getMonth() === today.getMonth() && date.getDate() === today.getDate();
   return isToday ? programs.filter((program) => Date.parse(program.start) >= now) : programs;
 };
