@@ -279,3 +279,30 @@ test('migration : les clés historiques sont conservées', () => {
   assert.ok(favorites.has('tf1'));
   assert.equal(changed, false);
 });
+
+
+test('l’index des chaînes retrouve directement le groupe de chaque variante', () => {
+  const groups = utils.groupChannelVariants([
+    channel('tf1-fr', 'TF1', ['France']),
+    channel('tf1-fr-hd', 'TF1 HD', ['France']),
+    channel('tf1-be', 'TF1', ['Belgique']),
+  ]);
+  const index = utils.indexChannelGroupsByChannelId(groups);
+
+  assert.equal(index.get('tf1-fr'), groups.find((g) => g.key === 'tf1'));
+  assert.equal(index.get('tf1-fr-hd'), groups.find((g) => g.key === 'tf1'));
+  assert.equal(index.get('tf1-be'), groups.find((g) => g.key === 'tf1@belgique'));
+  assert.equal(index.has('unknown'), false);
+});
+
+test('la recherche du prochain programme choisit le plus proche sans dépendre de l’ordre', () => {
+  const now = Date.parse('2026-11-05T10:00:00Z');
+  const item = channel('epg', 'EPG');
+  item.programs = [
+    { title: 'Plus tard', start: '2026-11-05T12:00:00Z', end: '2026-11-05T13:00:00Z' },
+    { title: 'Prochain', start: '2026-11-05T10:30:00Z', end: '2026-11-05T11:00:00Z' },
+    { title: 'Déjà passé', start: '2026-11-05T09:00:00Z', end: '2026-11-05T09:30:00Z' },
+  ];
+
+  assert.equal(utils.getNextProgram(item, now)?.title, 'Prochain');
+});
