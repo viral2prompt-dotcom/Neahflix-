@@ -11,10 +11,10 @@ import {
 interface ProgramSynopsisProps {
   channel: NeahplusChannel | null;
   channelDisplayName: string;
+  now: number;
 }
 
-const ProgramSynopsis = ({ channel, channelDisplayName }: ProgramSynopsisProps) => {
-  const now = Date.now();
+const ProgramSynopsis = ({ channel, channelDisplayName, now }: ProgramSynopsisProps) => {
   const current = useMemo(() => (channel ? currentProgram(channel, now) : null), [channel, now]);
   const next = useMemo(() => (channel ? getNextProgram(channel, now) : null), [channel, now]);
 
