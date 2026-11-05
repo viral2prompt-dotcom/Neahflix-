@@ -84,7 +84,10 @@ const ChannelCard = ({
   registerRef,
 }: ChannelCardProps) => {
   const activeVariant = group.variants[0];
-  const prog = activeVariant ? currentProgram(activeVariant, now) : null;
+  const prog = useMemo(
+    () => (activeVariant ? currentProgram(activeVariant, now) : null),
+    [activeVariant, now],
+  );
   const initials = group.displayName.slice(0, 2).toUpperCase();
   const bgColor = channelColor(group.displayName);
 
@@ -179,8 +182,14 @@ const EpgRow = ({ channel, date, onPlay, index, now, registerRef }: EpgRowProps)
   const isToday = date.getFullYear() === today.getFullYear() &&
     date.getMonth() === today.getMonth() &&
     date.getDate() === today.getDate();
-  const current = isToday ? currentProgram(channel, now) : null;
-  const next = isToday ? getNextProgram(channel, now) : null;
+  const current = useMemo(
+    () => (isToday ? currentProgram(channel, now) : null),
+    [channel, isToday, now],
+  );
+  const next = useMemo(
+    () => (isToday ? getNextProgram(channel, now) : null),
+    [channel, isToday, now],
+  );
 
   return (
     <button
@@ -392,7 +401,10 @@ const NeahplusExperience = () => {
     });
   }, [allGroups, country, query, tab, favorites]);
 
-  const visibleGroups = filteredGroups.slice(0, visibleCount);
+  const visibleGroups = useMemo(
+    () => filteredGroups.slice(0, visibleCount),
+    [filteredGroups, visibleCount],
+  );
 
   useEffect(() => {
     setVisibleCount(PAGE_SIZE);
@@ -478,7 +490,10 @@ const NeahplusExperience = () => {
       .slice(0, 200);
   }, [catalog]);
 
-  const epgVisible = epgChannels.slice(0, visibleCount);
+  const epgVisible = useMemo(
+    () => epgChannels.slice(0, visibleCount),
+    [epgChannels, visibleCount],
+  );
 
   const favoriteChannels = useMemo(() => {
     return realGroups
@@ -683,7 +698,10 @@ const NeahplusExperience = () => {
     return suffix || `Source`;
   };
 
-  const activeProgram = activeVariant ? currentProgram(activeVariant, now) : null;
+  const activeProgram = useMemo(
+    () => (activeVariant ? currentProgram(activeVariant, now) : null),
+    [activeVariant, now],
+  );
 
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-[#0a0a0f] text-white">
