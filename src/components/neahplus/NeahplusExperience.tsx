@@ -37,6 +37,7 @@ import {
   getProgramsForDay,
   groupChannelVariants,
   groupMatchesCountry,
+  indexChannelGroupsByChannelId,
   historicalChannelsWithoutDuplicates,
   loadFavorites,
   migrateLegacyFavorites,
@@ -67,6 +68,7 @@ interface ChannelCardProps {
   onSelect: () => void;
   onToggleFavorite: () => void;
   index: number;
+  now: number;
   registerRef: (el: HTMLButtonElement | null, index: number) => void;
 }
 
@@ -78,9 +80,9 @@ const ChannelCard = ({
   onSelect,
   onToggleFavorite,
   index,
+  now,
   registerRef,
 }: ChannelCardProps) => {
-  const now = Date.now();
   const activeVariant = group.variants[0];
   const prog = activeVariant ? currentProgram(activeVariant, now) : null;
   const initials = group.displayName.slice(0, 2).toUpperCase();
@@ -167,18 +169,16 @@ interface EpgRowProps {
   date: Date;
   onPlay: () => void;
   index: number;
+  now: number;
   registerRef: (el: HTMLButtonElement | null, index: number) => void;
 }
 
-const EpgRow = ({ channel, date, onPlay, index, registerRef }: EpgRowProps) => {
+const EpgRow = ({ channel, date, onPlay, index, now, registerRef }: EpgRowProps) => {
   const programs = useMemo(() => getProgramsForDay(channel, date), [channel, date]);
-  const now = Date.now();
-  const isToday = useMemo(() => {
-    const today = new Date();
-    return date.getFullYear() === today.getFullYear() &&
-      date.getMonth() === today.getMonth() &&
-      date.getDate() === today.getDate();
-  }, [date]);
+  const today = new Date(now);
+  const isToday = date.getFullYear() === today.getFullYear() &&
+    date.getMonth() === today.getMonth() &&
+    date.getDate() === today.getDate();
   const current = isToday ? currentProgram(channel, now) : null;
   const next = isToday ? getNextProgram(channel, now) : null;
 
@@ -240,7 +240,8 @@ const EpgRow = ({ channel, date, onPlay, index, registerRef }: EpgRowProps) => {
 interface HomeSectionProps {
   title: string;
   channels: NeahplusChannel[];
-  groups: ChannelGroup[];
+  groupByChannelId: ReadonlyMap<string, ChannelGroup>;
+  now: number;
   favorites: Set<string>;
   selectedGroupKey: string | null;
   resolvingKey: string | null;
@@ -253,7 +254,8 @@ interface HomeSectionProps {
 const HomeSection = ({
   title,
   channels,
-  groups,
+  groupByChannelId,
+  now,
   favorites,
   selectedGroupKey,
   resolvingKey,
@@ -269,7 +271,7 @@ const HomeSection = ({
       <h3 className="px-1 text-sm font-bold tracking-tight text-white/85">{title}</h3>
       <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 xl:grid-cols-3">
         {channels.map((channel, i) => {
-          const group = groups.find((g) => g.variants.some((v) => v.id === channel.id));
+          const group = groupByChannelId.get(channel.id);
           if (!group) return null;
           return (
             <ChannelCard
@@ -281,6 +283,7 @@ const HomeSection = ({
               onSelect={() => onSelectChannel(channel)}
               onToggleFavorite={() => onToggleFavorite(group.key)}
               index={startIndex + i}
+              now={now}
               registerRef={registerRef}
             />
           );
@@ -311,6 +314,12 @@ const NeahplusExperience = () => {
   const itemRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const gridFocusIndex = useRef(0);
   const tabButtonsRef = useRef<(HTMLButtonElement | null)[]>([]);
+  const [now, setNow] = useState(() => Date.now());
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(Date.now()), 30_000);
+    return () => window.clearInterval(timer);
+  }, []);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -344,6 +353,14 @@ const NeahplusExperience = () => {
   const allGroups = useMemo(
     () => [...realGroups, ...historicalChannelsWithoutDuplicates(realGroups)],
     [realGroups],
+  );
+  const groupByKey = useMemo(
+    () => new Map(allGroups.map((group) => [group.key, group])),
+    [allGroups],
+  );
+  const groupByChannelId = useMemo(
+    () => indexChannelGroupsByChannelId(allGroups),
+    [allGroups],
   );
 
   useEffect(() => {
@@ -381,7 +398,7 @@ const NeahplusExperience = () => {
     setVisibleCount(PAGE_SIZE);
   }, [query, country, tab]);
 
-  const selectedGroup = allGroups.find((g) => g.key === selectedGroupKey) ?? null;
+  const selectedGroup = selectedGroupKey ? groupByKey.get(selectedGroupKey) ?? null : null;
   const activeVariant = selectedGroup?.variants[activeVariantIndex] ?? null;
 
   const carouselGroups = useMemo(() => {
@@ -425,17 +442,17 @@ const NeahplusExperience = () => {
   }, [resolveBestVariant, selectedGroupKey]);
 
   const handleSelectChannel = useCallback((channel: NeahplusChannel) => {
-    const group = allGroups.find((g) => g.variants.some((v) => v.id === channel.id));
+    const group = groupByChannelId.get(channel.id);
     if (!group) return;
     setPrevGroupKey(selectedGroupKey);
     setSelectedGroupKey(group.key);
     const vIdx = group.variants.findIndex((v) => v.id === channel.id);
     setActiveVariantIndex(vIdx >= 0 ? vIdx : 0);
-  }, [allGroups, selectedGroupKey]);
+  }, [groupByChannelId, selectedGroupKey]);
 
   const goToPrevChannel = useCallback(() => {
     if (prevGroupKey) {
-      const prev = allGroups.find((g) => g.key === prevGroupKey);
+      const prev = groupByKey.get(prevGroupKey);
       if (prev) {
         const temp = prevGroupKey;
         setPrevGroupKey(selectedGroupKey);
@@ -444,7 +461,7 @@ const NeahplusExperience = () => {
         if (prev.variants.length > 1) void resolveBestVariant(prev);
       }
     }
-  }, [prevGroupKey, allGroups, selectedGroupKey, resolveBestVariant]);
+  }, [prevGroupKey, groupByKey, selectedGroupKey, resolveBestVariant]);
 
   const cycleVariant = useCallback((direction: 1 | -1) => {
     if (!selectedGroup || selectedGroup.variants.length <= 1) return;
@@ -463,7 +480,6 @@ const NeahplusExperience = () => {
 
   const epgVisible = epgChannels.slice(0, visibleCount);
 
-  const now = Date.now();
   const favoriteChannels = useMemo(() => {
     return realGroups
       .filter((g) => favorites.has(g.key))
@@ -485,27 +501,60 @@ const NeahplusExperience = () => {
     itemRefs.current[index] = el;
   }, []);
 
-  const focusGridItem = useCallback((index: number) => {
-    const items = tab === 'guide' ? epgVisible : visibleGroups;
-    const max = items.length - 1;
-    const clamped = Math.max(0, Math.min(index, max));
-    gridFocusIndex.current = clamped;
-    itemRefs.current[clamped]?.focus();
-  }, [tab, epgVisible, visibleGroups]);
+  type KeyboardContext = {
+    showInfoPanel: boolean;
+    showQuickSearch: boolean;
+    tab: Tab;
+    epgVisible: NeahplusChannel[];
+    visibleGroups: ChannelGroup[];
+    activeVariant: NeahplusChannel | null;
+    catalog: NeahplusCatalog | null;
+    selectedGroup: ChannelGroup | null;
+    cycleVariant: (direction: 1 | -1) => void;
+  };
 
-  const focusTab = useCallback((index: number) => {
-    const clamped = Math.max(0, Math.min(index, TABS.length - 1));
-    tabButtonsRef.current[clamped]?.focus();
-  }, []);
+  const keyboardContextRef = useRef<KeyboardContext>({
+    showInfoPanel: false,
+    showQuickSearch: false,
+    tab: 'home',
+    epgVisible: [],
+    visibleGroups: [],
+    activeVariant: null,
+    catalog: null,
+    selectedGroup: null,
+    cycleVariant: () => undefined,
+  });
 
-  const currentTabIndex = TABS.findIndex((t) => t.id === tab);
+  keyboardContextRef.current = {
+    showInfoPanel,
+    showQuickSearch,
+    tab,
+    epgVisible,
+    visibleGroups,
+    activeVariant,
+    catalog,
+    selectedGroup,
+    cycleVariant,
+  };
 
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
-      if (showInfoPanel || showQuickSearch) return;
+      const context = keyboardContextRef.current;
+      if (context.showInfoPanel || context.showQuickSearch) return;
 
       const target = e.target as HTMLElement;
       const isInInput = target.tagName === 'INPUT' || target.tagName === 'SELECT' || target.tagName === 'TEXTAREA';
+      const focusGridItem = (index: number) => {
+        const items = context.tab === 'guide' ? context.epgVisible : context.visibleGroups;
+        const clamped = Math.max(0, Math.min(index, items.length - 1));
+        gridFocusIndex.current = clamped;
+        itemRefs.current[clamped]?.focus();
+      };
+      const focusTab = (index: number) => {
+        const clamped = Math.max(0, Math.min(index, TABS.length - 1));
+        tabButtonsRef.current[clamped]?.focus();
+      };
+
       if (isInInput && e.key !== 'Escape') return;
 
       if (e.key === 'Escape') {
@@ -518,7 +567,7 @@ const NeahplusExperience = () => {
       }
 
       if (e.key === 'i' || e.key === 'I') {
-        if (!isInInput && activeVariant) {
+        if (!isInInput && context.activeVariant) {
           e.preventDefault();
           setShowInfoPanel(true);
           return;
@@ -526,7 +575,7 @@ const NeahplusExperience = () => {
       }
 
       if (e.key === '/') {
-        if (!isInInput && catalog) {
+        if (!isInInput && context.catalog) {
           e.preventDefault();
           setShowQuickSearch(true);
           return;
@@ -549,21 +598,21 @@ const NeahplusExperience = () => {
         case 'ArrowUp':
           e.preventDefault();
           if (gridFocusIndex.current === 0) {
-            focusTab(currentTabIndex);
+            focusTab(TABS.findIndex((item) => item.id === context.tab));
           } else {
             focusGridItem(gridFocusIndex.current - 1);
           }
           break;
         case 'ArrowRight':
-          if (selectedGroup && selectedGroup.variants.length > 1) {
+          if (context.selectedGroup && context.selectedGroup.variants.length > 1) {
             e.preventDefault();
-            cycleVariant(1);
+            context.cycleVariant(1);
           }
           break;
         case 'ArrowLeft':
-          if (selectedGroup && selectedGroup.variants.length > 1) {
+          if (context.selectedGroup && context.selectedGroup.variants.length > 1) {
             e.preventDefault();
-            cycleVariant(-1);
+            context.cycleVariant(-1);
           }
           break;
         case 'PageUp':
@@ -583,7 +632,7 @@ const NeahplusExperience = () => {
 
     window.addEventListener('keydown', handleKey);
     return () => window.removeEventListener('keydown', handleKey);
-  }, [tab, epgVisible, visibleGroups, focusGridItem, focusTab, currentTabIndex, cycleVariant, selectedGroup, activeVariant, catalog, showInfoPanel, showQuickSearch]);
+  }, []);
 
   useEffect(() => {
     gridFocusIndex.current = 0;
@@ -634,7 +683,7 @@ const NeahplusExperience = () => {
     return suffix || `Source`;
   };
 
-  const activeProgram = activeVariant ? currentProgram(activeVariant, Date.now()) : null;
+  const activeProgram = activeVariant ? currentProgram(activeVariant, now) : null;
 
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-[#0a0a0f] text-white">
@@ -844,6 +893,7 @@ const NeahplusExperience = () => {
               <ProgramSynopsis
                 channel={activeVariant}
                 channelDisplayName={selectedGroup?.displayName ?? ''}
+                now={now}
               />
             </>
           ) : (
@@ -954,7 +1004,8 @@ const NeahplusExperience = () => {
                   <HomeSection
                     title="Mes favoris"
                     channels={favoriteChannels}
-                    groups={allGroups}
+                    groupByChannelId={groupByChannelId}
+                    now={now}
                     favorites={favorites}
                     selectedGroupKey={selectedGroupKey}
                     resolvingKey={resolvingKey}
@@ -968,7 +1019,8 @@ const NeahplusExperience = () => {
                   <HomeSection
                     title="En cours maintenant"
                     channels={playingChannels}
-                    groups={allGroups}
+                    groupByChannelId={groupByChannelId}
+                    now={now}
                     favorites={favorites}
                     selectedGroupKey={selectedGroupKey}
                     resolvingKey={resolvingKey}
@@ -982,7 +1034,8 @@ const NeahplusExperience = () => {
                   <HomeSection
                     title="À découvrir"
                     channels={recommendedChannelList}
-                    groups={allGroups}
+                    groupByChannelId={groupByChannelId}
+                    now={now}
                     favorites={favorites}
                     selectedGroupKey={selectedGroupKey}
                     resolvingKey={resolvingKey}
@@ -1011,6 +1064,7 @@ const NeahplusExperience = () => {
                       channel={channel}
                       date={guideDate}
                       index={i}
+                      now={now}
                       registerRef={registerRef}
                       onPlay={() => handleSelectChannel(channel)}
                     />
@@ -1044,6 +1098,7 @@ const NeahplusExperience = () => {
                     onSelect={() => handleSelectGroup(group)}
                     onToggleFavorite={() => toggleFavorite(group.key)}
                     index={i}
+                    now={now}
                     registerRef={registerRef}
                   />
                 ))}
