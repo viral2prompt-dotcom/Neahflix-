@@ -8,9 +8,10 @@ interface QuickSearchProps {
   currentChannelId: string | null;
   onSelect: (channel: NeahplusChannel) => void;
   onClose: () => void;
+  displayNamesByChannelId: ReadonlyMap<string, string>;
 }
 
-const QuickSearch = ({ channels, currentChannelId, onSelect, onClose }: QuickSearchProps) => {
+const QuickSearch = ({ channels, currentChannelId, onSelect, onClose, displayNamesByChannelId }: QuickSearchProps) => {
   const [query, setQuery] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -30,7 +31,7 @@ const QuickSearch = ({ channels, currentChannelId, onSelect, onClose }: QuickSea
   const filtered = useMemo(() => {
     const needle = foldText(query.trim());
     const preferred = ['piwi+', 'a+', 'canal+ cinéma', 'canal+ action', 'canal+', 'gulli', 'tf1', 'france 2', 'france 3', 'm6', 'tv5monde', 'france 24', 'tmc'];
-    return (needle ? channels.filter((channel) => foldText(channel.name).includes(needle)) : channels)
+    return (needle ? channels.filter((channel) => foldText(displayNamesByChannelId.get(channel.id) ?? channel.name).includes(needle) || foldText(channel.name).includes(needle)) : channels)
       .slice()
       .sort((a, b) => {
         const french = Number(b.countries.includes('France')) - Number(a.countries.includes('France'));
@@ -42,7 +43,7 @@ const QuickSearch = ({ channels, currentChannelId, onSelect, onClose }: QuickSea
         return french || priority(a.name) - priority(b.name) || a.name.localeCompare(b.name, 'fr');
       })
       .slice(0, 30);
-  }, [channels, query]);
+  }, [channels, query, displayNamesByChannelId]);
 
   return (
     <div
@@ -98,10 +99,10 @@ const QuickSearch = ({ channels, currentChannelId, onSelect, onClose }: QuickSea
                         <img src={channel.logo} alt="" loading="lazy" className="h-9 w-9 shrink-0 rounded-lg bg-white/5 object-contain p-0.5" />
                       ) : (
                         <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-[10px] font-black uppercase text-white/90" style={{ background: channelColor(channel.name) }}>
-                          {channel.name.slice(0, 2).toUpperCase()}
+                          {(displayNamesByChannelId.get(channel.id) ?? channel.name).slice(0, 2).toUpperCase()}
                         </span>
                       )}
-                      <span className="min-w-0 flex-1 truncate text-sm font-semibold text-white/90">{channel.name}</span>
+                      <span className="min-w-0 flex-1 truncate text-sm font-semibold text-white/90">{displayNamesByChannelId.get(channel.id) ?? channel.name}</span>
                       {isCurrent && (
                         <span className="shrink-0 rounded-md bg-red-500/20 px-1.5 py-0.5 text-[9px] font-bold uppercase text-red-300">En cours</span>
                       )}
