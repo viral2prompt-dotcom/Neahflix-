@@ -108,7 +108,7 @@ const ChannelCard = ({
     <div
       className={`group relative overflow-hidden rounded-2xl border transition-all duration-300 ${
         selected
-          ? 'border-red-500/50 bg-red-500/10 ring-1 ring-red-500/40 shadow-lg shadow-red-500/10'
+          ? 'border-violet-400/45 bg-violet-400/10 ring-1 ring-violet-400/35 shadow-lg shadow-violet-500/10'
           : 'border-white/[0.08] bg-gradient-to-b from-white/[0.04] to-white/[0.01] hover:border-white/20 hover:from-white/[0.07] hover:to-white/[0.02]'
       }`}
     >
@@ -140,7 +140,7 @@ const ChannelCard = ({
             </div>
           )}
           {group.variants.length > 1 && (
-            <span className="absolute -bottom-1 -right-1 rounded-full bg-red-500 px-1.5 py-0.5 text-[8px] font-bold text-white shadow-sm">
+            <span className="absolute -bottom-1 -right-1 rounded-full bg-violet-500 px-1.5 py-0.5 text-[8px] font-bold text-white shadow-sm">
               {group.variants.length}
             </span>
           )}
@@ -227,7 +227,7 @@ const EpgRow = ({ channel, date, period, onPlay, index, now, registerRef, channe
         <span className="min-w-0 flex-1">
           <span className="block truncate text-xs font-bold text-white">{channelDisplayName}</span>
           <span className="mt-1 block text-[10px] text-white/35">{programs.length} programme{programs.length > 1 ? 's' : ''}</span>
-          <span className="mt-1 inline-flex items-center gap-1 text-[9px] font-bold uppercase tracking-wider text-red-300"><Play className="h-2.5 w-2.5 fill-current" /> Regarder</span>
+          <span className="mt-1 inline-flex items-center gap-1 text-[9px] font-bold uppercase tracking-wider text-amber-300"><Play className="h-2.5 w-2.5 fill-current" /> Regarder</span>
         </span>
       </button>
       <div className="flex min-h-[210px] flex-col gap-1.5 p-2.5">
@@ -241,11 +241,11 @@ const EpgRow = ({ channel, date, period, onPlay, index, now, registerRef, channe
               key={`${program.start}-${program.title}`}
               type="button"
               onClick={onPlay}
-              className={`rounded-lg border px-2.5 py-2 text-left transition ${isCurrent ? 'border-red-500/30 bg-red-500/10' : 'border-transparent bg-white/[0.025] hover:border-white/10 hover:bg-white/[0.06]'} ${isPast ? 'opacity-40' : ''}`}
+              className={`rounded-lg border px-2.5 py-2 text-left transition ${isCurrent ? 'border-amber-400/30 bg-amber-400/10' : 'border-transparent bg-white/[0.025] hover:border-white/10 hover:bg-white/[0.06]'} ${isPast ? 'opacity-40' : ''}`}
             >
               <span className="flex items-center justify-between gap-2">
-                <span className={`text-[10px] font-bold tabular-nums ${isCurrent ? 'text-red-300' : 'text-white/45'}`}>{formatTime(program.start)}</span>
-                {isCurrent && <span className="rounded bg-red-600 px-1.5 py-0.5 text-[8px] font-black uppercase text-white">En direct</span>}
+                <span className={`text-[10px] font-bold tabular-nums ${isCurrent ? 'text-amber-300' : 'text-white/45'}`}>{formatTime(program.start)}</span>
+                {isCurrent && <span className="rounded bg-amber-500 px-1.5 py-0.5 text-[8px] font-black uppercase text-white">En direct</span>}
               </span>
               <span className="mt-1 block line-clamp-2 text-[11px] font-medium leading-4 text-white/85">{program.title}</span>
               <span className="mt-1 block text-[9px] text-white/30">{formatTime(program.start)} – {formatTime(program.end)}</span>
@@ -315,6 +315,9 @@ const NeahplusExperience = () => {
 
   const navigateTo = useCallback((next: Tab) => {
     setDrawerOpen(false);
+    if (['home', 'favorites', 'countries', 'settings'].includes(next)) {
+      setSelectedGroupKey(null);
+    }
     if (pendingNavigationTimer.current !== null) {
       window.clearTimeout(pendingNavigationTimer.current);
       pendingNavigationTimer.current = null;
@@ -333,6 +336,7 @@ const NeahplusExperience = () => {
       setPendingChannelId(null);
     }
     const previous = navigationHistory.current.pop();
+    setSelectedGroupKey(null);
     setTab(previous ?? 'home');
   }, []);
 
@@ -807,6 +811,7 @@ const NeahplusExperience = () => {
 
   return (
     <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden bg-[#07171d] text-white">
+      <style>{'@keyframes neahplus-overlay-in { from { opacity: 0; } to { opacity: 1; } } @keyframes neahplus-drawer-in { from { opacity: 0; transform: translate3d(12px,-6px,0) scale(.98); } to { opacity: 1; transform: translate3d(0,0,0) scale(1); } } @keyframes neahplus-page-in { from { opacity: 0; transform: translate3d(0,10px,0); filter: blur(2px); } to { opacity: 1; transform: translate3d(0,0,0); filter: blur(0); } }'}</style>
       {/* Top navigation bar */}
       <nav className="relative z-50 flex shrink-0 items-center gap-3 border-b border-white/[0.06] bg-[#0b2028]/95 px-3 py-2.5 backdrop-blur-xl sm:px-5" aria-label="Navigation NEAHPLUS TV">
         {((tab !== 'home') || navigationHistory.current.length > 0) && (
@@ -831,8 +836,8 @@ const NeahplusExperience = () => {
       </nav>
       {drawerOpen && (
         <>
-          <button type="button" aria-label="Fermer le menu" onClick={() => setDrawerOpen(false)} className="fixed inset-0 z-[80] bg-black/25 backdrop-blur-[1px]" />
-          <aside id="neahplus-navigation-drawer" className="fixed right-3 top-[4.25rem] z-[90] w-[min(17rem,48vw)] max-h-[58vh] overflow-y-auto rounded-2xl border border-[#20c7c7]/20 bg-[#0b2028]/[0.98] p-3 shadow-[0_18px_55px_rgba(0,0,0,.55)] backdrop-blur-2xl" aria-label="Menu principal NEAHPLUS">
+          <button type="button" aria-label="Fermer le menu" onClick={() => setDrawerOpen(false)} className="fixed inset-0 z-[80] bg-black/25 backdrop-blur-[1px] motion-safe:animate-[neahplus-overlay-in_220ms_ease-out_both]" />
+          <aside id="neahplus-navigation-drawer" className="fixed right-3 top-[4.25rem] z-[90] w-[min(17rem,48vw)] max-h-[70vh] overflow-y-auto rounded-2xl border border-[#20c7c7]/20 bg-[#0b2028]/[0.98] p-3 shadow-[0_18px_55px_rgba(0,0,0,.55)] backdrop-blur-2xl motion-safe:animate-[neahplus-drawer-in_300ms_cubic-bezier(0.22,1,0.36,1)_both]" aria-label="Menu principal NEAHPLUS">
             <div className="mb-2 flex items-center justify-between px-1.5 py-1">
               <div><p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#55dddd]">Navigation</p><p className="mt-0.5 text-xs text-white/45">Votre univers NEAHPLUS</p></div>
               <button type="button" onClick={() => setDrawerOpen(false)} aria-label="Fermer" className="rounded-lg p-1.5 text-white/45 transition hover:bg-white/10 hover:text-white"><X className="h-4 w-4" /></button>
@@ -888,7 +893,7 @@ const NeahplusExperience = () => {
                       onClick={() => { handleSelectGroup(group); }}
                       className={`group flex items-center gap-3 rounded-xl p-2.5 text-left transition-all duration-200 ${
                         isSelected
-                          ? 'bg-red-500/15 ring-1 ring-red-500/30'
+                          ? 'bg-violet-400/15 ring-1 ring-violet-400/30'
                           : 'hover:bg-white/5'
                       }`}
                     >
@@ -930,6 +935,7 @@ const NeahplusExperience = () => {
               <div className="group relative mx-auto w-full max-w-[720px]">
                 <NeahplusPlayer
                   key={activeVariant.id}
+                  isActive={Boolean(selectedGroupKey)}
                   channelId={activeVariant.id}
                   channelName={selectedGroup.displayName}
                   onInfo={() => setShowInfoPanel(true)}
@@ -946,7 +952,7 @@ const NeahplusExperience = () => {
                     {activeProgram?.title ?? selectedGroup.countries.join(', ') ?? '—'}
                   </p>
                   {activeProgram && (
-                    <p className="mt-0.5 text-[10px] text-red-300/70 tabular-nums">
+                    <p className="mt-0.5 text-[10px] text-amber-300/70 tabular-nums">
                       {formatTime(activeProgram.start)} – {formatTime(activeProgram.end)}
                     </p>
                   )}
@@ -1043,7 +1049,7 @@ const NeahplusExperience = () => {
         </section>
 
         {/* Right: Browse / Guide / Home */}
-        <section className={`flex min-h-0 w-full min-w-0 flex-1 flex-col overflow-hidden ${['home', 'favorites', 'countries', 'settings'].includes(tab) ? 'w-full' : 'lg:border-l lg:border-white/[0.06]'}`}>
+        <section key={tab} data-lenis-prevent className={`flex min-h-0 w-full min-w-0 flex-1 flex-col overflow-y-auto overscroll-y-contain touch-pan-y lg:overflow-y-auto motion-safe:animate-[neahplus-page-in_360ms_cubic-bezier(0.22,1,0.36,1)_both] ${['home', 'favorites', 'countries', 'settings'].includes(tab) ? 'w-full' : 'lg:border-l lg:border-white/[0.06]'}`} style={{ WebkitOverflowScrolling: 'touch' }}>
           {/* Search + filters bar */}
           {(tab === 'all' || tab === 'guide' || tab === 'world') && <div className="flex flex-col gap-2 border-b border-white/[0.06] p-3 sm:flex-row sm:items-center sm:gap-3">
             <label className="relative flex-1">
@@ -1107,7 +1113,7 @@ const NeahplusExperience = () => {
           {(tab === 'all' || tab === 'world') && <p className="px-3 py-2 text-xs font-medium text-white/40" aria-live="polite">{filteredGroups.length} chaîne{filteredGroups.length > 1 ? 's' : ''}</p>}
 
           {/* Content grid */}
-          <div ref={gridRef} className={`min-h-0 flex-1 flex-col overflow-y-auto overscroll-y-contain touch-pan-y ${['home', 'favorites', 'countries', 'settings'].includes(tab) ? 'flex p-3 sm:p-5 lg:p-7' : 'flex p-3'}`} style={{ WebkitOverflowScrolling: 'touch' }} data-lenis-prevent>
+          <div ref={gridRef} className={`flex-col overscroll-y-contain touch-pan-y ${['home', 'favorites', 'countries', 'settings'].includes(tab) ? 'min-h-max flex-none overflow-visible p-3 sm:p-5 lg:p-7' : 'min-h-0 flex-1 overflow-y-auto p-3'}`} style={{ WebkitOverflowScrolling: 'touch' }} data-lenis-prevent>
             {tab === 'home' || tab === 'favorites' ? (
               <NeahplusHome
                 channels={homeChannels}
