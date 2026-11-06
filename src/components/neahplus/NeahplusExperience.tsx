@@ -552,7 +552,7 @@ const NeahplusExperience = () => {
     if (tab !== 'favorites') return channelsForCountry;
     return allGroups
       .filter((group) => favorites.has(group.key) && group.variants.length > 0)
-      .map((group) => group.variants[0]);
+      .flatMap((group) => group.variants[0] ? [group.variants[0]] : []);
   }, [tab, channelsForCountry, allGroups, favorites]);
 
   const saveSpaceName = useCallback(() => {
