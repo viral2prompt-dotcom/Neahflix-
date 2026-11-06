@@ -439,14 +439,14 @@ const NeahplusExperience = () => {
     const nextName = renameValue.trim().slice(0, 48);
     setCustomNames((previous) => {
       const next = { ...previous };
-      const originalName = selectedGroup.variants[0]?.name ?? selectedGroup.displayName;
+      const originalName = baseRealGroups.find((group) => group.key === selectedGroup.key)?.displayName ?? selectedGroup.displayName;
       if (!nextName || foldText(nextName) === foldText(originalName)) delete next[selectedGroup.key];
       else next[selectedGroup.key] = nextName;
       saveChannelDisplayNames(next);
       return next;
     });
     setShowRenameDialog(false);
-  }, [selectedGroup, renameValue]);
+  }, [selectedGroup, renameValue, baseRealGroups]);
 
   const goToPrevChannel = useCallback(() => {
     if (prevGroupKey) {
@@ -766,7 +766,7 @@ const NeahplusExperience = () => {
         )}
 
         {/* Left: Player + info */}
-        <section className={`flex min-h-0 w-full shrink-0 flex-col gap-3 overflow-y-auto overscroll-y-contain touch-pan-y p-3 [ -webkit-overflow-scrolling:touch ] lg:w-[42%] lg:max-w-[720px] lg:p-4 ${tab === 'home' ? 'hidden' : ''}`}>
+        <section className={`flex min-h-0 w-full shrink-0 flex-col gap-3 overflow-y-auto overscroll-y-contain touch-pan-y p-3 lg:w-[42%] lg:max-w-[720px] lg:p-4 ${tab === 'home' ? 'hidden' : ''}`}>
           {activeVariant && selectedGroup ? (
             <>
               <div className="group relative mx-auto w-full max-w-[720px]">
@@ -974,7 +974,7 @@ const NeahplusExperience = () => {
           )}
 
           {/* Content grid */}
-          <div ref={gridRef} className={`min-h-0 flex-1 flex-col overflow-y-auto overscroll-y-contain touch-pan-y [ -webkit-overflow-scrolling:touch ] ${tab === 'home' ? 'flex p-3 sm:p-5 lg:p-7' : 'flex p-3'}`} data-lenis-prevent>
+          <div ref={gridRef} className={`min-h-0 flex-1 flex-col overflow-y-auto overscroll-y-contain touch-pan-y ${tab === 'home' ? 'flex p-3 sm:p-5 lg:p-7' : 'flex p-3'}`} style={{ WebkitOverflowScrolling: 'touch' }} data-lenis-prevent>
             {tab === 'home' ? (
               <NeahplusHome
                 channels={catalog.channels}
