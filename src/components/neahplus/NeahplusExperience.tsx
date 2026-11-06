@@ -24,6 +24,7 @@ import NeahplusHome from './NeahplusHome';
 import {
   currentProgram,
   loadNeahplusCatalog,
+  resolveNeahplusStream,
   type NeahplusCatalog,
   type NeahplusChannel,
 } from './neahplusCatalog';
@@ -250,6 +251,7 @@ const NeahplusExperience = () => {
   const [catalog, setCatalog] = useState<NeahplusCatalog | null>(null);
   const [catalogComplete, setCatalogComplete] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [resolvingKey, setResolvingKey] = useState<string | null>(null);
   const [attempt, setAttempt] = useState(0);
   const [tab, setTab] = useState<Tab>('home');
   const [query, setQuery] = useState('');
@@ -397,11 +399,39 @@ const NeahplusExperience = () => {
       .sort((a, b) => Number(b.countries.includes('France')) - Number(a.countries.includes('France')) || channelPriority(a.displayName) - channelPriority(b.displayName) || a.displayName.localeCompare(b.displayName, 'fr'));
   }, [allGroups]);
 
+  const resolvingRef = useRef<AbortController | null>(null);
+
+  const resolveBestVariant = useCallback(async (group: ChannelGroup) => {
+    if (group.variants.length === 0) return;
+    resolvingRef.current?.abort();
+    const controller = new AbortController();
+    resolvingRef.current = controller;
+    setResolvingKey(group.key);
+
+    for (let i = 0; i < group.variants.length; i++) {
+      if (controller.signal.aborted) return;
+      try {
+        await resolveNeahplusStream(group.variants[i].id, controller.signal);
+        if (controller.signal.aborted) return;
+        setActiveVariantIndex(i);
+        setResolvingKey(null);
+        return;
+      } catch {
+      }
+    }
+
+    if (!controller.signal.aborted) {
+      setActiveVariantIndex(0);
+      setResolvingKey(null);
+    }
+  }, []);
+
   const handleSelectGroup = useCallback((group: ChannelGroup) => {
     setPrevGroupKey(selectedGroupKey);
     setSelectedGroupKey(group.key);
     setActiveVariantIndex(0);
-  }, [selectedGroupKey]);
+    if (group.variants.length > 1) void resolveBestVariant(group);
+  }, [resolveBestVariant, selectedGroupKey]);
 
   const handleSelectChannel = useCallback((channel: NeahplusChannel) => {
     const group = groupByChannelId.get(channel.id);
@@ -434,9 +464,10 @@ const NeahplusExperience = () => {
         setPrevGroupKey(selectedGroupKey);
         setSelectedGroupKey(temp);
         setActiveVariantIndex(0);
+        if (prev.variants.length > 1) void resolveBestVariant(prev);
       }
     }
-  }, [prevGroupKey, groupByKey, selectedGroupKey]);
+  }, [prevGroupKey, groupByKey, selectedGroupKey, resolveBestVariant]);
 
   const cycleVariant = useCallback((direction: 1 | -1) => {
     if (!selectedGroup || selectedGroup.variants.length <= 1) return;
@@ -1019,6 +1050,7 @@ const NeahplusExperience = () => {
                     group={group}
                     selected={group.key === selectedGroupKey}
                     favorited={favorites.has(group.key)}
+                    resolving={group.key === resolvingKey}
                     onSelect={() => handleSelectGroup(group)}
                     onToggleFavorite={() => toggleFavorite(group.key)}
                     index={i}
