@@ -282,6 +282,7 @@ const NeahplusExperience = () => {
   const [attempt, setAttempt] = useState(0);
   const [tab, setTab] = useState<Tab>('home');
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [drawerMounted, setDrawerMounted] = useState(false);
   const [pendingChannelId, setPendingChannelId] = useState<string | null>(null);
   const [spaceName, setSpaceName] = useState(() => {
     try { return localStorage.getItem('neahplus:space-name') || 'Mon espace NEAHPLUS'; } catch { return 'Mon espace NEAHPLUS'; }
@@ -353,6 +354,16 @@ const NeahplusExperience = () => {
   useEffect(() => {
     try { localStorage.setItem('neahplus:space-name', spaceName); } catch { /* stockage local indisponible */ }
   }, [spaceName]);
+
+  useEffect(() => {
+    if (drawerOpen) {
+      setDrawerMounted(true);
+      return;
+    }
+    if (!drawerMounted) return;
+    const timer = window.setTimeout(() => setDrawerMounted(false), 220);
+    return () => window.clearTimeout(timer);
+  }, [drawerOpen, drawerMounted]);
 
   useEffect(() => {
     const timer = window.setInterval(() => setNow(Date.now()), 30_000);
@@ -811,7 +822,7 @@ const NeahplusExperience = () => {
 
   return (
     <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden bg-[#07171d] text-white">
-      <style>{'@keyframes neahplus-overlay-in { from { opacity: 0; } to { opacity: 1; } } @keyframes neahplus-drawer-in { from { opacity: 0; transform: translate3d(12px,-6px,0) scale(.98); } to { opacity: 1; transform: translate3d(0,0,0) scale(1); } } @keyframes neahplus-page-in { from { opacity: 0; transform: translate3d(0,10px,0); filter: blur(2px); } to { opacity: 1; transform: translate3d(0,0,0); filter: blur(0); } }'}</style>
+      <style>{'@keyframes neahplus-overlay-in { from { opacity: 0; } to { opacity: 1; } } @keyframes neahplus-overlay-out { from { opacity: 1; } to { opacity: 0; } } @keyframes neahplus-drawer-in { from { opacity: 0; transform: translate3d(12px,-6px,0) scale(.98); } to { opacity: 1; transform: translate3d(0,0,0) scale(1); } } @keyframes neahplus-drawer-out { from { opacity: 1; transform: translate3d(0,0,0) scale(1); } to { opacity: 0; transform: translate3d(10px,-4px,0) scale(.985); } } @keyframes neahplus-page-in { from { opacity: 0; transform: translate3d(0,10px,0); filter: blur(2px); } to { opacity: 1; transform: translate3d(0,0,0); filter: blur(0); } }'}</style>
       {/* Top navigation bar */}
       <nav className="relative z-50 flex shrink-0 items-center gap-3 border-b border-white/[0.06] bg-[#0b2028]/95 px-3 py-2.5 backdrop-blur-xl sm:px-5" aria-label="Navigation NEAHPLUS TV">
         {((tab !== 'home') || navigationHistory.current.length > 0) && (
@@ -834,10 +845,10 @@ const NeahplusExperience = () => {
           </button>
         </div>
       </nav>
-      {drawerOpen && (
+      {drawerMounted && (
         <>
-          <button type="button" aria-label="Fermer le menu" onClick={() => setDrawerOpen(false)} className="fixed inset-0 z-[80] bg-black/25 backdrop-blur-[1px] motion-safe:animate-[neahplus-overlay-in_220ms_ease-out_both]" />
-          <aside id="neahplus-navigation-drawer" className="fixed right-3 top-[4.25rem] z-[90] w-[min(17rem,48vw)] max-h-[70vh] overflow-y-auto rounded-2xl border border-[#20c7c7]/20 bg-[#0b2028]/[0.98] p-3 shadow-[0_18px_55px_rgba(0,0,0,.55)] backdrop-blur-2xl motion-safe:animate-[neahplus-drawer-in_300ms_cubic-bezier(0.22,1,0.36,1)_both]" aria-label="Menu principal NEAHPLUS">
+          <button type="button" aria-label="Fermer le menu" onClick={() => setDrawerOpen(false)} className={`fixed inset-0 z-[80] bg-black/25 backdrop-blur-[1px] motion-safe:${drawerOpen ? 'animate-[neahplus-overlay-in_220ms_ease-out_both]' : 'animate-[neahplus-overlay-out_220ms_ease-in_both]'}`} />
+          <aside id="neahplus-navigation-drawer" className={`fixed right-3 top-[4.25rem] z-[90] w-[min(17rem,48vw)] max-h-[70vh] overflow-y-auto rounded-2xl border border-[#20c7c7]/20 bg-[#0b2028]/[0.98] p-3 shadow-[0_18px_55px_rgba(0,0,0,.55)] backdrop-blur-2xl motion-safe:${drawerOpen ? 'animate-[neahplus-drawer-in_300ms_cubic-bezier(0.22,1,0.36,1)_both]' : 'animate-[neahplus-drawer-out_220ms_ease-in_both]'}`} aria-label="Menu principal NEAHPLUS">
             <div className="mb-2 flex items-center justify-between px-1.5 py-1">
               <div><p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#55dddd]">Navigation</p><p className="mt-0.5 text-xs text-white/45">Votre univers NEAHPLUS</p></div>
               <button type="button" onClick={() => setDrawerOpen(false)} aria-label="Fermer" className="rounded-lg p-1.5 text-white/45 transition hover:bg-white/10 hover:text-white"><X className="h-4 w-4" /></button>
