@@ -61,7 +61,7 @@ const TABS: { id: Tab; label: string; icon: typeof HomeIcon }[] = [
 
 const PAGE_SIZE = 60;
 
-const CHANNEL_PRIORITY = ['canal+ premiere', 'canal+ pop', 'canal+ sport 1', 'canal+ cinema', 'canal+ action', 'canal+ kids', 'canal+ family', 'gulli africa', 'piwi+', 'teletoon+', 'a+', 'novelas tv', 'tv5monde', 'tf1', 'france 2', 'france 3', 'm6', 'france 24', 'tmc'];
+const CHANNEL_PRIORITY = ['canal+ premiere', 'canal+ pop', 'canal+ sport 1', 'canal+ cinema', 'canal+ action', 'canal+ kids', 'canal+ family', 'gulli africa', 'piwi+', 'teletoon+', 'boomerang', 'tiji', 'a+', 'novelas tv', 'tv5monde', 'tf1', 'france 2', 'france 3', 'm6', 'france 24', 'tmc'];
 const channelPriority = (name: string): number => {
   const normalized = foldText(name);
   const index = CHANNEL_PRIORITY.findIndex((preferred) => normalized === foldText(preferred) || normalized.startsWith(foldText(preferred) + ' '));
