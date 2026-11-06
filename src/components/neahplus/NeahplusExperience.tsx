@@ -7,7 +7,6 @@ import {
   Home as HomeIcon,
   Info,
   List,
-  Loader2,
   Play,
   Pencil,
   RotateCcw,
@@ -71,7 +70,6 @@ interface ChannelCardProps {
   group: ChannelGroup;
   selected: boolean;
   favorited: boolean;
-  resolving: boolean;
   onSelect: () => void;
   onToggleFavorite: () => void;
   index: number;
@@ -83,7 +81,6 @@ const ChannelCard = ({
   group,
   selected,
   favorited,
-  resolving,
   onSelect,
   onToggleFavorite,
   index,
@@ -148,9 +145,6 @@ const ChannelCard = ({
           </span>
           {!group.hasStream && (
             <span className="mt-0.5 block text-[10px] text-amber-300/70">Flux non disponible</span>
-          )}
-          {resolving && (
-            <span className="mt-0.5 block text-[10px] text-red-300/80">Vérification…</span>
           )}
         </span>
       </button>
@@ -269,7 +263,6 @@ const NeahplusExperience = () => {
   const [renameValue, setRenameValue] = useState('');
   const [guideDate, setGuideDate] = useState(() => new Date());
   const [guidePeriod, setGuidePeriod] = useState<GuidePeriod>('all');
-  const [resolvingKey, setResolvingKey] = useState<string | null>(null);
   const [showInfoPanel, setShowInfoPanel] = useState(false);
   const [showQuickSearch, setShowQuickSearch] = useState(false);
   const [showChannelList, setShowChannelList] = useState(false);
@@ -1017,7 +1010,6 @@ const NeahplusExperience = () => {
                     group={group}
                     selected={group.key === selectedGroupKey}
                     favorited={favorites.has(group.key)}
-                    resolving={group.key === resolvingKey}
                     onSelect={() => handleSelectGroup(group)}
                     onToggleFavorite={() => toggleFavorite(group.key)}
                     index={i}
