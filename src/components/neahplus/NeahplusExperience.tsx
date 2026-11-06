@@ -360,7 +360,7 @@ const NeahplusExperience = () => {
 
     return base.filter((g) => {
       if (country && tab !== 'world' && !groupMatchesCountry(g, country)) return false;
-      if (needle && !foldText(g.displayName).includes(needle)) return false;
+      if (needle && !foldText(g.displayName).includes(needle) && !g.variants.some((variant) => foldText(variant.name).includes(needle))) return false;
       return true;
     }).sort((a, b) => Number(b.countries.includes('France')) - Number(a.countries.includes('France')) || channelPriority(a.displayName) - channelPriority(b.displayName) || a.displayName.localeCompare(b.displayName, 'fr'));
   }, [allGroups, country, query, tab, favorites]);
@@ -471,10 +471,12 @@ const NeahplusExperience = () => {
 
   const epgChannels = useMemo(() => {
     if (!catalog) return [];
+    const needle = foldText(query.trim());
     return channelsWithEpg(catalog.channels)
+      .filter((channel) => !needle || foldText(displayNamesByChannelId.get(channel.id) ?? channel.name).includes(needle) || foldText(channel.name).includes(needle))
       .sort((a, b) => Number(b.countries.includes('France')) - Number(a.countries.includes('France')) || channelPriority(a.name) - channelPriority(b.name) || a.name.localeCompare(b.name, 'fr'))
       .slice(0, 200);
-  }, [catalog]);
+  }, [catalog, query, displayNamesByChannelId]);
 
   const epgVisible = useMemo(
     () => epgChannels.slice(0, visibleCount),
