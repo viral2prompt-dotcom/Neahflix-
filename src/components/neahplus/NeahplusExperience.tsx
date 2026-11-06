@@ -9,6 +9,7 @@ import {
   Info,
   List,
   Loader2,
+  Play,
   RotateCcw,
   Search,
   Star,
@@ -30,7 +31,6 @@ import {
 } from './neahplusCatalog';
 import {
   channelColor,
-  channelsCurrentlyPlaying,
   channelsWithEpg,
   ChannelGroup,
   foldText,
@@ -43,7 +43,6 @@ import {
   loadFavorites,
   migrateLegacyFavorites,
   getNextProgram,
-  recommendedChannels,
   saveFavorites,
   shortChannelName,
 } from './neahplusTvUtils';
@@ -59,7 +58,6 @@ const TABS: { id: Tab; label: string; icon: typeof HomeIcon }[] = [
 ];
 
 const PAGE_SIZE = 60;
-const HOME_SECTION_COUNT = 12;
 
 const CHANNEL_PRIORITY = ['piwi+', 'a+', 'canal+ cinéma', 'canal+ action', 'canal+', 'gulli', 'tf1', 'france 2', 'france 3', 'm6', 'tv5monde', 'france 24', 'tmc'];
 const channelPriority = (name: string): number => {
@@ -240,62 +238,6 @@ const EpgRow = ({ channel, date, onPlay, index, now, registerRef }: EpgRowProps)
         })}
       </div>
     </article>
-  );
-};
-
-interface HomeSectionProps {
-  title: string;
-  channels: NeahplusChannel[];
-  groupByChannelId: ReadonlyMap<string, ChannelGroup>;
-  now: number;
-  favorites: Set<string>;
-  selectedGroupKey: string | null;
-  resolvingKey: string | null;
-  onSelectChannel: (channel: NeahplusChannel) => void;
-  onToggleFavorite: (key: string) => void;
-  registerRef: (el: HTMLButtonElement | null, index: number) => void;
-  startIndex: number;
-}
-
-const HomeSection = ({
-  title,
-  channels,
-  groupByChannelId,
-  now,
-  favorites,
-  selectedGroupKey,
-  resolvingKey,
-  onSelectChannel,
-  onToggleFavorite,
-  registerRef,
-  startIndex,
-}: HomeSectionProps) => {
-  if (channels.length === 0) return null;
-
-  return (
-    <div className="flex flex-col gap-3">
-      <h3 className="px-1 text-sm font-bold tracking-tight text-white/85">{title}</h3>
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-4">
-        {channels.map((channel, i) => {
-          const group = groupByChannelId.get(channel.id);
-          if (!group) return null;
-          return (
-            <ChannelCard
-              key={channel.id}
-              group={group}
-              selected={group.key === selectedGroupKey}
-              favorited={favorites.has(group.key)}
-              resolving={group.key === resolvingKey}
-              onSelect={() => onSelectChannel(channel)}
-              onToggleFavorite={() => onToggleFavorite(group.key)}
-              index={startIndex + i}
-              now={now}
-              registerRef={registerRef}
-            />
-          );
-        })}
-      </div>
-    </div>
   );
 };
 
@@ -493,23 +435,6 @@ const NeahplusExperience = () => {
     () => epgChannels.slice(0, visibleCount),
     [epgChannels, visibleCount],
   );
-
-  const favoriteChannels = useMemo(() => {
-    return realGroups
-      .filter((g) => favorites.has(g.key))
-      .map((g) => g.variants[0])
-      .slice(0, HOME_SECTION_COUNT);
-  }, [realGroups, favorites]);
-
-  const playingChannels = useMemo(() => {
-    if (!catalog) return [];
-    return channelsCurrentlyPlaying(catalog.channels, now).slice(0, HOME_SECTION_COUNT);
-  }, [catalog, now]);
-
-  const recommendedChannelList = useMemo(() => {
-    if (!catalog) return [];
-    return recommendedChannels(catalog.channels, now, HOME_SECTION_COUNT);
-  }, [catalog, now]);
 
   const registerRef = useCallback((el: HTMLButtonElement | null, index: number) => {
     itemRefs.current[index] = el;
@@ -1059,7 +984,7 @@ const NeahplusExperience = () => {
                   : 'Aucune chaîne ne correspond à votre recherche.'}
               </p>
             ) : (
-              <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 xl:grid-cols-3">
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-4">
                 {visibleGroups.map((group, i) => (
                   <ChannelCard
                     key={group.key}
