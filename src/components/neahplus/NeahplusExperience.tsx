@@ -20,6 +20,7 @@ import ChannelCarousel from './ChannelCarousel';
 import ProgramSynopsis from './ProgramSynopsis';
 import InfoPanel from './InfoPanel';
 import QuickSearch from './QuickSearch';
+import NeahplusHome from './NeahplusHome';
 import {
   currentProgram,
   loadNeahplusCatalog,
@@ -51,10 +52,10 @@ type Tab = 'home' | 'all' | 'guide' | 'favorites' | 'world';
 
 const TABS: { id: Tab; label: string; icon: typeof HomeIcon }[] = [
   { id: 'home', label: 'Accueil', icon: HomeIcon },
-  { id: 'all', label: 'Chaînes', icon: Tv },
-  { id: 'guide', label: 'Guide TV', icon: List },
+  { id: 'all', label: 'En direct', icon: Tv },
+  { id: 'guide', label: 'Programme TV', icon: List },
   { id: 'favorites', label: 'Favoris', icon: Heart },
-  { id: 'world', label: 'Monde', icon: Globe },
+  { id: 'world', label: 'Plus', icon: Globe },
 ];
 
 const PAGE_SIZE = 60;
@@ -826,7 +827,7 @@ const NeahplusExperience = () => {
         )}
 
         {/* Left: Player + info */}
-        <section className="flex min-h-0 shrink-0 flex-col gap-3 p-3 lg:w-[42%] lg:p-4 xl:w-[40%]">
+        <section className={`flex min-h-0 shrink-0 flex-col gap-3 p-3 lg:p-4 ${tab === 'home' ? 'hidden' : 'lg:w-[42%] xl:w-[40%]'}`}>
           {activeVariant && selectedGroup ? (
             <>
               <div className="group relative">
@@ -936,9 +937,9 @@ const NeahplusExperience = () => {
         </section>
 
         {/* Right: Browse / Guide / Home */}
-        <section className="flex min-h-0 flex-1 flex-col overflow-hidden border-l border-white/[0.04]">
+        <section className={`flex min-h-0 flex-1 flex-col overflow-hidden ${tab === 'home' ? 'w-full' : 'border-l border-white/[0.04]'}`}>
           {/* Search + filters bar */}
-          <div className="flex flex-col gap-2 border-b border-white/[0.06] p-3 sm:flex-row sm:items-center sm:gap-3">
+          {tab !== 'home' && <div className="flex flex-col gap-2 border-b border-white/[0.06] p-3 sm:flex-row sm:items-center sm:gap-3">
             <label className="relative flex-1">
               <span className="sr-only">Rechercher une chaîne</span>
               <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-white/30" aria-hidden="true" />
@@ -972,7 +973,7 @@ const NeahplusExperience = () => {
                 {catalog.countries.length} pays · {catalog.channels.length} chaînes
               </span>
             )}
-          </div>
+          </div>}
 
           {/* Guide date navigator */}
           {tab === 'guide' && (
@@ -1015,8 +1016,16 @@ const NeahplusExperience = () => {
           )}
 
           {/* Content grid */}
-          <div ref={gridRef} className="flex min-h-0 flex-1 flex-col overflow-y-auto p-3" data-lenis-prevent>
+          <div ref={gridRef} className={`flex min-h-0 flex-1 flex-col overflow-y-auto ${tab === 'home' ? 'p-4 sm:p-6 lg:p-8' : 'p-3'}`} data-lenis-prevent>
             {tab === 'home' ? (
+              <NeahplusHome
+                channels={catalog.channels}
+                now={now}
+                query={query}
+                onQueryChange={setQuery}
+                onSelectChannel={(channel) => { handleSelectChannel(channel); setTab('all'); }}
+              />
+            ) : tab === 'legacy-home' ? (
               <div className="flex flex-col gap-6">
                 {favoriteChannels.length > 0 && (
                   <HomeSection
