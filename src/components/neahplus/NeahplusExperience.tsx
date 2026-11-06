@@ -163,7 +163,8 @@ const ChannelCard = ({
           e.stopPropagation();
           onToggleFavorite();
         }}
-        aria-label={favorited ? 'Retirer des favoris' : 'Ajouter aux favoris'}
+        aria-label={favorited ? 'Retirer de mon espace NEAHPLUS' : 'Ajouter à mon espace NEAHPLUS'}
+        title={favorited ? 'Dans mon espace NEAHPLUS' : 'Ajouter à mon espace NEAHPLUS'}
         aria-pressed={favorited}
         className={`absolute right-3 top-1/2 -translate-y-1/2 rounded-xl p-2.5 transition-all duration-200 ${
           favorited
@@ -173,6 +174,7 @@ const ChannelCard = ({
       >
         <Heart className="h-4 w-4" fill={favorited ? 'currentColor' : 'none'} aria-hidden="true" />
       </button>
+      {resolving && <span className="absolute bottom-2 left-2 inline-flex items-center gap-1 rounded-md bg-[#06252b]/95 px-2 py-1 text-[9px] font-bold text-[#8af0f0]"><Loader2 className="h-3 w-3 animate-spin" /> Connexion…</span>}
     </div>
   );
 };
@@ -285,7 +287,7 @@ const NeahplusExperience = () => {
   const pendingNavigationTimer = useRef<number | null>(null);
   const [query, setQuery] = useState('');
   const [country, setCountry] = useState(() => {
-    try { return localStorage.getItem('neahplus:country') ?? ''; } catch { return ''; }
+    try { return localStorage.getItem('neahplus:country') ?? 'France'; } catch { return 'France'; }
   });
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const [selectedGroupKey, setSelectedGroupKey] = useState<string | null>(null);
@@ -308,6 +310,11 @@ const NeahplusExperience = () => {
 
   const navigateTo = useCallback((next: Tab) => {
     setDrawerOpen(false);
+    if (pendingNavigationTimer.current !== null) {
+      window.clearTimeout(pendingNavigationTimer.current);
+      pendingNavigationTimer.current = null;
+      setPendingChannelId(null);
+    }
     if (next === tab) return;
     navigationHistory.current.push(tab);
     setTab(next);
@@ -315,6 +322,11 @@ const NeahplusExperience = () => {
 
   const goBack = useCallback(() => {
     setDrawerOpen(false);
+    if (pendingNavigationTimer.current !== null) {
+      window.clearTimeout(pendingNavigationTimer.current);
+      pendingNavigationTimer.current = null;
+      setPendingChannelId(null);
+    }
     const previous = navigationHistory.current.pop();
     setTab(previous ?? 'home');
   }, []);
@@ -326,7 +338,6 @@ const NeahplusExperience = () => {
   }, []);
 
   useEffect(() => {
-    if (!country) return;
     try { localStorage.setItem('neahplus:country', country); } catch { /* stockage local indisponible */ }
   }, [country]);
 
@@ -422,10 +433,7 @@ const NeahplusExperience = () => {
   }, [realGroups]);
 
   useEffect(() => {
-    if (catalog && !country) {
-      const hasFrance = catalog.countries.some((c) => c.name === 'France');
-      if (hasFrance) setCountry('France');
-    }
+    if (catalog && country === 'France' && !catalog.countries.some((item) => item.name === 'France')) setCountry('');
   }, [catalog, country]);
 
   const filteredGroups = useMemo(() => {
@@ -509,8 +517,9 @@ const NeahplusExperience = () => {
   }, [groupByChannelId, selectedGroupKey]);
 
   const openChannelFromHome = useCallback((channel: NeahplusChannel) => {
+    const alreadyPending = pendingNavigationTimer.current !== null;
     if (pendingNavigationTimer.current !== null) window.clearTimeout(pendingNavigationTimer.current);
-    if (tab !== 'all') navigationHistory.current.push(tab);
+    if (!alreadyPending && tab !== 'all') navigationHistory.current.push(tab);
     handleSelectChannel(channel);
     setPendingChannelId(channel.id);
     pendingNavigationTimer.current = window.setTimeout(() => {
@@ -871,7 +880,7 @@ const NeahplusExperience = () => {
                         <span className="block truncate text-[10px] text-white/35">{group.countries.join(', ') || 'France'}</span>
                       </span>
                       {isFavorited && (
-                        <Star className="h-3 w-3 shrink-0 fill-amber-400 text-amber-400" aria-hidden="true" />
+                        <Heart className="h-3 w-3 shrink-0 fill-[#55dddd] text-[#55dddd]" aria-hidden="true" />
                       )}
                     </button>
                   );
@@ -901,7 +910,7 @@ const NeahplusExperience = () => {
                   channelName={selectedGroup.displayName}
                   onInfo={() => setShowInfoPanel(true)}
                   onPrevChannel={prevGroupKey ? goToPrevChannel : undefined}
-                  onGuide={() => setTab('guide')}
+                  onGuide={() => navigateTo('guide')}
                 />
               </div>
 
@@ -939,7 +948,7 @@ const NeahplusExperience = () => {
                   <button
                     type="button"
                     onClick={() => toggleFavorite(selectedGroup.key)}
-                    aria-label={favorites.has(selectedGroup.key) ? 'Retirer des favoris' : 'Ajouter aux favoris'}
+                    aria-label={favorites.has(selectedGroup.key) ? 'Retirer de mon espace NEAHPLUS' : 'Ajouter à mon espace NEAHPLUS'}
                     aria-pressed={favorites.has(selectedGroup.key)}
                     className={`flex h-9 w-9 items-center justify-center rounded-xl transition ${
                       favorites.has(selectedGroup.key)
@@ -947,7 +956,7 @@ const NeahplusExperience = () => {
                         : 'bg-white/5 text-white/40 hover:bg-white/10 hover:text-white/70'
                     }`}
                   >
-                    <Star className="h-4 w-4" fill={favorites.has(selectedGroup.key) ? 'currentColor' : 'none'} />
+                    <Heart className="h-4 w-4" fill={favorites.has(selectedGroup.key) ? 'currentColor' : 'none'} />
                   </button>
                 </div>
               </div>
@@ -1143,7 +1152,7 @@ const NeahplusExperience = () => {
             ) : filteredGroups.length === 0 ? (
               <p className="py-16 text-center text-sm text-white/40">
                 {tab === 'favorites'
-                  ? 'Aucune chaîne dans vos favoris. Cliquez sur l\'étoile d\'une chaîne pour l\'ajouter.'
+                  ? 'Aucune chaîne dans votre espace. Ajoutez-en avec le bouton cœur depuis l’accueil.'
                   : 'Aucune chaîne ne correspond à votre recherche.'}
               </p>
             ) : (
