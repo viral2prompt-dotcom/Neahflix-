@@ -22,7 +22,7 @@ const categoryMatches = (channel: NeahplusChannel, category: string, live: boole
   const patterns: Record<string, RegExp> = {
     'Cinéma': /cinema|film|movie|action|paramount|ocs|cine\s*\+/,
     'Sport': /sport|eurosport|bein|football|rugby|tennis|basket|combat/,
-    'Jeunesse': /kids|family|piwi|gulli|jeunesse|teletoon|cartoon|nick|disney|boing|tiji|ludikids/,
+    'Jeunesse': /kids|family|piwi|gulli|jeunesse|teletoon|cartoon|boomerang|nick|disney|boing|tiji|ludikids/,
     'Documentaires': /documentaire|docu|canal\+ docs|national geographic|nat geo|discovery|histoire|planete|voyage/,
     'Divertissement': /divertissement|comedie|humour|musique|tv5|france 2|france 3|tf1|m6|tfx|w9|pop|novelas|nollywood|trace|a\+/,
   };
