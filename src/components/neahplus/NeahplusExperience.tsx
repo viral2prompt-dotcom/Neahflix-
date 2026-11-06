@@ -363,6 +363,12 @@ const NeahplusExperience = () => {
   const selectedGroup = selectedGroupKey ? groupByKey.get(selectedGroupKey) ?? null : null;
   const activeVariant = selectedGroup?.variants[activeVariantIndex] ?? null;
 
+  const activeProgram = useMemo(
+    () => (activeVariant ? currentProgram(activeVariant, now) : null),
+    [activeVariant, now],
+  );
+
+
   const carouselGroups = useMemo(() => {
     return allGroups
       .filter((g) => g.hasStream && g.variants.length > 0)
@@ -632,11 +638,6 @@ const NeahplusExperience = () => {
     const suffix = variant.name.replace(baseName, '').trim();
     return suffix || `Source`;
   };
-
-  const activeProgram = useMemo(
-    () => (activeVariant ? currentProgram(activeVariant, now) : null),
-    [activeVariant, now],
-  );
 
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-[#0a0a0f] text-white">
