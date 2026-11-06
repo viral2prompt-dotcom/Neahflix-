@@ -8,16 +8,23 @@ import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
 const ts = require('typescript');
 
+const DIR = 'src/components/neahplus';
+
 const loadTs = (path) => {
   const js = ts.transpileModule(readFileSync(path, 'utf8'), {
     compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020 },
   }).outputText;
   const mod = { exports: {} };
-  new Function('require', 'module', 'exports', js)(require, mod, mod.exports);
+  const localRequire = (specifier) => {
+    if (specifier.startsWith('./')) {
+      const dependencyPath = `${DIR}/${specifier.slice(2)}.ts`;
+      return loadTs(dependencyPath);
+    }
+    return require(specifier);
+  };
+  new Function('require', 'module', 'exports', js)(localRequire, mod, mod.exports);
   return mod.exports;
 };
-
-const DIR = 'src/components/neahplus';
 const catalog = loadTs(`${DIR}/neahplusCatalog.ts`);
 const utils = loadTs(`${DIR}/neahplusTvUtils.ts`);
 
