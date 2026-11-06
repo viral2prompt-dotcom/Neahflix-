@@ -314,6 +314,14 @@ const NeahplusExperience = () => {
     });
   }, []);
 
+  const channelsForCountry = useMemo(() => {
+    const channels = catalog?.channels ?? [];
+    if (!country) return channels;
+    return channels.filter((channel) =>
+      channel.countries.includes(country) || (country === 'France' && channel.countries.length === 0)
+    );
+  }, [catalog, country]);
+
   const baseRealGroups = useMemo(() => groupChannelVariants(catalog?.channels ?? []), [catalog]);
   const realGroups = useMemo(
     () => baseRealGroups.map((group) => ({ ...group, displayName: customNames[group.key] || group.displayName })),
@@ -442,10 +450,11 @@ const NeahplusExperience = () => {
     if (!catalog) return [];
     const needle = foldText(query.trim());
     return channelsWithEpg(catalog.channels)
+      .filter((channel) => !country || channel.countries.includes(country) || (country === 'France' && channel.countries.length === 0))
       .filter((channel) => !needle || foldText(displayNamesByChannelId.get(channel.id) ?? channel.name).includes(needle) || foldText(channel.name).includes(needle))
       .sort((a, b) => Number(b.countries.includes('France')) - Number(a.countries.includes('France')) || channelPriority(a.name) - channelPriority(b.name) || a.name.localeCompare(b.name, 'fr'))
       .slice(0, 200);
-  }, [catalog, query, displayNamesByChannelId]);
+  }, [catalog, query, country, displayNamesByChannelId]);
 
   const epgVisible = useMemo(
     () => epgChannels.slice(0, visibleCount),
@@ -958,7 +967,7 @@ const NeahplusExperience = () => {
           <div ref={gridRef} className={`min-h-0 flex-1 flex-col overflow-y-auto overscroll-y-contain touch-pan-y ${tab === 'home' ? 'flex p-3 sm:p-5 lg:p-7' : 'flex p-3'}`} style={{ WebkitOverflowScrolling: 'touch' }} data-lenis-prevent>
             {tab === 'home' ? (
               <NeahplusHome
-                channels={catalog.channels}
+                channels={channelsForCountry}
                 now={now}
                 query={query}
                 onQueryChange={setQuery}
@@ -1066,7 +1075,7 @@ const NeahplusExperience = () => {
 
       {showQuickSearch && catalog && (
         <QuickSearch
-          channels={catalog.channels}
+          channels={channelsForCountry}
           currentChannelId={activeVariant?.id ?? null}
           onSelect={handleSelectChannel}
           onClose={() => setShowQuickSearch(false)}
