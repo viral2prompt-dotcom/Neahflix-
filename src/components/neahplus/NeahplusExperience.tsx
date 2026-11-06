@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import {
   AlertTriangle,
   ChevronLeft,
@@ -60,7 +61,7 @@ const TABS: { id: Tab; label: string; icon: typeof HomeIcon }[] = [
 
 const PAGE_SIZE = 60;
 
-const CHANNEL_PRIORITY = ['piwi+', 'a+', 'canal+ cinéma', 'canal+ action', 'canal+', 'gulli', 'tf1', 'france 2', 'france 3', 'm6', 'tv5monde', 'france 24', 'tmc'];
+const CHANNEL_PRIORITY = ['canal+ premiere', 'canal+ pop', 'canal+ sport 1', 'canal+ cinema', 'canal+ action', 'canal+ kids', 'canal+ family', 'gulli africa', 'piwi+', 'teletoon+', 'a+', 'novelas tv', 'tv5monde', 'tf1', 'france 2', 'france 3', 'm6', 'france 24', 'tmc'];
 const channelPriority = (name: string): number => {
   const normalized = foldText(name);
   const index = CHANNEL_PRIORITY.findIndex((preferred) => normalized === foldText(preferred) || normalized.startsWith(foldText(preferred) + ' '));
@@ -247,9 +248,43 @@ const EpgRow = ({ channel, date, period, onPlay, index, now, registerRef, channe
   );
 };
 
+const NeahplusEntryTransition = ({ visible }: { visible: boolean }) => visible ? (
+  <div className="pointer-events-auto fixed inset-0 z-[120] grid place-items-center overflow-hidden bg-[#061219] text-center motion-safe:animate-[neahplus-entry_1100ms_ease-in-out_both]" role="status" aria-live="polite" aria-label="Ouverture de NEAHPLUS">
+    <style>{\`
+      @keyframes neahplus-entry {
+        0% { opacity: 0; }
+        14% { opacity: 1; }
+        78% { opacity: 1; }
+        100% { opacity: 0; }
+      }
+      @keyframes neahplus-entry-brand {
+        0% { opacity: 0; transform: translateY(14px) scale(.94); filter: blur(8px); }
+        32% { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+        76% { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+        100% { opacity: 0; transform: translateY(-8px) scale(1.035); filter: blur(3px); }
+      }
+      @keyframes neahplus-entry-line {
+        0% { transform: scaleX(0); opacity: .2; }
+        45% { transform: scaleX(1); opacity: 1; }
+        100% { transform: scaleX(1); opacity: 0; }
+      }
+    \`}</style>
+    <div className="pointer-events-none absolute inset-0 opacity-30" style={{ backgroundImage: 'radial-gradient(circle at 50% 42%, rgba(32,199,199,.26), transparent 38%), linear-gradient(rgba(255,255,255,.035) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.035) 1px, transparent 1px)', backgroundSize: 'auto, 42px 42px, 42px 42px' }} />
+    <div className="relative px-6 motion-safe:animate-[neahplus-entry-brand_1000ms_cubic-bezier(0.16,1,0.3,1)_both]">
+      <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-[1.6rem] border border-[#55dddd]/30 bg-[#0b2932] shadow-[0_0_65px_rgba(32,199,199,.22)]">
+        <Tv className="h-9 w-9 text-[#55dddd]" aria-hidden="true" />
+      </div>
+      <p className="text-3xl font-black tracking-[0.2em] text-white">NEAH<span className="text-[#55dddd]">PLUS</span></p>
+      <p className="mt-3 text-xs font-semibold tracking-[0.18em] text-white/65">VOTRE TÉLÉVISION, VOTRE UNIVERS</p>
+      <div className="mx-auto mt-7 h-px w-44 origin-left bg-gradient-to-r from-transparent via-[#55dddd] to-transparent motion-safe:animate-[neahplus-entry-line_850ms_ease-out_both]" />
+    </div>
+  </div>
+) : null;
+
 const NeahplusExperience = () => {
+  const location = useLocation();
   const [catalog, setCatalog] = useState<NeahplusCatalog | null>(null);
-  const [introVisible, setIntroVisible] = useState(true);
+  const [entryTransitionVisible, setEntryTransitionVisible] = useState(true);
   const [catalogComplete, setCatalogComplete] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [resolvingKey, setResolvingKey] = useState<string | null>(null);
@@ -282,10 +317,15 @@ const NeahplusExperience = () => {
   }, []);
 
   useEffect(() => {
-    setIntroVisible(true);
-    const timer = window.setTimeout(() => setIntroVisible(false), 1600);
+    if (!location.pathname.endsWith('/neahplus')) {
+      setEntryTransitionVisible(false);
+      return;
+    }
+    setEntryTransitionVisible(true);
+    const reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
+    const timer = window.setTimeout(() => setEntryTransitionVisible(false), reducedMotion ? 80 : 1100);
     return () => window.clearTimeout(timer);
-  }, [attempt]);
+  }, [location.key, location.pathname]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -662,24 +702,17 @@ const NeahplusExperience = () => {
           <RotateCcw className="h-4 w-4" aria-hidden="true" />
           Réessayer
         </button>
+        <NeahplusEntryTransition visible={entryTransitionVisible} />
       </div>
     );
   }
 
-  if (!catalog || introVisible) {
+  if (!catalog) {
     return (
-      <div className="relative flex min-h-0 flex-1 flex-col items-center justify-center overflow-hidden bg-[radial-gradient(ellipse_at_50%_42%,#123943_0%,#091d25_42%,#061219_100%)] p-6 text-center">
-        <div className="pointer-events-none absolute inset-0 opacity-30" style={{ backgroundImage: 'linear-gradient(rgba(255,255,255,.035) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.035) 1px, transparent 1px)', backgroundSize: '42px 42px' }} />
-        <div className="relative mb-8 flex h-28 w-28 items-center justify-center">
-          <span className="absolute inset-0 rounded-full border border-[#20c7c7]/20 animate-ping motion-reduce:animate-none" />
-          <span className="absolute inset-2 rounded-full border border-[#20c7c7]/35" />
-          <span className="absolute inset-5 rounded-full bg-[#20c7c7]/10 blur-md" />
-          <div className="relative flex h-16 w-16 items-center justify-center rounded-2xl border border-[#20c7c7]/30 bg-[#0b2932] shadow-[0_0_45px_rgba(32,199,199,.18)]"><Tv className="h-8 w-8 text-[#55dddd]" aria-hidden="true" /></div>
-        </div>
-        <p className="relative text-2xl font-black tracking-[0.18em] text-white">NEAH<span className="text-[#55dddd]">PLUS</span></p>
-        <p className="relative mt-3 text-sm font-semibold text-white/85">Votre univers télévisuel prend place.</p>
-        <p className="relative mt-2 max-w-xs text-xs leading-5 text-white/45">Nous préparons les chaînes et le guide des programmes pour vous.</p>
-        <div className="relative mt-7 h-1 w-40 overflow-hidden rounded-full bg-white/10"><span className="block h-full w-1/3 animate-pulse rounded-full bg-[#55dddd]" /></div>
+      <div className="relative flex min-h-0 flex-1 flex-col items-center justify-center gap-3 overflow-hidden bg-[radial-gradient(ellipse_at_50%_42%,#123943_0%,#091d25_42%,#061219_100%)] p-6 text-center">
+        <Loader2 className="h-8 w-8 animate-spin text-[#55dddd] motion-reduce:animate-none" aria-hidden="true" />
+        <p className="text-sm text-white/65">Préparation de votre univers NEAHPLUS…</p>
+        <NeahplusEntryTransition visible={entryTransitionVisible} />
       </div>
     );
   }
@@ -690,7 +723,7 @@ const NeahplusExperience = () => {
   };
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-[#07171d] text-white">
+    <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden bg-[#07171d] text-white">
       {/* Top navigation bar */}
       <nav className="flex shrink-0 items-center gap-1 border-b border-white/[0.06] bg-[#0b2028]/95 px-3 py-2.5 backdrop-blur-xl sm:px-5" aria-label="Navigation NEAHPLUS TV">
         <div className="mr-2 flex items-center gap-2 sm:mr-4">
@@ -1121,6 +1154,7 @@ const NeahplusExperience = () => {
           displayNamesByChannelId={displayNamesByChannelId}
         />
       )}
+      <NeahplusEntryTransition visible={entryTransitionVisible} />
     </div>
   );
 };
