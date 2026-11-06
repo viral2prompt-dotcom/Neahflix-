@@ -616,6 +616,7 @@ const NeahplusExperience = () => {
   }, []);
 
   type KeyboardContext = {
+    drawerOpen: boolean;
     showInfoPanel: boolean;
     showQuickSearch: boolean;
     tab: Tab;
@@ -628,6 +629,7 @@ const NeahplusExperience = () => {
   };
 
   const keyboardContextRef = useRef<KeyboardContext>({
+    drawerOpen: false,
     showInfoPanel: false,
     showQuickSearch: false,
     tab: 'home',
@@ -640,6 +642,7 @@ const NeahplusExperience = () => {
   });
 
   keyboardContextRef.current = {
+    drawerOpen,
     showInfoPanel,
     showQuickSearch,
     tab,
@@ -673,6 +676,11 @@ const NeahplusExperience = () => {
       if (isInInput && e.key !== 'Escape') return;
 
       if (e.key === 'Escape') {
+        if (context.drawerOpen) {
+          e.preventDefault();
+          setDrawerOpen(false);
+          return;
+        }
         if (isInInput) {
           (target as HTMLInputElement).blur();
           focusGridItem(0);
