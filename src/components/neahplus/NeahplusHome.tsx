@@ -1,3 +1,4 @@
+import { getNeahplusChannelLogo, getNeahplusChannelPriority } from './neahplusBranding';
 import { useMemo, useRef, useState } from 'react';
 import { ChevronLeft, ChevronRight, Play, Search, Radio } from 'lucide-react';
 import type { NeahplusChannel } from './neahplusCatalog';
@@ -17,13 +18,13 @@ const categoryLabels = ['Tout', 'En direct', 'Cinéma', 'Sport', 'Jeunesse', 'Do
 const categoryMatches = (channel: NeahplusChannel, category: string, live: boolean): boolean => {
   if (category === 'Tout') return true;
   if (category === 'En direct') return live;
-  const source = [channel.name, ...channel.categories].join(' ').toLocaleLowerCase('fr');
+  const source = foldText([channel.name, ...channel.categories].join(' '));
   const patterns: Record<string, RegExp> = {
-    'Cinéma': /cin[eé]ma|film|movie|action|paramount|ocs|cine\s*\+/,
+    'Cinéma': /cinema|film|movie|action|paramount|ocs|cine\s*\+/,
     'Sport': /sport|eurosport|bein|football|rugby|tennis|basket|combat/,
-    'Jeunesse': /piwi|gulli|jeunesse|t[eé]l[eé]toon|cartoon|nick|disney|boing|tiji/,
-    'Documentaires': /documentaire|docu|national geographic|nat geo|discovery|histoire|plan[eè]te|voyage/,
-    'Divertissement': /divertissement|com[eé]die|humour|musique|tv5|france 2|france 3|tf1|m6|tfx|w9/,
+    'Jeunesse': /kids|family|piwi|gulli|jeunesse|teletoon|cartoon|nick|disney|boing|tiji|ludikids/,
+    'Documentaires': /documentaire|docu|canal\+ docs|national geographic|nat geo|discovery|histoire|planete|voyage/,
+    'Divertissement': /divertissement|comedie|humour|musique|tv5|france 2|france 3|tf1|m6|tfx|w9|pop|novelas|nollywood|trace|a\+/,
   };
   return patterns[category]?.test(source) ?? false;
 };
@@ -41,7 +42,7 @@ const NeahplusHome = ({ channels, now, query, onQueryChange, onSelectChannel, di
       return matchesQuery && categoryMatches(channel, category, live);
     }).sort((a, b) =>
       Number(b.countries.includes('France')) - Number(a.countries.includes('France')) ||
-      a.name.localeCompare(b.name, 'fr')
+      getNeahplusChannelPriority(a.name, category) - getNeahplusChannelPriority(b.name, category) || a.name.localeCompare(b.name, 'fr')
     );
   }, [channels, now, query, category, displayNamesByChannelId]);
 
@@ -87,7 +88,7 @@ const NeahplusHome = ({ channels, now, query, onQueryChange, onSelectChannel, di
             <p className="mt-1 text-xs text-white/60">{displayNamesByChannelId.get(featured.channel.id) ?? featured.channel.name} · {formatTime(featured.program!.start)}</p>
             <button type="button" onClick={() => onSelectChannel(featured.channel)} className="mt-3 inline-flex items-center gap-2 rounded-lg bg-[#20c7c7] px-4 py-2 text-xs font-bold text-[#061519] hover:bg-[#55dddd]"><Play className="h-3.5 w-3.5 fill-current" /> Regarder</button>
           </div>
-          {featured.channel.logo && <img src={featured.channel.logo} alt="" onError={(event) => { event.currentTarget.style.display = 'none'; }} className="absolute right-5 max-h-[75%] max-w-[28%] object-contain opacity-25" />}
+          {(featured.channel.logo ?? getNeahplusChannelLogo(featured.channel.name)) && <img src={featured.channel.logo ?? getNeahplusChannelLogo(featured.channel.name) ?? undefined} alt="" onError={(event) => { event.currentTarget.style.display = 'none'; }} className="absolute right-5 max-h-[75%] max-w-[28%] object-contain opacity-25" />}
         </section>
       )}
 
@@ -113,7 +114,7 @@ const NeahplusHome = ({ channels, now, query, onQueryChange, onSelectChannel, di
               <button key={channel.id} type="button" onClick={() => onSelectChannel(channel)} className="group min-w-0 snap-start overflow-hidden rounded-xl border border-white/10 bg-[#102027] text-left transition hover:border-[#20c7c7]/60 hover:bg-[#143039] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#20c7c7]">
                 <div className="relative flex aspect-[16/10] items-center justify-center overflow-hidden bg-gradient-to-br from-[#153b43] via-[#10252e] to-[#09151c] p-4">
                   <span className="flex h-14 w-14 items-center justify-center rounded-2xl border border-[#20c7c7]/30 bg-[#20c7c7]/10 text-lg font-black text-[#67e5e5]">{displayName.slice(0, 2).toUpperCase()}</span>
-                  {channel.logo && <img src={channel.logo} alt={`Logo ${displayName}`} loading="lazy" onError={(event) => { event.currentTarget.style.display = 'none'; }} className="absolute inset-0 m-auto max-h-[75%] max-w-[78%] object-contain drop-shadow-xl transition group-hover:scale-105" />}
+                  {(channel.logo ?? getNeahplusChannelLogo(channel.name)) && <img src={channel.logo ?? getNeahplusChannelLogo(channel.name) ?? undefined} alt={`Logo ${displayName}`} loading="lazy" onError={(event) => { event.currentTarget.style.display = 'none'; }} className="absolute inset-0 m-auto max-h-[75%] max-w-[78%] object-contain drop-shadow-xl transition group-hover:scale-105" />}
                   <span className={`absolute left-2 top-2 rounded-md px-2 py-1 text-[9px] font-black uppercase ${program ? 'bg-emerald-500 text-[#041a16]' : 'bg-black/50 text-white/70'}`}>{program ? 'En direct' : 'TV'}</span>
                   <span className="absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-black/50 to-transparent" />
                 </div>
