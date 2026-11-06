@@ -20,6 +20,10 @@ const PlatformExperience = () => {
 
   if (!service) return null;
 
+  if ('native' in service) {
+    return <main className="h-[calc(100dvh-5rem)] w-full min-h-0 bg-black text-white lg:h-dvh"><NeahplusExperience /></main>;
+  }
+
   return (
     <main className="flex h-[calc(100dvh-5rem)] w-full min-h-0 flex-col bg-slate-950 p-0 text-white lg:h-dvh">
       <section className="flex min-h-0 w-full flex-1 flex-col overflow-hidden bg-black p-0">
