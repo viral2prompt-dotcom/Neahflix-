@@ -332,7 +332,7 @@ const NeahplusExperience = () => {
     [allGroups],
   );
   const displayNamesByChannelId = useMemo(
-    () => new Map([...groupByChannelId].map(([id, group]) => [id, group.displayName])),
+    () => new Map<string, string>([...groupByChannelId].map(([id, group]) => [id, group.displayName] as const)),
     [groupByChannelId],
   );
 
@@ -766,7 +766,7 @@ const NeahplusExperience = () => {
         )}
 
         {/* Left: Player + info */}
-        <section className={`flex min-h-0 w-full shrink-0 flex-col gap-3 overflow-y-auto overscroll-y-contain touch-pan-y p-3 lg:w-[42%] lg:max-w-[720px] lg:p-4 ${tab === 'home' ? 'hidden' : ''}`}>
+        <section className={`flex min-h-0 w-full shrink-0 flex-col gap-3 overflow-y-auto overscroll-y-contain touch-pan-y p-3 lg:w-[42%] lg:max-w-[720px] lg:p-4 ${tab === 'home' ? 'hidden' : ''}`} style={{ WebkitOverflowScrolling: 'touch' }}>
           {activeVariant && selectedGroup ? (
             <>
               <div className="group relative mx-auto w-full max-w-[720px]">
