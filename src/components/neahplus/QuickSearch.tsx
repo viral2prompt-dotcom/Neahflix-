@@ -29,7 +29,19 @@ const QuickSearch = ({ channels, currentChannelId, onSelect, onClose }: QuickSea
 
   const filtered = useMemo(() => {
     const needle = foldText(query.trim());
-    return (needle ? channels.filter((channel) => foldText(channel.name).includes(needle)) : channels).slice(0, 30);
+    const preferred = ['piwi+', 'a+', 'canal+ cinéma', 'canal+ action', 'canal+', 'gulli', 'tf1', 'france 2', 'france 3', 'm6', 'tv5monde', 'france 24', 'tmc'];
+    return (needle ? channels.filter((channel) => foldText(channel.name).includes(needle)) : channels)
+      .slice()
+      .sort((a, b) => {
+        const french = Number(b.countries.includes('France')) - Number(a.countries.includes('France'));
+        const priority = (name: string) => {
+          const value = foldText(name);
+          const index = preferred.findIndex((item) => value === foldText(item) || value.startsWith(foldText(item) + ' '));
+          return index < 0 ? preferred.length : index;
+        };
+        return french || priority(a.name) - priority(b.name) || a.name.localeCompare(b.name, 'fr');
+      })
+      .slice(0, 30);
   }, [channels, query]);
 
   return (
