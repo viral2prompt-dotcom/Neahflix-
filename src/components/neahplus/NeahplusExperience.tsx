@@ -1121,6 +1121,7 @@ const NeahplusExperience = () => {
                 pendingChannelId={pendingChannelId}
                 mode={tab === 'favorites' ? 'favorites' : 'home'}
                 spaceName={spaceName}
+                countryLabel={country || 'Tous les pays'}
                 onRenameSpace={() => { setSpaceRenameValue(spaceName); setShowSpaceRenameDialog(true); }}
               />
             ) : tab === 'countries' ? (
