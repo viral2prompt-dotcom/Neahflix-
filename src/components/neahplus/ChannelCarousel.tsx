@@ -92,7 +92,7 @@ const ChannelCarousel = ({ groups, selectedKey, favoritedKeys, onSelectGroup, on
                   tabIndex={-1}
                   onClick={(event) => { event.stopPropagation(); onToggleFavorite(group.key); }}
                   aria-label={isFavorited ? 'Retirer de mon espace NEAHPLUS' : 'Ajouter à mon espace NEAHPLUS'}
-                  className={`rounded-md p-0.5 transition ${isFavorited ? 'text-amber-400' : 'text-white/15 hover:text-white/40'}`}
+                  className={`rounded-md p-0.5 transition ${isFavorited ? 'text-[#75e6e6]' : 'text-white/15 hover:text-white/40'}`}
                 >
                   <Heart className="h-3 w-3" fill={isFavorited ? 'currentColor' : 'none'} />
                 </span>
