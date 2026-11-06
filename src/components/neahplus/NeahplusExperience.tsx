@@ -53,9 +53,8 @@ type GuidePeriod = 'all' | 'morning' | 'afternoon' | 'early-evening' | 'evening'
 const TABS: { id: Tab; label: string; icon: typeof HomeIcon }[] = [
   { id: 'home', label: 'Accueil', icon: HomeIcon },
   { id: 'all', label: 'En direct', icon: Tv },
-  { id: 'guide', label: 'Programme TV', icon: List },
+  { id: 'guide', label: 'Guide TV', icon: List },
   { id: 'favorites', label: 'Favoris', icon: Heart },
-  { id: 'world', label: 'Plus', icon: Globe },
 ];
 
 const PAGE_SIZE = 60;
@@ -103,7 +102,7 @@ const ChannelCard = ({
       className={`group relative overflow-hidden rounded-2xl border transition-all duration-300 ${
         selected
           ? 'border-red-500/50 bg-red-500/10 ring-1 ring-red-500/40 shadow-lg shadow-red-500/10'
-          : 'border-white/[0.06] bg-gradient-to-b from-white/[0.04] to-white/[0.01] hover:border-white/20 hover:from-white/[0.07] hover:to-white/[0.02]'
+          : 'border-white/[0.08] bg-gradient-to-b from-white/[0.04] to-white/[0.01] hover:border-white/20 hover:from-white/[0.07] hover:to-white/[0.02]'
       }`}
     >
       <button
@@ -640,9 +639,9 @@ const NeahplusExperience = () => {
   };
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-[#0a0a0f] text-white">
+    <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-[#07171d] text-white">
       {/* Top navigation bar */}
-      <nav className="flex shrink-0 items-center gap-1 border-b border-white/[0.06] bg-[#0d0d14]/95 px-3 py-2.5 backdrop-blur-xl sm:px-5" aria-label="Navigation NEAHPLUS TV">
+      <nav className="flex shrink-0 items-center gap-1 border-b border-white/[0.06] bg-[#0b2028]/95 px-3 py-2.5 backdrop-blur-xl sm:px-5" aria-label="Navigation NEAHPLUS TV">
         <div className="mr-2 flex items-center gap-2 sm:mr-4">
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-red-500 to-red-700 shadow-lg shadow-red-500/20">
             <Tv className="h-4 w-4 text-white" aria-hidden="true" />
@@ -668,38 +667,14 @@ const NeahplusExperience = () => {
             </button>
           ))}
         </div>
-        <div className="ml-auto flex items-center gap-1.5">
-          <button
-            type="button"
-            onClick={() => setShowChannelList((v) => !v)}
-            aria-label="Liste des chaînes"
-            aria-pressed={showChannelList}
-            className={`inline-flex items-center gap-1.5 rounded-xl px-2.5 py-2 text-xs font-semibold transition-all duration-200 sm:text-sm ${
-              showChannelList
-                ? 'bg-red-500/15 text-red-200 ring-1 ring-red-500/30'
-                : 'text-white/45 hover:bg-white/5 hover:text-white/80'
-            }`}
-          >
-            <List className="h-4 w-4" aria-hidden="true" />
-            <span className="hidden lg:inline">Liste</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => setShowQuickSearch(true)}
-            aria-label="Recherche rapide"
-            className="inline-flex items-center gap-1.5 rounded-xl px-2.5 py-2 text-xs font-semibold text-white/45 transition-all duration-200 hover:bg-white/5 hover:text-white/80 sm:text-sm"
-          >
-            <Search className="h-4 w-4" aria-hidden="true" />
-            <span className="hidden sm:inline">Rechercher</span>
-          </button>
-        </div>
+        <span className="ml-auto hidden text-[10px] font-semibold tracking-widest text-[#54dada] sm:inline">TV EN DIRECT</span>
       </nav>
 
       {/* Main content area */}
       <div className="flex min-h-0 flex-1 overflow-hidden">
         {/* Channel list sidebar */}
         {showChannelList && (
-          <aside className="absolute inset-y-0 left-0 z-40 flex w-72 flex-col border-r border-white/[0.06] bg-[#0d0d14] shadow-2xl lg:relative lg:z-0 lg:shadow-none" aria-label="Liste latérale des chaînes">
+          <aside className="absolute inset-y-0 left-0 z-40 flex w-72 flex-col border-r border-white/[0.06] bg-[#0b2028] shadow-2xl lg:relative lg:z-0 lg:shadow-none" aria-label="Liste latérale des chaînes">
             <div className="flex items-center justify-between border-b border-white/[0.06] px-4 py-3">
               <h2 className="flex items-center gap-2 text-sm font-bold text-white">
                 <List className="h-4 w-4 text-red-400" />
@@ -762,10 +737,10 @@ const NeahplusExperience = () => {
         )}
 
         {/* Left: Player + info */}
-        <section className={`flex min-h-0 shrink-0 flex-col gap-3 p-3 lg:p-4 ${tab === 'home' ? 'hidden' : 'lg:w-[42%] xl:w-[40%]'}`}>
+        <section className={`flex min-h-0 w-full shrink-0 flex-col gap-3 overflow-y-auto p-3 lg:w-[42%] lg:max-w-[720px] lg:p-4 ${tab === 'home' ? 'hidden' : ''}`}>
           {activeVariant && selectedGroup ? (
             <>
-              <div className="group relative">
+              <div className="group relative mx-auto w-full max-w-[720px]">
                 <NeahplusPlayer
                   key={activeVariant.id}
                   channelId={activeVariant.id}
@@ -872,7 +847,7 @@ const NeahplusExperience = () => {
         </section>
 
         {/* Right: Browse / Guide / Home */}
-        <section className={`flex min-h-0 flex-1 flex-col overflow-hidden ${tab === 'home' ? 'w-full' : 'border-l border-white/[0.04]'}`}>
+        <section className={`flex min-h-0 w-full min-w-0 flex-1 flex-col overflow-hidden ${tab === 'home' ? 'w-full' : 'lg:border-l lg:border-white/[0.06]'}`}>
           {/* Search + filters bar */}
           {tab !== 'home' && <div className="flex flex-col gap-2 border-b border-white/[0.06] p-3 sm:flex-row sm:items-center sm:gap-3">
             <label className="relative flex-1">
@@ -961,7 +936,7 @@ const NeahplusExperience = () => {
           )}
 
           {/* Content grid */}
-          <div ref={gridRef} className={`flex min-h-0 flex-1 flex-col overflow-y-auto ${tab === 'home' ? 'p-4 sm:p-6 lg:p-8' : 'p-3'}`} data-lenis-prevent>
+          <div ref={gridRef} className={`flex min-h-0 flex-1 flex-col overflow-y-auto ${tab === 'home' ? 'p-3 sm:p-5 lg:p-7' : 'p-3'}`} data-lenis-prevent>
             {tab === 'home' ? (
               <NeahplusHome
                 channels={catalog.channels}
