@@ -137,6 +137,32 @@ export const saveFavorites = (favorites: Set<string>): void => {
   }
 };
 
+const CHANNEL_DISPLAY_NAMES_KEY = 'neahplus:channel-display-names';
+
+export const loadChannelDisplayNames = (): Record<string, string> => {
+  try {
+    const raw = localStorage.getItem(CHANNEL_DISPLAY_NAMES_KEY);
+    if (!raw) return {};
+    const value: unknown = JSON.parse(raw);
+    if (!value || typeof value !== 'object' || Array.isArray(value)) return {};
+    return Object.fromEntries(
+      Object.entries(value).filter(([key, name]) =>
+        typeof key === 'string' && typeof name === 'string' && name.trim().length > 0,
+      ).map(([key, name]) => [key, name.trim().slice(0, 48)]),
+    );
+  } catch {
+    return {};
+  }
+};
+
+export const saveChannelDisplayNames = (names: Record<string, string>): void => {
+  try {
+    localStorage.setItem(CHANNEL_DISPLAY_NAMES_KEY, JSON.stringify(names));
+  } catch {
+    /* localStorage indisponible */
+  }
+};
+
 // Migration après chargement du catalogue : une ancienne clé ambiguë (sans suffixe pays)
 // qui correspond désormais à plusieurs groupes de pays différents est étendue pour
 // inclure toutes les nouvelles clés. Les clés inconnues et les clés déjà à jour sont
