@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Play, Search, Radio, Clock3, ChevronRight, Tv } from 'lucide-react';
+import { Play, Search, Radio, Clock3, Tv } from 'lucide-react';
 import type { NeahplusChannel, NeahplusProgram } from './neahplusCatalog';
 import { currentProgram } from './neahplusCatalog';
 import { formatTime } from './neahplusTvUtils';
@@ -19,6 +19,17 @@ interface ProgramItem {
 }
 
 const categoryLabels = ['Tout', 'En direct', 'Cinéma', 'Sport', 'Jeunesse', 'Documentaires', 'Divertissement'];
+const categoryMatches = (channel: NeahplusChannel, category: string): boolean => {
+  const source = [channel.name, ...channel.categories].join(' ').toLocaleLowerCase('fr');
+  const patterns: Record<string, RegExp> = {
+    'Cinéma': /cin[eé]ma|film|movie|action|cin[eé]\\s*\\+|paramount|ocs/,
+    'Sport': /sport|eurosport|bein|football|rugby|tennis|basket/,
+    'Jeunesse': /piwi|gulli|jeunesse|t[eé]l[eé]toon|cartoon|nick|disney junior/,
+    'Documentaires': /documentaire|docu|national geographic|nat geo|discovery|histoire tv/,
+    'Divertissement': /divertissement|com[eé]die|humour|musique|tv5|france 2|france 3|tf1|m6/,
+  };
+  return patterns[category]?.test(source) ?? false;
+};
 
 const NeahplusHome = ({ channels, now, query, onQueryChange, onSelectChannel }: NeahplusHomeProps) => {
   const [category, setCategory] = useState('Tout');
@@ -41,7 +52,7 @@ const NeahplusHome = ({ channels, now, query, onQueryChange, onSelectChannel }: 
       const matchesQuery = !needle || [channel.name, program.title, ...channel.categories]
         .some((value) => value.toLocaleLowerCase('fr').includes(needle));
       const matchesCategory = category === 'Tout' ||
-        (category === 'En direct' ? live : channel.categories.some((value) => value.toLocaleLowerCase('fr').includes(category.toLocaleLowerCase('fr'))));
+        (category === 'En direct' ? live : categoryMatches(channel, category));
       return matchesQuery && matchesCategory;
     });
   }, [items, query, category]);
@@ -85,7 +96,6 @@ const NeahplusHome = ({ channels, now, query, onQueryChange, onSelectChannel }: 
     <section className="space-y-3">
       <div className="flex items-center justify-between">
         <h2 className="text-base font-bold tracking-tight text-white sm:text-lg">{title}</h2>
-        <span className="flex items-center gap-1 text-[11px] font-semibold text-white/35"><span>Voir tout</span><ChevronRight className="h-3.5 w-3.5" /></span>
       </div>
       <div className={compact ? 'flex gap-3 overflow-x-auto pb-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden' : 'grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4'}>
         {data.map((item) => <ProgramCard key={`${item.channel.id}-${item.program.start}`} item={item} compact={compact} />)}
