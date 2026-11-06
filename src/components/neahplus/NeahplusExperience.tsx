@@ -168,8 +168,8 @@ const ChannelCard = ({
         aria-pressed={favorited}
         className={`absolute right-3 top-1/2 -translate-y-1/2 rounded-xl p-2.5 transition-all duration-200 ${
           favorited
-            ? 'bg-[#20c7c7]/15 text-[#75e6e6] hover:bg-[#20c7c7]/25'
-            : 'text-white/20 hover:bg-white/10 hover:text-white/50'
+            ? 'border border-[#d6ad55]/80 bg-[#d6ad55]/10 text-red-500 shadow-[0_0_12px_rgba(214,173,85,.12)] hover:bg-[#d6ad55]/15'
+            : 'border border-[#d6ad55]/45 text-white/35 hover:bg-[#d6ad55]/10 hover:text-[#f0d58a]'
         }`}
       >
         <Heart className="h-4 w-4" fill={favorited ? 'currentColor' : 'none'} aria-hidden="true" />
@@ -821,7 +821,7 @@ const NeahplusExperience = () => {
   };
 
   return (
-    <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden bg-[#07171d] text-white">
+    <div className="relative flex h-full min-h-0 w-full flex-1 flex-col overflow-hidden bg-[#07171d] text-white">
       <style>{'@keyframes neahplus-overlay-in { from { opacity: 0; } to { opacity: 1; } } @keyframes neahplus-overlay-out { from { opacity: 1; } to { opacity: 0; } } @keyframes neahplus-drawer-in { from { opacity: 0; transform: translate3d(12px,-6px,0) scale(.98); } to { opacity: 1; transform: translate3d(0,0,0) scale(1); } } @keyframes neahplus-drawer-out { from { opacity: 1; transform: translate3d(0,0,0) scale(1); } to { opacity: 0; transform: translate3d(10px,-4px,0) scale(.985); } } @keyframes neahplus-page-in { from { opacity: 0; transform: translate3d(0,10px,0); filter: blur(2px); } to { opacity: 1; transform: translate3d(0,0,0); filter: blur(0); } }'}</style>
       {/* Top navigation bar */}
       <nav className="relative z-50 flex shrink-0 items-center gap-3 border-b border-white/[0.06] bg-[#0b2028]/95 px-3 py-2.5 backdrop-blur-xl sm:px-5" aria-label="Navigation NEAHPLUS TV">
@@ -993,8 +993,8 @@ const NeahplusExperience = () => {
                     aria-pressed={favorites.has(selectedGroup.key)}
                     className={`flex h-9 w-9 items-center justify-center rounded-xl transition ${
                       favorites.has(selectedGroup.key)
-                        ? 'bg-[#20c7c7]/15 text-[#75e6e6] hover:bg-[#20c7c7]/25'
-                        : 'bg-white/5 text-white/40 hover:bg-white/10 hover:text-white/70'
+                        ? 'border border-[#d6ad55]/80 bg-[#d6ad55]/10 text-red-500 hover:bg-[#d6ad55]/15'
+                        : 'border border-[#d6ad55]/45 bg-white/[0.03] text-white/45 hover:bg-[#d6ad55]/10 hover:text-[#f0d58a]'
                     }`}
                   >
                     <Heart className="h-4 w-4" fill={favorites.has(selectedGroup.key) ? 'currentColor' : 'none'} />
@@ -1060,7 +1060,7 @@ const NeahplusExperience = () => {
         </section>
 
         {/* Right: Browse / Guide / Home */}
-        <section key={tab} data-lenis-prevent className={`flex min-h-0 w-full min-w-0 flex-1 flex-col overflow-y-auto overscroll-y-contain touch-pan-y lg:overflow-y-auto motion-safe:animate-[neahplus-page-in_360ms_cubic-bezier(0.22,1,0.36,1)_both] ${['home', 'favorites', 'countries', 'settings'].includes(tab) ? 'w-full' : 'lg:border-l lg:border-white/[0.06]'}`} style={{ WebkitOverflowScrolling: 'touch' }}>
+        <section key={tab} data-lenis-prevent className={`flex min-h-0 w-full min-w-0 flex-1 flex-col overflow-x-hidden overflow-y-auto overscroll-y-contain touch-pan-y lg:overflow-y-auto motion-safe:animate-[neahplus-page-in_360ms_cubic-bezier(0.22,1,0.36,1)_both] ${['home', 'favorites', 'countries', 'settings'].includes(tab) ? 'w-full' : 'lg:border-l lg:border-white/[0.06]'}`} style={{ WebkitOverflowScrolling: 'touch' }}>
           {/* Search + filters bar */}
           {(tab === 'all' || tab === 'guide' || tab === 'world') && <div className="flex flex-col gap-2 border-b border-white/[0.06] p-3 sm:flex-row sm:items-center sm:gap-3">
             <label className="relative flex-1">
@@ -1143,7 +1143,7 @@ const NeahplusExperience = () => {
               />
             ) : tab === 'countries' ? (
               <div className="mx-auto w-full max-w-5xl space-y-5 pb-6">
-                <div><p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#55dddd]">Catalogue international</p><h1 className="mt-1 text-2xl font-black text-white">Choisir un pays</h1><p className="mt-1 text-sm text-white/45">Affichez les chaînes disponibles dans le pays sélectionné.</p></div>
+                <div><p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#d6ad55]">Catalogue international</p><h1 className="mt-1 text-2xl font-black text-white">Choisir un pays</h1><p className="mt-1 text-sm text-white/45">Affichez les chaînes disponibles dans le pays sélectionné.</p></div>
                 <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
                   {catalog.countries.slice().sort((a, b) => a.name.localeCompare(b.name, 'fr')).map((item) => (
                     <button key={item.name} type="button" onClick={() => { setCountry(item.name); setQuery(''); navigateTo('home'); }} aria-pressed={country === item.name} className={`flex items-center gap-3 rounded-2xl border p-4 text-left transition ${country === item.name ? 'border-[#20c7c7]/45 bg-[#20c7c7]/10 ring-1 ring-[#20c7c7]/20' : 'border-white/10 bg-white/[0.03] hover:border-[#20c7c7]/30 hover:bg-white/[0.05]'}`}>
@@ -1157,7 +1157,7 @@ const NeahplusExperience = () => {
               </div>
             ) : tab === 'settings' ? (
               <div className="mx-auto w-full max-w-3xl space-y-5 pb-6">
-                <div><p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#55dddd]">Votre expérience</p><h1 className="mt-1 text-2xl font-black text-white">Paramètres</h1><p className="mt-1 text-sm text-white/45">Quelques réglages simples pour organiser votre télévision.</p></div>
+                <div><p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#d6ad55]">Votre expérience</p><h1 className="mt-1 text-2xl font-black text-white">Paramètres</h1><p className="mt-1 text-sm text-white/45">Quelques réglages simples pour organiser votre télévision.</p></div>
                 <section className="rounded-2xl border border-white/10 bg-white/[0.035] p-4 sm:p-5"><div className="flex items-center gap-2"><Globe2 className="h-4 w-4 text-[#55dddd]"/><h2 className="text-sm font-bold text-white">Pays affiché</h2></div><p className="mt-1 text-xs text-white/45">Définissez le catalogue utilisé par défaut dans l’accueil.</p><div className="mt-3 flex flex-wrap items-center gap-2"><select value={country} onChange={(event) => setCountry(event.target.value)} className="min-w-0 flex-1 rounded-xl border border-white/10 bg-[#0b2028] px-3 py-3 text-sm text-white outline-none focus:border-[#20c7c7]/60"><option value="">Tous les pays</option>{catalog.countries.map((item) => <option key={item.name} value={item.name}>{item.name}</option>)}</select><button type="button" onClick={() => setCountry(catalog.countries.some((item) => item.name === 'France') ? 'France' : '')} className="rounded-xl border border-[#20c7c7]/25 bg-[#20c7c7]/10 px-3 py-3 text-xs font-bold text-[#75e6e6] transition hover:bg-[#20c7c7]/20">France par défaut</button></div></section>
                 <section className="rounded-2xl border border-white/10 bg-white/[0.035] p-4 sm:p-5"><div className="flex items-center gap-2"><Info className="h-4 w-4 text-[#55dddd]"/><h2 className="text-sm font-bold text-white">Comment utiliser NEAHPLUS</h2></div><div className="mt-3 grid gap-3 sm:grid-cols-2"><div className="rounded-xl bg-black/15 p-3"><p className="text-xs font-bold text-white">Accueil</p><p className="mt-1 text-xs leading-5 text-white/45">Parcourez les chaînes par catégorie et lancez un direct.</p></div><div className="rounded-xl bg-black/15 p-3"><p className="text-xs font-bold text-white">Mon espace</p><p className="mt-1 text-xs leading-5 text-white/45">Ajoutez vos chaînes avec le cœur pour les retrouver rapidement.</p></div><div className="rounded-xl bg-black/15 p-3"><p className="text-xs font-bold text-white">Liste des pays</p><p className="mt-1 text-xs leading-5 text-white/45">Choisissez un pays pour afficher son catalogue de chaînes.</p></div><div className="rounded-xl bg-black/15 p-3"><p className="text-xs font-bold text-white">Paramètres</p><p className="mt-1 text-xs leading-5 text-white/45">Modifiez le pays affiché et retrouvez ces conseils.</p></div></div></section>
                 <section className="rounded-2xl border border-white/10 bg-gradient-to-br from-[#0c3037] to-[#101a22] p-4 sm:p-5"><p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#70e5e5]">À propos</p><h2 className="mt-1 text-sm font-bold text-white">NEAHPLUS TV</h2><p className="mt-1 text-xs leading-5 text-white/50">Guide TV indépendant qui organise les chaînes et leurs sources disponibles. Sans affiliation à CANAL+.</p></section>
@@ -1234,7 +1234,8 @@ const NeahplusExperience = () => {
       <footer className="shrink-0 border-t border-white/[0.06] bg-[#0d0d14] px-3 py-2.5">
         <div className="mx-auto flex max-w-3xl items-center justify-center gap-2 rounded-xl border border-white/[0.07] bg-white/[0.025] px-3 py-2 text-center">
           <Info className="h-3.5 w-3.5 shrink-0 text-[#55dddd]/70" aria-hidden="true" />
-          <p className="text-[10px] leading-4 text-white/40"><span className="font-bold text-white/55">Guide TV indépendant.</span> NEAHPLUS organise les chaînes et leurs sources, sans affiliation à CANAL+.</p>
+          <p className="text-[10px] leading-4 text-white/40"><span className="font-bold text-[#d6ad55]">Guide TV indépendant.</span> NEAHPLUS organise les chaînes et leurs sources, sans affiliation à CANAL+.</p>
+          <p className="mt-1 text-[10px] leading-4 text-[#d6ad55]/75">NEAHFLIX · Le plaisir du cinéma à un prix juste.</p>
         </div>
       </footer>
 
