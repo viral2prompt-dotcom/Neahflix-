@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, type KeyboardEvent } from 'react';
-import { ChevronLeft, ChevronRight, Star, Tv } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Heart, Tv } from 'lucide-react';
 import type { ChannelGroup } from './neahplusTvUtils';
 import { channelColor } from './neahplusTvUtils';
 
@@ -91,10 +91,10 @@ const ChannelCarousel = ({ groups, selectedKey, favoritedKeys, onSelectGroup, on
                   role="button"
                   tabIndex={-1}
                   onClick={(event) => { event.stopPropagation(); onToggleFavorite(group.key); }}
-                  aria-label={isFavorited ? 'Retirer des favoris' : 'Ajouter aux favoris'}
+                  aria-label={isFavorited ? 'Retirer de mon espace NEAHPLUS' : 'Ajouter à mon espace NEAHPLUS'}
                   className={`rounded-md p-0.5 transition ${isFavorited ? 'text-amber-400' : 'text-white/15 hover:text-white/40'}`}
                 >
-                  <Star className="h-3 w-3" fill={isFavorited ? 'currentColor' : 'none'} />
+                  <Heart className="h-3 w-3" fill={isFavorited ? 'currentColor' : 'none'} />
                 </span>
               </div>
             </button>
