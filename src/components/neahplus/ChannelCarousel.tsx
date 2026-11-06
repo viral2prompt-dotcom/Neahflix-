@@ -69,7 +69,7 @@ const ChannelCarousel = ({ groups, selectedKey, favoritedKeys, onSelectGroup, on
               aria-selected={isSelected}
               className={`group relative flex h-[96px] w-[148px] shrink-0 flex-col items-center justify-center gap-2 rounded-2xl border p-2.5 transition-all duration-300 ${
                 isSelected
-                  ? 'border-red-500/50 bg-red-500/10 ring-1 ring-red-500/40'
+                  ? 'border-violet-400/45 bg-violet-400/10 ring-1 ring-violet-400/35'
                   : 'border-white/[0.06] bg-gradient-to-b from-white/[0.04] to-white/[0.01] hover:border-white/20 hover:from-white/[0.07]'
               }`}
             >
@@ -85,7 +85,7 @@ const ChannelCarousel = ({ groups, selectedKey, favoritedKeys, onSelectGroup, on
               <span className={`block w-full truncate text-center text-xs font-semibold ${isSelected ? 'text-white' : 'text-white/70'}`}>{group.displayName}</span>
               <div className="absolute right-1.5 top-1.5 flex items-center gap-1">
                 {group.variants.length > 1 && (
-                  <span className="rounded-full bg-red-500/80 px-1.5 py-0.5 text-[8px] font-bold text-white">{group.variants.length}</span>
+                  <span className="rounded-full bg-violet-500/80 px-1.5 py-0.5 text-[8px] font-bold text-white">{group.variants.length}</span>
                 )}
                 <span
                   role="button"
