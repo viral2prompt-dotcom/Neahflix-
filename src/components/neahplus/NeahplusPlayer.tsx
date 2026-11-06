@@ -181,13 +181,16 @@ const NeahplusPlayer = ({ channelId, channelName, onInfo, onPrevChannel, onGuide
       />
 
       {overlayStatus && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black/75 p-6 text-center">
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-[linear-gradient(145deg,rgba(5,20,27,.96),rgba(4,10,16,.96))] p-6 text-center">
           {overlayStatus === 'error' ? (
             <AlertTriangle className="h-10 w-10 text-amber-300" aria-hidden="true" />
           ) : (
             <Loader2 className="h-10 w-10 animate-spin text-red-400 motion-reduce:animate-none" aria-hidden="true" />
           )}
-          <p className="text-sm font-semibold text-white">{STATUS_LABEL[overlayStatus]}</p>
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(32,199,199,.14),transparent_58%)]" />
+          <span className="relative rounded-full border border-[#20c7c7]/25 bg-[#0b2932]/80 px-3 py-1 text-[9px] font-black tracking-[0.22em] text-[#75e6e6]">NEAHPLUS · TV EN DIRECT</span>
+          <p className="relative text-sm font-semibold text-white">{overlayStatus === 'resolving' ? `Préparation de ${channelName}` : STATUS_LABEL[overlayStatus]}</p>
+          {overlayStatus !== 'error' && <p className="relative max-w-xs text-xs leading-5 text-white/45">Nous établissons votre connexion au direct.</p>}
           {overlayStatus === 'error' && message && (
             <p className="max-w-md text-sm leading-6 text-white/80">{message}</p>
           )}

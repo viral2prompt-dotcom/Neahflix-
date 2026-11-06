@@ -93,7 +93,7 @@ const fetchJson = async (url: string, signal: AbortSignal): Promise<unknown> => 
   return response.json();
 };
 
-const fetchCatalogPages = async (signal: AbortSignal): Promise<NeahplusChannel[]> => {
+const fetchCatalogPages = async (signal: AbortSignal, onFirstPage?: (catalog: NeahplusCatalog) => void): Promise<NeahplusChannel[]> => {
   const byId = new Map<string, NeahplusChannel>();
   const seenCursors = new Set<string>();
   let cursor: string | null = null;
@@ -108,6 +108,7 @@ const fetchCatalogPages = async (signal: AbortSignal): Promise<NeahplusChannel[]
       const channel = parseChannel(raw);
       if (channel && !byId.has(channel.id)) byId.set(channel.id, channel);
     }
+    if (page === 0 && byId.size > 0) onFirstPage?.(buildCatalog([...byId.values()]));
     const next = text(data.nextCursor);
     if (!next || seenCursors.has(next)) break;
     seenCursors.add(next);
@@ -131,11 +132,13 @@ const buildCatalog = (channels: NeahplusChannel[]): NeahplusCatalog => {
 
 let cache: { loadedAt: number; promise: Promise<NeahplusCatalog> } | null = null;
 
-export const loadNeahplusCatalog = (signal?: AbortSignal): Promise<NeahplusCatalog> => {
-  if (cache && Date.now() - cache.loadedAt < CACHE_TTL_MS) return cache.promise;
+export const loadNeahplusCatalog = (signal?: AbortSignal, onFirstPage?: (catalog: NeahplusCatalog) => void): Promise<NeahplusCatalog> => {
+  if (cache && Date.now() - cache.loadedAt < CACHE_TTL_MS) {
+    return cache.promise.then((catalog) => { onFirstPage?.(catalog); return catalog; });
+  }
   const controller = new AbortController();
   signal?.addEventListener('abort', () => controller.abort(), { once: true });
-  const promise = fetchCatalogPages(controller.signal).then(buildCatalog);
+  const promise = fetchCatalogPages(controller.signal, onFirstPage).then(buildCatalog);
   cache = { loadedAt: Date.now(), promise };
   promise.catch(() => {
     if (cache?.promise === promise) cache = null;

@@ -25,7 +25,6 @@ import NeahplusHome from './NeahplusHome';
 import {
   currentProgram,
   loadNeahplusCatalog,
-  resolveNeahplusStream,
   type NeahplusCatalog,
   type NeahplusChannel,
 } from './neahplusCatalog';
@@ -255,6 +254,7 @@ const EpgRow = ({ channel, date, period, onPlay, index, now, registerRef, channe
 
 const NeahplusExperience = () => {
   const [catalog, setCatalog] = useState<NeahplusCatalog | null>(null);
+  const [catalogComplete, setCatalogComplete] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [attempt, setAttempt] = useState(0);
   const [tab, setTab] = useState<Tab>('home');
@@ -288,9 +288,16 @@ const NeahplusExperience = () => {
   useEffect(() => {
     const controller = new AbortController();
     setLoadError(null);
-    loadNeahplusCatalog(controller.signal)
+    setCatalog(null);
+    setCatalogComplete(false);
+    loadNeahplusCatalog(controller.signal, (partial) => {
+      if (!controller.signal.aborted) setCatalog(partial);
+    })
       .then((data) => {
-        if (!controller.signal.aborted) setCatalog(data);
+        if (!controller.signal.aborted) {
+          setCatalog(data);
+          setCatalogComplete(true);
+        }
       })
       .catch((err: unknown) => {
         if (controller.signal.aborted) return;
@@ -389,41 +396,11 @@ const NeahplusExperience = () => {
       .sort((a, b) => Number(b.countries.includes('France')) - Number(a.countries.includes('France')) || channelPriority(a.displayName) - channelPriority(b.displayName) || a.displayName.localeCompare(b.displayName, 'fr'));
   }, [allGroups]);
 
-  const resolvingRef = useRef<AbortController | null>(null);
-
-  const resolveBestVariant = useCallback(async (group: ChannelGroup) => {
-    if (group.variants.length === 0) return;
-    resolvingRef.current?.abort();
-    const controller = new AbortController();
-    resolvingRef.current = controller;
-    setResolvingKey(group.key);
-
-    for (let i = 0; i < group.variants.length; i++) {
-      if (controller.signal.aborted) return;
-      try {
-        await resolveNeahplusStream(group.variants[i].id, controller.signal);
-        if (controller.signal.aborted) return;
-        setActiveVariantIndex(i);
-        setResolvingKey(null);
-        return;
-      } catch {
-      }
-    }
-
-    if (!controller.signal.aborted) {
-      setActiveVariantIndex(0);
-      setResolvingKey(null);
-    }
-  }, []);
-
   const handleSelectGroup = useCallback((group: ChannelGroup) => {
     setPrevGroupKey(selectedGroupKey);
     setSelectedGroupKey(group.key);
     setActiveVariantIndex(0);
-    if (group.variants.length > 1) {
-      void resolveBestVariant(group);
-    }
-  }, [resolveBestVariant, selectedGroupKey]);
+  }, [selectedGroupKey]);
 
   const handleSelectChannel = useCallback((channel: NeahplusChannel) => {
     const group = groupByChannelId.get(channel.id);
@@ -456,10 +433,9 @@ const NeahplusExperience = () => {
         setPrevGroupKey(selectedGroupKey);
         setSelectedGroupKey(temp);
         setActiveVariantIndex(0);
-        if (prev.variants.length > 1) void resolveBestVariant(prev);
       }
     }
-  }, [prevGroupKey, groupByKey, selectedGroupKey, resolveBestVariant]);
+  }, [prevGroupKey, groupByKey, selectedGroupKey]);
 
   const cycleVariant = useCallback((direction: 1 | -1) => {
     if (!selectedGroup || selectedGroup.variants.length <= 1) return;
@@ -652,14 +628,18 @@ const NeahplusExperience = () => {
 
   if (!catalog) {
     return (
-      <div className="flex flex-1 flex-col items-center justify-center gap-4 p-6 text-center">
-        <div className="relative">
-          <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-red-500/10 ring-1 ring-red-500/20">
-            <Loader2 className="h-8 w-8 animate-spin text-red-400 motion-reduce:animate-none" aria-hidden="true" />
-          </div>
+      <div className="relative flex min-h-0 flex-1 flex-col items-center justify-center overflow-hidden bg-[radial-gradient(ellipse_at_50%_42%,#123943_0%,#091d25_42%,#061219_100%)] p-6 text-center">
+        <div className="pointer-events-none absolute inset-0 opacity-30" style={{ backgroundImage: 'linear-gradient(rgba(255,255,255,.035) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.035) 1px, transparent 1px)', backgroundSize: '42px 42px' }} />
+        <div className="relative mb-8 flex h-28 w-28 items-center justify-center">
+          <span className="absolute inset-0 rounded-full border border-[#20c7c7]/20 animate-ping motion-reduce:animate-none" />
+          <span className="absolute inset-2 rounded-full border border-[#20c7c7]/35" />
+          <span className="absolute inset-5 rounded-full bg-[#20c7c7]/10 blur-md" />
+          <div className="relative flex h-16 w-16 items-center justify-center rounded-2xl border border-[#20c7c7]/30 bg-[#0b2932] shadow-[0_0_45px_rgba(32,199,199,.18)]"><Tv className="h-8 w-8 text-[#55dddd]" aria-hidden="true" /></div>
         </div>
-        <p className="text-sm font-medium text-white/60">Chargement du catalogue</p>
-        <p className="text-xs text-white/30">Récupération des chaînes et programmes en cours…</p>
+        <p className="relative text-2xl font-black tracking-[0.18em] text-white">NEAH<span className="text-[#55dddd]">PLUS</span></p>
+        <p className="relative mt-3 text-sm font-semibold text-white/85">Votre univers télévisuel prend place.</p>
+        <p className="relative mt-2 max-w-xs text-xs leading-5 text-white/45">Nous préparons les chaînes et le guide des programmes pour vous.</p>
+        <div className="relative mt-7 h-1 w-40 overflow-hidden rounded-full bg-white/10"><span className="block h-full w-1/3 animate-pulse rounded-full bg-[#55dddd]" /></div>
       </div>
     );
   }
@@ -700,6 +680,12 @@ const NeahplusExperience = () => {
         </div>
         <span className="ml-auto hidden text-[10px] font-semibold tracking-widest text-[#54dada] sm:inline">TV EN DIRECT</span>
       </nav>
+      {!catalogComplete && (
+        <div className="flex shrink-0 items-center justify-center gap-2 border-b border-[#20c7c7]/10 bg-[#0b2028] px-3 py-1.5 text-[10px] font-medium text-[#8bdede]/70" role="status">
+          <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[#55dddd]" />
+          NEAHPLUS prépare la suite de votre sélection…
+        </div>
+      )}
 
       {/* Main content area */}
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden lg:flex-row">
@@ -901,7 +887,7 @@ const NeahplusExperience = () => {
                 className="w-full rounded-xl border border-white/[0.08] bg-white/[0.03] py-2.5 pl-10 pr-3 text-sm text-white placeholder:text-white/30 focus:border-red-500/50 focus:bg-white/[0.05] focus:outline-none focus:ring-1 focus:ring-red-500/20"
               />
             </label>
-            {tab !== 'world' && tab !== 'home' && catalog.countries.length > 0 && (
+            {tab !== 'world' && tab !== 'home' && catalogComplete && catalog.countries.length > 0 && (
               <label className="sm:w-52">
                 <span className="sr-only">Filtrer par pays</span>
                 <select
