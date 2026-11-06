@@ -1,3 +1,4 @@
+import { getNeahplusChannelLogo } from './neahplusBranding';
 export const NEAHPLUS_API = '/api/neahplus';
 const CATALOG_PATH = `${NEAHPLUS_API}/live/catalog/live/channels.json`;
 const RESOLVE_PATH = `${NEAHPLUS_API}/live/resolve`;
@@ -82,7 +83,7 @@ const parseChannel = (raw: unknown): NeahplusChannel | null => {
     name,
     countries,
     categories,
-    logo: normalizeLogo(text(images.logo)),
+    logo: normalizeLogo(text(images.logo)) ?? getNeahplusChannelLogo(name),
     programs: parsePrograms(raw.epg),
   };
 };
