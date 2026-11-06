@@ -17,6 +17,7 @@ interface NeahplusHomeProps {
   pendingChannelId: string | null;
   mode: 'home' | 'favorites';
   spaceName: string;
+  countryLabel: string;
   onRenameSpace: () => void;
 }
 
@@ -35,7 +36,7 @@ const categoryMatches = (channel: NeahplusChannel, category: string, live: boole
   return patterns[category]?.test(source) ?? false;
 };
 
-const NeahplusHome = ({ channels, now, query, onQueryChange, onSelectChannel, displayNamesByChannelId, isFavorite, onToggleFavorite, pendingChannelId, mode, spaceName, onRenameSpace }: NeahplusHomeProps) => {
+const NeahplusHome = ({ channels, now, query, onQueryChange, onSelectChannel, displayNamesByChannelId, isFavorite, onToggleFavorite, pendingChannelId, mode, spaceName, countryLabel, onRenameSpace }: NeahplusHomeProps) => {
   const [category, setCategory] = useState('Tout');
   const scrollerRef = useRef<HTMLDivElement>(null);
   const filteredChannels = useMemo(() => {
@@ -69,7 +70,7 @@ const NeahplusHome = ({ channels, now, query, onQueryChange, onSelectChannel, di
     <div className="mx-auto flex w-full max-w-[1600px] flex-col gap-5 pb-6 sm:gap-7">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#20c7c7]">{mode === 'favorites' ? 'VOTRE SÉLECTION' : 'TÉLÉVISION EN DIRECT'}</p>
+          <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#20c7c7]">{mode === 'favorites' ? 'VOTRE SÉLECTION' : `TÉLÉVISION EN DIRECT · ${countryLabel.toUpperCase()}`}</p>
           <div className="mt-1 flex items-center gap-2"><h1 className="min-w-0 truncate text-xl font-black text-white sm:text-2xl">{mode === 'favorites' ? spaceName : 'Découvrez NEAHPLUS'}</h1>{mode === 'favorites' && <button type="button" onClick={onRenameSpace} aria-label="Renommer mon espace NEAHPLUS" title="Renommer mon espace" className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-white/40 transition hover:bg-white/10 hover:text-[#75e6e6]"><Pencil className="h-3.5 w-3.5" /></button>}</div>
           {mode === 'favorites' && <p className="mt-1 text-xs text-white/45">Toutes vos chaînes réunies au même endroit.</p>}
         </div>
