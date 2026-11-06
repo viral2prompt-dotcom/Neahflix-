@@ -60,7 +60,7 @@ type GuidePeriod = 'all' | 'morning' | 'afternoon' | 'early-evening' | 'evening'
 const TABS: { id: 'home' | 'favorites' | 'countries' | 'settings'; label: string; description: string; icon: typeof HomeIcon }[] = [
   { id: 'home', label: 'Accueil', description: 'Retrouvez les chaînes et les programmes.', icon: HomeIcon },
   { id: 'favorites', label: 'Mon espace NEAHPLUS', description: 'Vos chaînes sélectionnées.', icon: Heart },
-  { id: 'countries', label: 'Liste des pays', description: 'Explorez les chaînes par pays.', icon: Globe2 },
+  { id: 'countries', label: 'Liste', description: 'Explorez les chaînes par pays.', icon: Globe2 },
   { id: 'settings', label: 'Paramètres', description: 'Préférences et guide d’utilisation.', icon: SettingsIcon },
 ];
 
@@ -283,6 +283,11 @@ const NeahplusExperience = () => {
   const [tab, setTab] = useState<Tab>('home');
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [pendingChannelId, setPendingChannelId] = useState<string | null>(null);
+  const [spaceName, setSpaceName] = useState(() => {
+    try { return localStorage.getItem('neahplus:space-name') || 'Mon espace NEAHPLUS'; } catch { return 'Mon espace NEAHPLUS'; }
+  });
+  const [showSpaceRenameDialog, setShowSpaceRenameDialog] = useState(false);
+  const [spaceRenameValue, setSpaceRenameValue] = useState('');
   const navigationHistory = useRef<Tab[]>([]);
   const pendingNavigationTimer = useRef<number | null>(null);
   const [query, setQuery] = useState('');
@@ -340,6 +345,10 @@ const NeahplusExperience = () => {
   useEffect(() => {
     try { localStorage.setItem('neahplus:country', country); } catch { /* stockage local indisponible */ }
   }, [country]);
+
+  useEffect(() => {
+    try { localStorage.setItem('neahplus:space-name', spaceName); } catch { /* stockage local indisponible */ }
+  }, [spaceName]);
 
   useEffect(() => {
     const timer = window.setInterval(() => setNow(Date.now()), 30_000);
@@ -541,11 +550,16 @@ const NeahplusExperience = () => {
 
   const homeChannels = useMemo(() => {
     if (tab !== 'favorites') return channelsForCountry;
-    return (catalog?.channels ?? []).filter((channel) => {
-      const group = groupByChannelId.get(channel.id);
-      return Boolean(group && favorites.has(group.key));
-    });
-  }, [tab, channelsForCountry, catalog, groupByChannelId, favorites]);
+    return allGroups
+      .filter((group) => favorites.has(group.key) && group.variants.length > 0)
+      .map((group) => group.variants[0]);
+  }, [tab, channelsForCountry, allGroups, favorites]);
+
+  const saveSpaceName = useCallback(() => {
+    const nextName = spaceRenameValue.trim().slice(0, 32);
+    setSpaceName(nextName || 'Mon espace NEAHPLUS');
+    setShowSpaceRenameDialog(false);
+  }, [spaceRenameValue]);
 
   const saveSelectedChannelName = useCallback(() => {
     if (!selectedGroup) return;
@@ -808,7 +822,7 @@ const NeahplusExperience = () => {
       {drawerOpen && (
         <>
           <button type="button" aria-label="Fermer le menu" onClick={() => setDrawerOpen(false)} className="fixed inset-0 z-[80] bg-black/25 backdrop-blur-[1px]" />
-          <aside id="neahplus-navigation-drawer" className="fixed right-3 top-[4.25rem] z-[90] w-[min(18rem,calc(100vw-1.5rem))] max-h-[65vh] overflow-y-auto rounded-2xl border border-[#20c7c7]/20 bg-[#0b2028]/[0.98] p-3 shadow-[0_18px_55px_rgba(0,0,0,.55)] backdrop-blur-2xl" aria-label="Menu principal NEAHPLUS">
+          <aside id="neahplus-navigation-drawer" className="fixed right-3 top-[4.25rem] z-[90] w-[min(17rem,68vw)] max-h-[58vh] overflow-y-auto rounded-2xl border border-[#20c7c7]/20 bg-[#0b2028]/[0.98] p-3 shadow-[0_18px_55px_rgba(0,0,0,.55)] backdrop-blur-2xl" aria-label="Menu principal NEAHPLUS">
             <div className="mb-2 flex items-center justify-between px-1.5 py-1">
               <div><p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#55dddd]">Navigation</p><p className="mt-0.5 text-xs text-white/45">Votre univers NEAHPLUS</p></div>
               <button type="button" onClick={() => setDrawerOpen(false)} aria-label="Fermer" className="rounded-lg p-1.5 text-white/45 transition hover:bg-white/10 hover:text-white"><X className="h-4 w-4" /></button>
@@ -1096,6 +1110,8 @@ const NeahplusExperience = () => {
                 onToggleFavorite={toggleFavoriteChannel}
                 pendingChannelId={pendingChannelId}
                 mode={tab === 'favorites' ? 'favorites' : 'home'}
+                spaceName={spaceName}
+                onRenameSpace={() => { setSpaceRenameValue(spaceName); setShowSpaceRenameDialog(true); }}
               />
             ) : tab === 'countries' ? (
               <div className="mx-auto w-full max-w-5xl space-y-5 pb-6">
@@ -1195,6 +1211,18 @@ const NeahplusExperience = () => {
       </footer>
 
       {/* Overlays */}
+      {showSpaceRenameDialog && (
+        <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/75 p-4 backdrop-blur-sm" onClick={() => setShowSpaceRenameDialog(false)}>
+          <form className="w-full max-w-sm rounded-2xl border border-[#20c7c7]/20 bg-[#0b2028] p-5 shadow-2xl" onClick={(event) => event.stopPropagation()} onSubmit={(event) => { event.preventDefault(); saveSpaceName(); }}>
+            <h2 className="text-base font-bold text-white">Nommer votre espace</h2>
+            <p className="mt-1 text-xs text-white/45">Choisissez un nom pour retrouver facilement votre sélection personnelle.</p>
+            <label className="mt-4 block text-xs font-semibold text-white/65" htmlFor="neahplus-space-name">Nom de l’espace</label>
+            <input id="neahplus-space-name" autoFocus maxLength={32} value={spaceRenameValue} onChange={(event) => setSpaceRenameValue(event.target.value)} placeholder="Mon espace NEAHPLUS" className="mt-2 w-full rounded-xl border border-white/10 bg-black/25 px-3 py-3 text-sm text-white outline-none focus:border-[#20c7c7]" />
+            <p className="mt-1 text-right text-[10px] text-white/30">{spaceRenameValue.length}/32</p>
+            <div className="mt-4 flex justify-end gap-2"><button type="button" onClick={() => setShowSpaceRenameDialog(false)} className="rounded-lg px-3 py-2 text-xs font-semibold text-white/55 hover:bg-white/5">Annuler</button><button type="submit" className="rounded-lg bg-[#20c7c7] px-4 py-2 text-xs font-bold text-[#061519] hover:bg-[#55dddd]">Enregistrer</button></div>
+          </form>
+        </div>
+      )}
       {showRenameDialog && selectedGroup && (
         <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm" onClick={() => setShowRenameDialog(false)}>
           <form className="w-full max-w-sm rounded-2xl border border-white/10 bg-[#0b2028] p-5 shadow-2xl" onClick={(event) => event.stopPropagation()} onSubmit={(event) => { event.preventDefault(); saveSelectedChannelName(); }}>
