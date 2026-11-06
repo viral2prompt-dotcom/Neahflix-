@@ -320,8 +320,8 @@ const NeahplusExperience = () => {
     [baseRealGroups, customNames],
   );
   const allGroups = useMemo(
-    () => [...realGroups, ...historicalChannelsWithoutDuplicates(realGroups)],
-    [realGroups],
+    () => [...realGroups, ...historicalChannelsWithoutDuplicates(baseRealGroups)],
+    [realGroups, baseRealGroups],
   );
   const groupByKey = useMemo(
     () => new Map(allGroups.map((group) => [group.key, group])),
