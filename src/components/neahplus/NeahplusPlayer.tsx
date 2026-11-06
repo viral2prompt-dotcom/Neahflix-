@@ -19,7 +19,7 @@ type PlayerStatus = 'resolving' | 'loading' | 'playing' | 'paused' | 'error';
 
 const STATUS_LABEL: Record<Exclude<PlayerStatus, 'paused'>, string> = {
   resolving: 'Connexion à la chaîne',
-  loading: 'Chargement du flux',
+  loading: 'Chargement du direct…',
   playing: 'En direct',
   error: 'Chaîne indisponible',
 };
@@ -170,7 +170,7 @@ const NeahplusPlayer = ({ channelId, channelName, onInfo, onPrevChannel, onGuide
   return (
     <div
       ref={containerRef}
-      className="relative mx-auto aspect-video w-full max-h-[42vh] overflow-hidden rounded-xl bg-black ring-1 ring-[#20c7c7]/20 lg:max-h-[46vh]"
+      className={`relative mx-auto aspect-video w-full max-h-[42vh] overflow-hidden rounded-xl bg-black transition-shadow duration-300 lg:max-h-[46vh] ${status === 'resolving' || status === 'loading' ? 'ring-2 ring-[#20c7c7]/55 shadow-[0_0_28px_rgba(32,199,199,.16)]' : 'ring-1 ring-[#20c7c7]/20'}`}
     >
       <video
         ref={videoRef}
@@ -181,7 +181,7 @@ const NeahplusPlayer = ({ channelId, channelName, onInfo, onPrevChannel, onGuide
       />
 
       {overlayStatus && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-[linear-gradient(145deg,rgba(5,20,27,.96),rgba(4,10,16,.96))] p-6 text-center">
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-[linear-gradient(145deg,rgba(5,20,27,.96),rgba(4,10,16,.96))] p-6 text-center" role="status" aria-live="polite">
           {overlayStatus === 'error' ? (
             <AlertTriangle className="h-10 w-10 text-amber-300" aria-hidden="true" />
           ) : (
@@ -189,8 +189,8 @@ const NeahplusPlayer = ({ channelId, channelName, onInfo, onPrevChannel, onGuide
           )}
           <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(32,199,199,.14),transparent_58%)]" />
           <span className="relative rounded-full border border-[#20c7c7]/25 bg-[#0b2932]/80 px-3 py-1 text-[9px] font-black tracking-[0.22em] text-[#75e6e6]">NEAHPLUS · TV EN DIRECT</span>
-          <p className="relative text-sm font-semibold text-white">{overlayStatus === 'resolving' ? `Préparation de ${channelName}` : STATUS_LABEL[overlayStatus]}</p>
-          {overlayStatus !== 'error' && <p className="relative max-w-xs text-xs leading-5 text-white/45">Nous établissons votre connexion au direct.</p>}
+          <p className="relative text-sm font-semibold text-white">{overlayStatus === 'resolving' ? `Connexion à ${channelName}…` : STATUS_LABEL[overlayStatus]}</p>
+          {overlayStatus !== 'error' && <p className="relative max-w-xs text-xs leading-5 text-white/55">Un instant, le direct arrive.</p>}
           {overlayStatus === 'error' && message && (
             <p className="max-w-md text-sm leading-6 text-white/80">{message}</p>
           )}
