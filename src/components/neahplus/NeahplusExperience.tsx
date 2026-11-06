@@ -48,6 +48,7 @@ import {
 } from './neahplusTvUtils';
 
 type Tab = 'home' | 'all' | 'guide' | 'favorites' | 'world';
+type GuidePeriod = 'all' | 'morning' | 'afternoon' | 'early-evening' | 'evening' | 'night';
 
 const TABS: { id: Tab; label: string; icon: typeof HomeIcon }[] = [
   { id: 'home', label: 'Accueil', icon: HomeIcon },
@@ -176,14 +177,23 @@ const ChannelCard = ({
 interface EpgRowProps {
   channel: NeahplusChannel;
   date: Date;
+  period: GuidePeriod;
   onPlay: () => void;
   index: number;
   now: number;
   registerRef: (el: HTMLButtonElement | null, index: number) => void;
 }
 
-const EpgRow = ({ channel, date, onPlay, index, now, registerRef }: EpgRowProps) => {
-  const programs = useMemo(() => getProgramsForDay(channel, date), [channel, date]);
+const EpgRow = ({ channel, date, period, onPlay, index, now, registerRef }: EpgRowProps) => {
+  const programs = useMemo(() => getProgramsForDay(channel, date).filter((program) => {
+    const hour = new Date(program.start).getHours();
+    if (period === 'morning') return hour >= 5 && hour < 12;
+    if (period === 'afternoon') return hour >= 12 && hour < 17;
+    if (period === 'early-evening') return hour >= 17 && hour < 19;
+    if (period === 'evening') return hour >= 19 && hour < 22;
+    if (period === 'night') return hour >= 22 || hour < 5;
+    return true;
+  }), [channel, date, period]);
   const today = new Date(now);
   const isToday = date.getFullYear() === today.getFullYear() &&
     date.getMonth() === today.getMonth() &&
@@ -253,6 +263,7 @@ const NeahplusExperience = () => {
   const [activeVariantIndex, setActiveVariantIndex] = useState(0);
   const [favorites, setFavorites] = useState<Set<string>>(new Set());
   const [guideDate, setGuideDate] = useState(() => new Date());
+  const [guidePeriod, setGuidePeriod] = useState<GuidePeriod>('all');
   const [resolvingKey, setResolvingKey] = useState<string | null>(null);
   const [showInfoPanel, setShowInfoPanel] = useState(false);
   const [showQuickSearch, setShowQuickSearch] = useState(false);
@@ -355,7 +366,7 @@ const NeahplusExperience = () => {
   const carouselGroups = useMemo(() => {
     return allGroups
       .filter((g) => g.hasStream && g.variants.length > 0)
-      .sort((a, b) => channelPriority(a.displayName) - channelPriority(b.displayName) || a.displayName.localeCompare(b.displayName, 'fr'));
+      .sort((a, b) => Number(b.countries.includes('France')) - Number(a.countries.includes('France')) || channelPriority(a.displayName) - channelPriority(b.displayName) || a.displayName.localeCompare(b.displayName, 'fr'));
   }, [allGroups]);
 
   const resolvingRef = useRef<AbortController | null>(null);
@@ -427,7 +438,7 @@ const NeahplusExperience = () => {
   const epgChannels = useMemo(() => {
     if (!catalog) return [];
     return channelsWithEpg(catalog.channels)
-      .sort((a, b) => channelPriority(a.name) - channelPriority(b.name) || a.name.localeCompare(b.name, 'fr'))
+      .sort((a, b) => Number(b.countries.includes('France')) - Number(a.countries.includes('France')) || channelPriority(a.name) - channelPriority(b.name) || a.name.localeCompare(b.name, 'fr'))
       .slice(0, 200);
   }, [catalog]);
 
@@ -930,6 +941,16 @@ const NeahplusExperience = () => {
             </div>
           )}
 
+          {tab === 'guide' && (
+            <div className="flex gap-2 overflow-x-auto border-b border-white/[0.06] px-3 py-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+              {([['all', 'Toute la journée'], ['morning', 'Matin'], ['afternoon', 'Après-midi'], ['early-evening', 'Début de soirée'], ['evening', 'Soirée'], ['night', 'Nuit']] as [GuidePeriod, string][]).map(([value, label]) => (
+                <button key={value} type="button" onClick={() => setGuidePeriod(value)} className={`shrink-0 rounded-md px-3 py-1.5 text-[11px] font-semibold transition ${guidePeriod === value ? 'bg-white text-black' : 'bg-white/[0.05] text-white/55 hover:bg-white/10 hover:text-white'}`}>
+                  {label}
+                </button>
+              ))}
+            </div>
+          )}
+
           {/* Result count */}
           {tab !== 'guide' && tab !== 'home' && (
             <p className="px-3 py-2 text-xs font-medium text-white/40" aria-live="polite">
@@ -960,6 +981,7 @@ const NeahplusExperience = () => {
                       key={channel.id}
                       channel={channel}
                       date={guideDate}
+                      period={guidePeriod}
                       index={i}
                       now={now}
                       registerRef={registerRef}
