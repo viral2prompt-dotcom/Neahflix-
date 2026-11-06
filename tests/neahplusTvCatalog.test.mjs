@@ -295,6 +295,30 @@ test('l’index des chaînes retrouve directement le groupe de chaque variante',
   assert.equal(index.has('unknown'), false);
 });
 
+test('les noms personnalisés des chaînes sont chargés et sauvegardés localement', () => {
+  const store = installStorage({
+    'neahplus:channel-display-names': JSON.stringify({
+      'tf1': 'TF1 Famille',
+      'canal+': 'Canal Cinéma',
+      'invalid': '',
+      'bad': 42,
+    }),
+  });
+
+  const names = utils.loadChannelDisplayNames();
+  assert.deepEqual(names, { tf1: 'TF1 Famille', 'canal+': 'Canal Cinéma' });
+
+  utils.saveChannelDisplayNames({ tf1: 'TF1 Principal' });
+  assert.deepEqual(JSON.parse(store.get('neahplus:channel-display-names')), {
+    tf1: 'TF1 Principal',
+  });
+});
+
+test('les noms personnalisés invalides ou absents ne sont pas chargés', () => {
+  installStorage({ 'neahplus:channel-display-names': 'not-json' });
+  assert.deepEqual(utils.loadChannelDisplayNames(), {});
+});
+
 test('la recherche du prochain programme choisit le plus proche sans dépendre de l’ordre', () => {
   const now = Date.parse('2026-11-05T10:00:00Z');
   const item = channel('epg', 'EPG');
