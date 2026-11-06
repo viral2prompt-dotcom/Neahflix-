@@ -1067,7 +1067,7 @@ const NeahplusExperience = () => {
         <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm" onClick={() => setShowRenameDialog(false)}>
           <form className="w-full max-w-sm rounded-2xl border border-white/10 bg-[#0b2028] p-5 shadow-2xl" onClick={(event) => event.stopPropagation()} onSubmit={(event) => { event.preventDefault(); saveSelectedChannelName(); }}>
             <h2 className="text-base font-bold text-white">Personnaliser le nom</h2>
-            <p className="mt-1 text-xs text-white/45">Ce nom sera utilisé dans NEAHPLUS, y compris dans les recherches. Il ne modifie pas le nom officiel de la source.</p>
+            <p className="mt-1 text-xs text-white/45">Ce nom sera utilisé dans NEAHPLUS, y compris dans les recherches. Il ne modifie pas le nom officiel de la source. Laissez le champ vide pour rétablir le nom d'origine.</p>
             <label className="mt-4 block text-xs font-semibold text-white/65" htmlFor="neahplus-custom-channel-name">Nom de la chaîne</label>
             <input id="neahplus-custom-channel-name" autoFocus maxLength={48} value={renameValue} onChange={(event) => setRenameValue(event.target.value)} placeholder={selectedGroup.variants[0]?.name ?? selectedGroup.displayName} className="mt-2 w-full rounded-xl border border-white/10 bg-black/25 px-3 py-3 text-sm text-white outline-none focus:border-[#20c7c7]" />
             <p className="mt-1 text-right text-[10px] text-white/30">{renameValue.length}/48</p>
