@@ -37,12 +37,13 @@ const errorMessage = (error: unknown): string => {
 interface NeahplusPlayerProps {
   channelId: string;
   channelName: string;
+  isActive: boolean;
   onInfo?: () => void;
   onPrevChannel?: () => void;
   onGuide?: () => void;
 }
 
-const NeahplusPlayer = ({ channelId, channelName, onInfo, onPrevChannel, onGuide }: NeahplusPlayerProps) => {
+const NeahplusPlayer = ({ channelId, channelName, isActive, onInfo, onPrevChannel, onGuide }: NeahplusPlayerProps) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [status, setStatus] = useState<PlayerStatus>('resolving');
@@ -55,6 +56,13 @@ const NeahplusPlayer = ({ channelId, channelName, onInfo, onPrevChannel, onGuide
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return undefined;
+    if (!isActive) {
+      video.pause();
+      video.removeAttribute('src');
+      video.load();
+      setStatus('paused');
+      return undefined;
+    }
     const controller = new AbortController();
     let hls: Hls | null = null;
     let failed = false;
@@ -119,13 +127,14 @@ const NeahplusPlayer = ({ channelId, channelName, onInfo, onPrevChannel, onGuide
 
     return () => {
       controller.abort();
+      video.pause();
       video.removeEventListener('playing', handlePlaying);
       video.removeEventListener('pause', handlePause);
       hls?.destroy();
       video.removeAttribute('src');
       video.load();
     };
-  }, [channelId, attempt]);
+  }, [channelId, attempt, isActive]);
 
   const resume = () => {
     const video = videoRef.current;
@@ -185,7 +194,7 @@ const NeahplusPlayer = ({ channelId, channelName, onInfo, onPrevChannel, onGuide
           {overlayStatus === 'error' ? (
             <AlertTriangle className="h-10 w-10 text-amber-300" aria-hidden="true" />
           ) : (
-            <Loader2 className="h-10 w-10 animate-spin text-red-400 motion-reduce:animate-none" aria-hidden="true" />
+            <Loader2 className="h-10 w-10 animate-spin text-amber-300 motion-reduce:animate-none" aria-hidden="true" />
           )}
           <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(32,199,199,.14),transparent_58%)]" />
           <span className="relative rounded-full border border-[#20c7c7]/25 bg-[#0b2932]/80 px-3 py-1 text-[9px] font-black tracking-[0.22em] text-[#75e6e6]">NEAHPLUS · TV EN DIRECT</span>
@@ -198,7 +207,7 @@ const NeahplusPlayer = ({ channelId, channelName, onInfo, onPrevChannel, onGuide
             <button
               type="button"
               onClick={() => setAttempt((value) => value + 1)}
-              className="mt-1 inline-flex items-center gap-2 rounded-lg bg-red-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-400"
+              className="mt-1 inline-flex items-center gap-2 rounded-lg bg-amber-500 px-4 py-2 text-sm font-semibold text-[#1b1305] transition hover:bg-amber-400"
             >
               <RotateCcw className="h-4 w-4" aria-hidden="true" />
               Réessayer
@@ -213,7 +222,7 @@ const NeahplusPlayer = ({ channelId, channelName, onInfo, onPrevChannel, onGuide
           onClick={resume}
           className="absolute inset-0 flex items-center justify-center bg-black/40 transition hover:bg-black/30"
         >
-          <span className="flex h-16 w-16 items-center justify-center rounded-full bg-red-500 text-white shadow-lg">
+          <span className="flex h-16 w-16 items-center justify-center rounded-full bg-[#20c7c7] text-[#061519] shadow-lg">
             <Play className="ml-1 h-7 w-7 fill-current" aria-hidden="true" />
           </span>
           <span className="sr-only">Reprendre la lecture</span>
