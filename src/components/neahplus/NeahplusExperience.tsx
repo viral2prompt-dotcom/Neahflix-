@@ -348,7 +348,7 @@ const NeahplusExperience = () => {
       if (country && tab !== 'world' && !groupMatchesCountry(g, country)) return false;
       if (needle && !foldText(g.displayName).includes(needle)) return false;
       return true;
-    });
+    }).sort((a, b) => Number(b.countries.includes('France')) - Number(a.countries.includes('France')) || channelPriority(a.displayName) - channelPriority(b.displayName) || a.displayName.localeCompare(b.displayName, 'fr'));
   }, [allGroups, country, query, tab, favorites]);
 
   const visibleGroups = useMemo(
