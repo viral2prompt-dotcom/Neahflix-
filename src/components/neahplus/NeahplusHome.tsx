@@ -114,7 +114,7 @@ const NeahplusHome = ({ channels, now, query, onQueryChange, onSelectChannel, di
       </div>
 
       {filteredChannels.length === 0 ? (
-        <p className="rounded-xl border border-white/10 bg-white/[0.03] p-8 text-center text-sm text-white/50">{mode === 'favorites' ? 'Votre espace est encore vide. Ajoutez une chaîne avec le bouton « Ajouter » pour la retrouver ici.' : 'Aucune chaîne dans cette catégorie pour le moment.'}</p>
+        <p className="rounded-xl border border-white/10 bg-white/[0.03] p-8 text-center text-sm text-white/50">{mode === 'favorites' ? (channels.length === 0 ? 'Votre espace est encore vide. Ajoutez une chaîne avec le bouton « Ajouter » pour la retrouver ici.' : 'Aucune de vos chaînes ne correspond à cette recherche ou catégorie.') : 'Aucune chaîne dans cette catégorie pour le moment.'}</p>
       ) : (
         <div ref={scrollerRef} className="grid auto-cols-[calc(50%_-_0.375rem)] grid-flow-col grid-rows-1 gap-3 overflow-x-auto overscroll-x-contain pb-3 [scrollbar-width:thin] [scrollbar-color:rgba(32,199,199,.35)_transparent] snap-x snap-mandatory touch-pan-x sm:auto-cols-[calc(25%_-_0.65625rem)] sm:gap-3.5" aria-label="Chaînes de la catégorie, défilement horizontal">
           {filteredChannels.map((channel) => {
