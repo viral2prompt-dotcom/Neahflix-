@@ -168,7 +168,7 @@ const ChannelCard = ({
         aria-pressed={favorited}
         className={`absolute right-3 top-1/2 -translate-y-1/2 rounded-xl p-2.5 transition-all duration-200 ${
           favorited
-            ? 'bg-amber-400/15 text-amber-400 hover:bg-amber-400/25'
+            ? 'bg-[#20c7c7]/15 text-[#75e6e6] hover:bg-[#20c7c7]/25'
             : 'text-white/20 hover:bg-white/10 hover:text-white/50'
         }`}
       >
@@ -966,7 +966,7 @@ const NeahplusExperience = () => {
                     aria-pressed={favorites.has(selectedGroup.key)}
                     className={`flex h-9 w-9 items-center justify-center rounded-xl transition ${
                       favorites.has(selectedGroup.key)
-                        ? 'bg-amber-400/15 text-amber-400 hover:bg-amber-400/25'
+                        ? 'bg-[#20c7c7]/15 text-[#75e6e6] hover:bg-[#20c7c7]/25'
                         : 'bg-white/5 text-white/40 hover:bg-white/10 hover:text-white/70'
                     }`}
                   >
