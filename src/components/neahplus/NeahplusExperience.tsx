@@ -8,6 +8,7 @@ import {
   Home as HomeIcon,
   Info,
   List,
+  Loader2,
   Play,
   Pencil,
   RotateCcw,
