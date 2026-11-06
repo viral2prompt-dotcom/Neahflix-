@@ -194,63 +194,52 @@ const EpgRow = ({ channel, date, onPlay, index, now, registerRef }: EpgRowProps)
     () => (isToday ? currentProgram(channel, now) : null),
     [channel, isToday, now],
   );
-  const next = useMemo(
-    () => (isToday ? getNextProgram(channel, now) : null),
-    [channel, isToday, now],
-  );
 
   return (
-    <button
-      ref={(el) => registerRef(el, index)}
-      type="button"
-      onClick={onPlay}
-      className="group flex w-full items-stretch gap-0 overflow-hidden rounded-2xl border border-white/[0.06] bg-gradient-to-b from-white/[0.03] to-transparent text-left transition-all duration-200 hover:border-white/15 hover:from-white/[0.06]"
-    >
-      <div className="flex w-32 shrink-0 flex-col items-center justify-center gap-1.5 border-r border-white/[0.06] bg-white/[0.02] p-3">
-        {channel.logo ? (
-          <img src={channel.logo} alt="" loading="lazy" className="h-9 w-9 rounded-lg bg-white/5 object-contain p-0.5" />
-        ) : (
-          <span className="flex h-9 w-9 items-center justify-center rounded-lg text-xs font-black uppercase text-white/90" style={{ background: channelColor(channel.name) }}>
-            {channel.name.slice(0, 2).toUpperCase()}
-          </span>
-        )}
-        <span className="block w-full truncate text-center text-[11px] font-semibold text-white/75">{channel.name}</span>
-      </div>
-      <div className="min-w-0 flex-1 p-3">
+    <article className="flex w-[220px] shrink-0 flex-col overflow-hidden rounded-xl border border-white/[0.07] bg-[#121218] sm:w-[245px]">
+      <button
+        ref={(el) => registerRef(el, index)}
+        type="button"
+        onClick={onPlay}
+        className="flex min-h-[82px] items-center gap-3 border-b border-white/[0.08] bg-white/[0.025] p-3 text-left transition hover:bg-white/[0.06]"
+      >
+        <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-white/[0.05] p-1.5">
+          {channel.logo ? (
+            <img src={channel.logo} alt="" loading="lazy" className="max-h-full max-w-full object-contain" />
+          ) : (
+            <span className="text-xs font-black text-white/75">{channel.name.slice(0, 2).toUpperCase()}</span>
+          )}
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block truncate text-xs font-bold text-white">{channel.name}</span>
+          <span className="mt-1 block text-[10px] text-white/35">{programs.length} programme{programs.length > 1 ? 's' : ''}</span>
+          <span className="mt-1 inline-flex items-center gap-1 text-[9px] font-bold uppercase tracking-wider text-red-300"><Play className="h-2.5 w-2.5 fill-current" /> Regarder</span>
+        </span>
+      </button>
+      <div className="flex min-h-[210px] flex-col gap-1.5 p-2.5">
         {programs.length === 0 ? (
-          <p className="py-3 text-xs text-white/35">Programme non disponible.</p>
-        ) : (
-          <div className="flex flex-col gap-1">
-            {current && (
-              <div className="flex items-center gap-2">
-                <span className="rounded bg-red-500/20 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-red-300">Live</span>
-                <p className="truncate text-sm font-bold text-white">{current.title}</p>
-                <span className="ml-auto shrink-0 text-[10px] text-white/40 tabular-nums">{formatTime(current.start)}–{formatTime(current.end)}</span>
-              </div>
-            )}
-            {next && (
-              <div className="flex items-center gap-2 pl-1">
-                <span className="text-[9px] font-semibold uppercase tracking-wide text-white/35">Suivant</span>
-                <p className="truncate text-xs text-white/55">{next.title}</p>
-                <span className="ml-auto shrink-0 text-[10px] text-white/35 tabular-nums">{formatTime(next.start)}</span>
-              </div>
-            )}
-            {!current && !next && (
-              <div className="flex flex-col gap-0.5">
-                {programs.slice(0, 3).map((p) => (
-                  <p key={p.start} className="truncate text-xs text-white/50">
-                    <span className="tabular-nums text-white/35">{formatTime(p.start)}</span> — {p.title}
-                  </p>
-                ))}
-                {programs.length > 3 && (
-                  <p className="text-[10px] text-white/30">+{programs.length - 3} autres</p>
-                )}
-              </div>
-            )}
-          </div>
-        )}
+          <p className="py-8 text-center text-xs text-white/35">Programme non disponible.</p>
+        ) : programs.slice(0, 12).map((program) => {
+          const isCurrent = Boolean(current && program.start === current.start && program.end === current.end);
+          const isPast = isToday && Date.parse(program.end) <= now && !isCurrent;
+          return (
+            <button
+              key={`${program.start}-${program.title}`}
+              type="button"
+              onClick={onPlay}
+              className={`rounded-lg border px-2.5 py-2 text-left transition ${isCurrent ? 'border-red-500/30 bg-red-500/10' : 'border-transparent bg-white/[0.025] hover:border-white/10 hover:bg-white/[0.06]'} ${isPast ? 'opacity-40' : ''}`}
+            >
+              <span className="flex items-center justify-between gap-2">
+                <span className={`text-[10px] font-bold tabular-nums ${isCurrent ? 'text-red-300' : 'text-white/45'}`}>{formatTime(program.start)}</span>
+                {isCurrent && <span className="rounded bg-red-600 px-1.5 py-0.5 text-[8px] font-black uppercase text-white">En direct</span>}
+              </span>
+              <span className="mt-1 block line-clamp-2 text-[11px] font-medium leading-4 text-white/85">{program.title}</span>
+              <span className="mt-1 block text-[9px] text-white/30">{formatTime(program.start)} – {formatTime(program.end)}</span>
+            </button>
+          );
+        })}
       </div>
-    </button>
+    </article>
   );
 };
 
@@ -1040,7 +1029,7 @@ const NeahplusExperience = () => {
                   Aucune chaîne avec programme TV (EPG) disponible.
                 </p>
               ) : (
-                <div className="flex flex-col gap-2">
+                <div className="flex gap-3 overflow-x-auto pb-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                   {epgVisible.map((channel, i) => (
                     <EpgRow
                       key={channel.id}
