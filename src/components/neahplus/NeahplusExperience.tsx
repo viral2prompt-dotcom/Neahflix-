@@ -2,18 +2,22 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import {
   AlertTriangle,
+  ArrowLeft,
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
+  Globe2,
   Heart,
   Home as HomeIcon,
   Info,
   List,
   Loader2,
+  Menu,
   Play,
   Pencil,
   RotateCcw,
   Search,
-  Star,
+  Settings as SettingsIcon,
   Tv,
   X,
 } from 'lucide-react';
@@ -50,14 +54,14 @@ import {
   shortChannelName,
 } from './neahplusTvUtils';
 
-type Tab = 'home' | 'all' | 'guide' | 'favorites' | 'world';
+type Tab = 'home' | 'all' | 'guide' | 'favorites' | 'countries' | 'settings' | 'world';
 type GuidePeriod = 'all' | 'morning' | 'afternoon' | 'early-evening' | 'evening' | 'night';
 
-const TABS: { id: Tab; label: string; icon: typeof HomeIcon }[] = [
-  { id: 'home', label: 'Accueil', icon: HomeIcon },
-  { id: 'all', label: 'En direct', icon: Tv },
-  { id: 'guide', label: 'Guide TV', icon: List },
-  { id: 'favorites', label: 'Favoris', icon: Heart },
+const TABS: { id: 'home' | 'favorites' | 'countries' | 'settings'; label: string; description: string; icon: typeof HomeIcon }[] = [
+  { id: 'home', label: 'Accueil', description: 'Retrouvez les chaînes et les programmes.', icon: HomeIcon },
+  { id: 'favorites', label: 'Mon espace NEAHPLUS', description: 'Vos chaînes sélectionnées.', icon: Heart },
+  { id: 'countries', label: 'Liste des pays', description: 'Explorez les chaînes par pays.', icon: Globe2 },
+  { id: 'settings', label: 'Paramètres', description: 'Préférences et guide d’utilisation.', icon: SettingsIcon },
 ];
 
 const PAGE_SIZE = 60;
@@ -73,6 +77,7 @@ interface ChannelCardProps {
   group: ChannelGroup;
   selected: boolean;
   favorited: boolean;
+  resolving: boolean;
   onSelect: () => void;
   onToggleFavorite: () => void;
   index: number;
@@ -84,6 +89,7 @@ const ChannelCard = ({
   group,
   selected,
   favorited,
+  resolving,
   onSelect,
   onToggleFavorite,
   index,
@@ -165,7 +171,7 @@ const ChannelCard = ({
             : 'text-white/20 hover:bg-white/10 hover:text-white/50'
         }`}
       >
-        <Star className="h-4 w-4" fill={favorited ? 'currentColor' : 'none'} aria-hidden="true" />
+        <Heart className="h-4 w-4" fill={favorited ? 'currentColor' : 'none'} aria-hidden="true" />
       </button>
     </div>
   );
@@ -273,8 +279,14 @@ const NeahplusExperience = () => {
   const [resolvingKey, setResolvingKey] = useState<string | null>(null);
   const [attempt, setAttempt] = useState(0);
   const [tab, setTab] = useState<Tab>('home');
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [pendingChannelId, setPendingChannelId] = useState<string | null>(null);
+  const navigationHistory = useRef<Tab[]>([]);
+  const pendingNavigationTimer = useRef<number | null>(null);
   const [query, setQuery] = useState('');
-  const [country, setCountry] = useState('');
+  const [country, setCountry] = useState(() => {
+    try { return localStorage.getItem('neahplus:country') ?? ''; } catch { return ''; }
+  });
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const [selectedGroupKey, setSelectedGroupKey] = useState<string | null>(null);
   const [activeVariantIndex, setActiveVariantIndex] = useState(0);
@@ -293,6 +305,30 @@ const NeahplusExperience = () => {
   const gridFocusIndex = useRef(0);
   const tabButtonsRef = useRef<(HTMLButtonElement | null)[]>([]);
   const [now, setNow] = useState(() => Date.now());
+
+  const navigateTo = useCallback((next: Tab) => {
+    setDrawerOpen(false);
+    if (next === tab) return;
+    navigationHistory.current.push(tab);
+    setTab(next);
+  }, [tab]);
+
+  const goBack = useCallback(() => {
+    setDrawerOpen(false);
+    const previous = navigationHistory.current.pop();
+    setTab(previous ?? 'home');
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (pendingNavigationTimer.current !== null) window.clearTimeout(pendingNavigationTimer.current);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!country) return;
+    try { localStorage.setItem('neahplus:country', country); } catch { /* stockage local indisponible */ }
+  }, [country]);
 
   useEffect(() => {
     const timer = window.setInterval(() => setNow(Date.now()), 30_000);
@@ -472,6 +508,36 @@ const NeahplusExperience = () => {
     setActiveVariantIndex(vIdx >= 0 ? vIdx : 0);
   }, [groupByChannelId, selectedGroupKey]);
 
+  const openChannelFromHome = useCallback((channel: NeahplusChannel) => {
+    if (pendingNavigationTimer.current !== null) window.clearTimeout(pendingNavigationTimer.current);
+    if (tab !== 'all') navigationHistory.current.push(tab);
+    handleSelectChannel(channel);
+    setPendingChannelId(channel.id);
+    pendingNavigationTimer.current = window.setTimeout(() => {
+      setTab('all');
+      setPendingChannelId(null);
+      pendingNavigationTimer.current = null;
+    }, 220);
+  }, [handleSelectChannel, tab]);
+
+  const isFavoriteChannel = useCallback((channel: NeahplusChannel) => {
+    const group = groupByChannelId.get(channel.id);
+    return Boolean(group && favorites.has(group.key));
+  }, [groupByChannelId, favorites]);
+
+  const toggleFavoriteChannel = useCallback((channel: NeahplusChannel) => {
+    const group = groupByChannelId.get(channel.id);
+    if (group) toggleFavorite(group.key);
+  }, [groupByChannelId, toggleFavorite]);
+
+  const homeChannels = useMemo(() => {
+    if (tab !== 'favorites') return channelsForCountry;
+    return (catalog?.channels ?? []).filter((channel) => {
+      const group = groupByChannelId.get(channel.id);
+      return Boolean(group && favorites.has(group.key));
+    });
+  }, [tab, channelsForCountry, catalog, groupByChannelId, favorites]);
+
   const saveSelectedChannelName = useCallback(() => {
     if (!selectedGroup) return;
     const nextName = renameValue.trim().slice(0, 48);
@@ -577,7 +643,8 @@ const NeahplusExperience = () => {
       };
       const focusTab = (index: number) => {
         const clamped = Math.max(0, Math.min(index, TABS.length - 1));
-        tabButtonsRef.current[clamped]?.focus();
+        setDrawerOpen(true);
+        window.setTimeout(() => tabButtonsRef.current[clamped]?.focus(), 0);
       };
 
       if (isInInput && e.key !== 'Escape') return;
@@ -708,34 +775,48 @@ const NeahplusExperience = () => {
   return (
     <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden bg-[#07171d] text-white">
       {/* Top navigation bar */}
-      <nav className="flex shrink-0 items-center gap-1 border-b border-white/[0.06] bg-[#0b2028]/95 px-3 py-2.5 backdrop-blur-xl sm:px-5" aria-label="Navigation NEAHPLUS TV">
-        <div className="mr-2 flex items-center gap-2 sm:mr-4">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-red-500 to-red-700 shadow-lg shadow-red-500/20">
-            <Tv className="h-4 w-4 text-white" aria-hidden="true" />
+      <nav className="relative z-50 flex shrink-0 items-center gap-3 border-b border-white/[0.06] bg-[#0b2028]/95 px-3 py-2.5 backdrop-blur-xl sm:px-5" aria-label="Navigation NEAHPLUS TV">
+        {((tab !== 'home') || navigationHistory.current.length > 0) && (
+          <button type="button" onClick={goBack} aria-label="Retour" title="Revenir à la page précédente" className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] text-white/70 transition hover:border-[#20c7c7]/40 hover:bg-white/10 hover:text-white">
+            <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+          </button>
+        )}
+        <div className="flex items-center gap-2">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-[#20c7c7] to-[#087b83] shadow-lg shadow-[#20c7c7]/15">
+            <Tv className="h-4 w-4 text-[#061519]" aria-hidden="true" />
           </div>
-          <span className="hidden text-sm font-black tracking-tight text-white sm:inline">NEAH<span className="text-red-400">PLUS</span></span>
+          <span className="text-sm font-black tracking-tight text-white">NEAH<span className="text-[#55dddd]">PLUS</span></span>
         </div>
-        <div className="flex items-center gap-0.5 overflow-x-auto [&::-webkit-scrollbar]:hidden [scrollbar-width:none]">
-          {TABS.map(({ id, label, icon: Icon }, i) => (
-            <button
-              key={id}
-              ref={(el) => { tabButtonsRef.current[i] = el; }}
-              type="button"
-              onClick={() => setTab(id)}
-              aria-current={tab === id ? 'true' : undefined}
-              className={`inline-flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-semibold transition-all duration-200 sm:text-sm ${
-                tab === id
-                  ? 'bg-white/10 text-white'
-                  : 'text-white/45 hover:bg-white/5 hover:text-white/80'
-              }`}
-            >
-              <Icon className="h-4 w-4" aria-hidden="true" />
-              <span className="hidden sm:inline">{label}</span>
-            </button>
-          ))}
+        <div className="ml-auto">
+          <button type="button" onClick={() => setDrawerOpen((open) => !open)} aria-expanded={drawerOpen} aria-controls="neahplus-navigation-drawer" aria-label={drawerOpen ? 'Fermer le menu NEAHPLUS' : 'Ouvrir le menu NEAHPLUS'} className="relative inline-flex items-center gap-2 rounded-xl border border-[#20c7c7]/25 bg-[#20c7c7]/[0.08] px-3.5 py-2 text-xs font-bold text-[#8af0f0] shadow-[0_0_22px_rgba(32,199,199,.06)] transition hover:border-[#20c7c7]/50 hover:bg-[#20c7c7]/15">
+            <span className="absolute -right-1 -top-1 h-2.5 w-2.5 rounded-full border-2 border-[#0b2028] bg-[#55dddd] shadow-[0_0_10px_rgba(85,221,221,.7)]" />
+            <Menu className="h-4 w-4" aria-hidden="true" />
+            <span>Menu</span>
+            <ChevronDown className={`h-3.5 w-3.5 transition-transform ${drawerOpen ? 'rotate-180' : ''}`} aria-hidden="true" />
+          </button>
         </div>
-        <span className="ml-auto hidden text-[10px] font-semibold tracking-widest text-[#54dada] sm:inline">TV EN DIRECT</span>
       </nav>
+      {drawerOpen && (
+        <>
+          <button type="button" aria-label="Fermer le menu" onClick={() => setDrawerOpen(false)} className="fixed inset-0 z-[80] bg-black/25 backdrop-blur-[1px]" />
+          <aside id="neahplus-navigation-drawer" className="fixed right-3 top-[4.25rem] z-[90] w-[min(18rem,calc(100vw-1.5rem))] max-h-[65vh] overflow-y-auto rounded-2xl border border-[#20c7c7]/20 bg-[#0b2028]/[0.98] p-3 shadow-[0_18px_55px_rgba(0,0,0,.55)] backdrop-blur-2xl" aria-label="Menu principal NEAHPLUS">
+            <div className="mb-2 flex items-center justify-between px-1.5 py-1">
+              <div><p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#55dddd]">Navigation</p><p className="mt-0.5 text-xs text-white/45">Votre univers NEAHPLUS</p></div>
+              <button type="button" onClick={() => setDrawerOpen(false)} aria-label="Fermer" className="rounded-lg p-1.5 text-white/45 transition hover:bg-white/10 hover:text-white"><X className="h-4 w-4" /></button>
+            </div>
+            <div className="flex flex-col gap-1.5">
+              {TABS.map(({ id, label, description, icon: Icon }, i) => (
+                <button key={id} ref={(el) => { tabButtonsRef.current[i] = el; }} type="button" onClick={() => navigateTo(id)} aria-current={tab === id ? 'page' : undefined} className={`flex w-full items-center gap-3 rounded-xl border px-3 py-3 text-left transition ${tab === id ? 'border-[#20c7c7]/35 bg-[#20c7c7]/10 text-white' : 'border-transparent text-white/75 hover:border-white/10 hover:bg-white/[0.05]'}`}>
+                  <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${tab === id ? 'bg-[#20c7c7]/15 text-[#70e5e5]' : 'bg-white/[0.06] text-white/55'}`}><Icon className="h-4 w-4" aria-hidden="true" /></span>
+                  <span className="min-w-0 flex-1"><span className="block text-sm font-bold">{label}</span><span className="mt-0.5 block text-[10px] text-white/40">{description}</span></span>
+                  {tab === id && <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-[#55dddd]" />}
+                </button>
+              ))}
+            </div>
+            <p className="mt-2 border-t border-white/[0.06] px-1.5 pt-2 text-[10px] text-white/30">Choisissez une rubrique pour continuer.</p>
+          </aside>
+        </>
+      )}
       {!catalogComplete && (
         <div className="flex shrink-0 items-center justify-center gap-2 border-b border-[#20c7c7]/10 bg-[#0b2028] px-3 py-1.5 text-[10px] font-medium text-[#8bdede]/70" role="status">
           <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[#55dddd]" />
@@ -810,7 +891,7 @@ const NeahplusExperience = () => {
         )}
 
         {/* Left: Player + info */}
-        <section className={`flex min-h-0 w-full shrink-0 flex-col gap-3 overflow-y-auto overscroll-y-contain touch-pan-y p-3 lg:w-[42%] lg:max-w-[720px] lg:p-4 ${tab === 'home' ? 'hidden' : ''}`} style={{ WebkitOverflowScrolling: 'touch' }}>
+        <section className={`flex min-h-0 w-full shrink-0 flex-col gap-3 overflow-y-auto overscroll-y-contain touch-pan-y p-3 lg:w-[42%] lg:max-w-[720px] lg:p-4 ${['home', 'favorites', 'countries', 'settings'].includes(tab) ? 'hidden' : ''}`} style={{ WebkitOverflowScrolling: 'touch' }}>
           {activeVariant && selectedGroup ? (
             <>
               <div className="group relative mx-auto w-full max-w-[720px]">
@@ -929,9 +1010,9 @@ const NeahplusExperience = () => {
         </section>
 
         {/* Right: Browse / Guide / Home */}
-        <section className={`flex min-h-0 w-full min-w-0 flex-1 flex-col overflow-hidden ${tab === 'home' ? 'w-full' : 'lg:border-l lg:border-white/[0.06]'}`}>
+        <section className={`flex min-h-0 w-full min-w-0 flex-1 flex-col overflow-hidden ${['home', 'favorites', 'countries', 'settings'].includes(tab) ? 'w-full' : 'lg:border-l lg:border-white/[0.06]'}`}>
           {/* Search + filters bar */}
-          {tab !== 'home' && <div className="flex flex-col gap-2 border-b border-white/[0.06] p-3 sm:flex-row sm:items-center sm:gap-3">
+          {(tab === 'all' || tab === 'guide' || tab === 'world') && <div className="flex flex-col gap-2 border-b border-white/[0.06] p-3 sm:flex-row sm:items-center sm:gap-3">
             <label className="relative flex-1">
               <span className="sr-only">Rechercher une chaîne</span>
               <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-white/30" aria-hidden="true" />
@@ -943,28 +1024,8 @@ const NeahplusExperience = () => {
                 className="w-full rounded-xl border border-white/[0.08] bg-white/[0.03] py-2.5 pl-10 pr-3 text-sm text-white placeholder:text-white/30 focus:border-red-500/50 focus:bg-white/[0.05] focus:outline-none focus:ring-1 focus:ring-red-500/20"
               />
             </label>
-            {tab !== 'world' && tab !== 'home' && catalogComplete && catalog.countries.length > 0 && (
-              <label className="sm:w-52">
-                <span className="sr-only">Filtrer par pays</span>
-                <select
-                  value={country}
-                  onChange={(e) => setCountry(e.target.value)}
-                  className="w-full rounded-xl border border-white/[0.08] bg-white/[0.03] px-3.5 py-2.5 text-sm text-white focus:border-red-500/50 focus:outline-none focus:ring-1 focus:ring-red-500/20"
-                >
-                  <option value="">Tous les pays</option>
-                  {catalog.countries.map((c) => (
-                    <option key={c.name} value={c.name}>
-                      {c.name} ({c.count})
-                    </option>
-                  ))}
-                </select>
-              </label>
-            )}
-            {tab === 'world' && (
-              <span className="text-xs font-medium text-white/40">
-                {catalog.countries.length} pays · {catalog.channels.length} chaînes
-              </span>
-            )}
+
+            {tab === 'world' && <span className="text-xs font-medium text-white/40">{catalog.countries.length} pays · {catalog.channels.length} chaînes</span>}
           </div>}
 
           {/* Guide date navigator */}
@@ -1010,24 +1071,44 @@ const NeahplusExperience = () => {
           )}
 
           {/* Result count */}
-          {tab !== 'guide' && tab !== 'home' && (
-            <p className="px-3 py-2 text-xs font-medium text-white/40" aria-live="polite">
-              {filteredGroups.length} chaîne{filteredGroups.length > 1 ? 's' : ''}
-              {tab === 'favorites' && favorites.size === 0 && ' — Ajoutez des chaînes avec l\'étoile'}
-            </p>
-          )}
+          {(tab === 'all' || tab === 'world') && <p className="px-3 py-2 text-xs font-medium text-white/40" aria-live="polite">{filteredGroups.length} chaîne{filteredGroups.length > 1 ? 's' : ''}</p>}
 
           {/* Content grid */}
-          <div ref={gridRef} className={`min-h-0 flex-1 flex-col overflow-y-auto overscroll-y-contain touch-pan-y ${tab === 'home' ? 'flex p-3 sm:p-5 lg:p-7' : 'flex p-3'}`} style={{ WebkitOverflowScrolling: 'touch' }} data-lenis-prevent>
-            {tab === 'home' ? (
+          <div ref={gridRef} className={`min-h-0 flex-1 flex-col overflow-y-auto overscroll-y-contain touch-pan-y ${['home', 'favorites', 'countries', 'settings'].includes(tab) ? 'flex p-3 sm:p-5 lg:p-7' : 'flex p-3'}`} style={{ WebkitOverflowScrolling: 'touch' }} data-lenis-prevent>
+            {tab === 'home' || tab === 'favorites' ? (
               <NeahplusHome
-                channels={channelsForCountry}
+                channels={homeChannels}
                 now={now}
                 query={query}
                 onQueryChange={setQuery}
-                onSelectChannel={(channel) => { handleSelectChannel(channel); setTab('all'); }}
+                onSelectChannel={openChannelFromHome}
                 displayNamesByChannelId={displayNamesByChannelId}
+                isFavorite={isFavoriteChannel}
+                onToggleFavorite={toggleFavoriteChannel}
+                pendingChannelId={pendingChannelId}
+                mode={tab === 'favorites' ? 'favorites' : 'home'}
               />
+            ) : tab === 'countries' ? (
+              <div className="mx-auto w-full max-w-5xl space-y-5 pb-6">
+                <div><p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#55dddd]">Catalogue international</p><h1 className="mt-1 text-2xl font-black text-white">Choisir un pays</h1><p className="mt-1 text-sm text-white/45">Affichez les chaînes disponibles dans le pays sélectionné.</p></div>
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                  {catalog.countries.slice().sort((a, b) => a.name.localeCompare(b.name, 'fr')).map((item) => (
+                    <button key={item.name} type="button" onClick={() => { setCountry(item.name); setQuery(''); navigateTo('home'); }} aria-pressed={country === item.name} className={`flex items-center gap-3 rounded-2xl border p-4 text-left transition ${country === item.name ? 'border-[#20c7c7]/45 bg-[#20c7c7]/10 ring-1 ring-[#20c7c7]/20' : 'border-white/10 bg-white/[0.03] hover:border-[#20c7c7]/30 hover:bg-white/[0.05]'}`}>
+                      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white/[0.06] text-[#70e5e5]"><Globe2 className="h-5 w-5" /></span>
+                      <span className="min-w-0 flex-1"><span className="block truncate text-sm font-bold text-white">{item.name}</span><span className="mt-0.5 block text-xs text-white/40">{item.count} chaîne{item.count > 1 ? 's' : ''}</span></span>
+                      {country === item.name && <span className="rounded-full bg-[#20c7c7]/15 px-2 py-1 text-[9px] font-bold uppercase text-[#70e5e5]">Actif</span>}
+                    </button>
+                  ))}
+                </div>
+                <button type="button" onClick={() => { setCountry(''); setQuery(''); navigateTo('home'); }} className="rounded-xl border border-white/10 bg-white/[0.04] px-4 py-2.5 text-xs font-semibold text-white/65 transition hover:bg-white/10 hover:text-white">Afficher tous les pays</button>
+              </div>
+            ) : tab === 'settings' ? (
+              <div className="mx-auto w-full max-w-3xl space-y-5 pb-6">
+                <div><p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#55dddd]">Votre expérience</p><h1 className="mt-1 text-2xl font-black text-white">Paramètres</h1><p className="mt-1 text-sm text-white/45">Quelques réglages simples pour organiser votre télévision.</p></div>
+                <section className="rounded-2xl border border-white/10 bg-white/[0.035] p-4 sm:p-5"><div className="flex items-center gap-2"><Globe2 className="h-4 w-4 text-[#55dddd]"/><h2 className="text-sm font-bold text-white">Pays affiché</h2></div><p className="mt-1 text-xs text-white/45">Définissez le catalogue utilisé par défaut dans l’accueil.</p><div className="mt-3 flex flex-wrap items-center gap-2"><select value={country} onChange={(event) => setCountry(event.target.value)} className="min-w-0 flex-1 rounded-xl border border-white/10 bg-[#0b2028] px-3 py-3 text-sm text-white outline-none focus:border-[#20c7c7]/60"><option value="">Tous les pays</option>{catalog.countries.map((item) => <option key={item.name} value={item.name}>{item.name}</option>)}</select><button type="button" onClick={() => setCountry(catalog.countries.some((item) => item.name === 'France') ? 'France' : '')} className="rounded-xl border border-[#20c7c7]/25 bg-[#20c7c7]/10 px-3 py-3 text-xs font-bold text-[#75e6e6] transition hover:bg-[#20c7c7]/20">France par défaut</button></div></section>
+                <section className="rounded-2xl border border-white/10 bg-white/[0.035] p-4 sm:p-5"><div className="flex items-center gap-2"><Info className="h-4 w-4 text-[#55dddd]"/><h2 className="text-sm font-bold text-white">Comment utiliser NEAHPLUS</h2></div><div className="mt-3 grid gap-3 sm:grid-cols-2"><div className="rounded-xl bg-black/15 p-3"><p className="text-xs font-bold text-white">Accueil</p><p className="mt-1 text-xs leading-5 text-white/45">Parcourez les chaînes par catégorie et lancez un direct.</p></div><div className="rounded-xl bg-black/15 p-3"><p className="text-xs font-bold text-white">Mon espace</p><p className="mt-1 text-xs leading-5 text-white/45">Ajoutez vos chaînes avec le cœur pour les retrouver rapidement.</p></div><div className="rounded-xl bg-black/15 p-3"><p className="text-xs font-bold text-white">Liste des pays</p><p className="mt-1 text-xs leading-5 text-white/45">Choisissez un pays pour afficher son catalogue de chaînes.</p></div><div className="rounded-xl bg-black/15 p-3"><p className="text-xs font-bold text-white">Paramètres</p><p className="mt-1 text-xs leading-5 text-white/45">Modifiez le pays affiché et retrouvez ces conseils.</p></div></div></section>
+                <section className="rounded-2xl border border-white/10 bg-gradient-to-br from-[#0c3037] to-[#101a22] p-4 sm:p-5"><p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#70e5e5]">À propos</p><h2 className="mt-1 text-sm font-bold text-white">NEAHPLUS TV</h2><p className="mt-1 text-xs leading-5 text-white/50">Guide TV indépendant qui organise les chaînes et leurs sources disponibles. Sans affiliation à CANAL+.</p></section>
+              </div>
             ) : tab === 'guide' ? (
               epgChannels.length === 0 ? (
                 <p className="py-16 text-center text-sm text-white/40">
@@ -1097,11 +1178,11 @@ const NeahplusExperience = () => {
       </div>
 
       {/* Footer */}
-      <footer className="shrink-0 border-t border-white/[0.06] bg-[#0d0d14] px-3 py-2">
-        <p className="text-center text-[10px] text-white/25">
-          NEAHPLUS TV — Guide indépendant. Cette interface organise les chaînes et leurs sources disponibles.
-          Elle n'est ni affiliée à CANAL+ ni exploitée par CANAL+.
-        </p>
+      <footer className="shrink-0 border-t border-white/[0.06] bg-[#0d0d14] px-3 py-2.5">
+        <div className="mx-auto flex max-w-3xl items-center justify-center gap-2 rounded-xl border border-white/[0.07] bg-white/[0.025] px-3 py-2 text-center">
+          <Info className="h-3.5 w-3.5 shrink-0 text-[#55dddd]/70" aria-hidden="true" />
+          <p className="text-[10px] leading-4 text-white/40"><span className="font-bold text-white/55">Guide TV indépendant.</span> NEAHPLUS organise les chaînes et leurs sources, sans affiliation à CANAL+.</p>
+        </div>
       </footer>
 
       {/* Overlays */}
