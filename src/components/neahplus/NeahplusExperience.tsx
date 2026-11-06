@@ -249,6 +249,7 @@ const EpgRow = ({ channel, date, period, onPlay, index, now, registerRef, channe
 
 const NeahplusExperience = () => {
   const [catalog, setCatalog] = useState<NeahplusCatalog | null>(null);
+  const [introVisible, setIntroVisible] = useState(true);
   const [catalogComplete, setCatalogComplete] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [resolvingKey, setResolvingKey] = useState<string | null>(null);
@@ -279,6 +280,12 @@ const NeahplusExperience = () => {
     const timer = window.setInterval(() => setNow(Date.now()), 30_000);
     return () => window.clearInterval(timer);
   }, []);
+
+  useEffect(() => {
+    setIntroVisible(true);
+    const timer = window.setTimeout(() => setIntroVisible(false), 1600);
+    return () => window.clearTimeout(timer);
+  }, [attempt]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -659,7 +666,7 @@ const NeahplusExperience = () => {
     );
   }
 
-  if (!catalog) {
+  if (!catalog || introVisible) {
     return (
       <div className="relative flex min-h-0 flex-1 flex-col items-center justify-center overflow-hidden bg-[radial-gradient(ellipse_at_50%_42%,#123943_0%,#091d25_42%,#061219_100%)] p-6 text-center">
         <div className="pointer-events-none absolute inset-0 opacity-30" style={{ backgroundImage: 'linear-gradient(rgba(255,255,255,.035) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.035) 1px, transparent 1px)', backgroundSize: '42px 42px' }} />
