@@ -21,7 +21,7 @@ const PlatformExperience = () => {
   if (!service) return null;
 
   if ('native' in service) {
-    return <main className="h-[calc(100dvh-5rem)] w-full min-h-0 overflow-hidden bg-[#07171d] text-white lg:h-dvh"><NeahplusExperience /></main>;
+    return <main className="h-full w-full min-h-0 overflow-hidden bg-[#07171d] text-white"><NeahplusExperience /></main>;
   }
 
   return (
