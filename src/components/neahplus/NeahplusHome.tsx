@@ -96,11 +96,8 @@ const NeahplusHome = ({ channels, now, query, onQueryChange, onSelectChannel }: 
             return (
               <button key={channel.id} type="button" onClick={() => onSelectChannel(channel)} className="group min-w-0 overflow-hidden rounded-xl border border-white/10 bg-[#102027] text-left transition hover:-translate-y-0.5 hover:border-[#20c7c7]/60 hover:bg-[#143039] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#20c7c7]">
                 <div className="relative flex aspect-[16/10] items-center justify-center overflow-hidden bg-gradient-to-br from-[#153b43] via-[#10252e] to-[#09151c] p-4">
-                  {channel.logo ? (
-                    <img src={channel.logo} alt={`Logo ${channel.name}`} loading="lazy" onError={(event) => { event.currentTarget.style.display = 'none'; }} className="max-h-full max-w-[78%] object-contain drop-shadow-xl transition group-hover:scale-105" />
-                  ) : (
-                    <span className="flex h-14 w-14 items-center justify-center rounded-2xl border border-[#20c7c7]/30 bg-[#20c7c7]/10 text-lg font-black text-[#67e5e5]">{channel.name.slice(0, 2).toUpperCase()}</span>
-                  )}
+                  <span className="flex h-14 w-14 items-center justify-center rounded-2xl border border-[#20c7c7]/30 bg-[#20c7c7]/10 text-lg font-black text-[#67e5e5]">{channel.name.slice(0, 2).toUpperCase()}</span>
+                  {channel.logo && <img src={channel.logo} alt={`Logo ${channel.name}`} loading="lazy" onError={(event) => { event.currentTarget.style.display = 'none'; }} className="absolute inset-0 m-auto max-h-[75%] max-w-[78%] object-contain drop-shadow-xl transition group-hover:scale-105" />}
                   <span className={`absolute left-2 top-2 rounded-md px-2 py-1 text-[9px] font-black uppercase ${program ? 'bg-emerald-500 text-[#041a16]' : 'bg-black/50 text-white/70'}`}>{program ? 'En direct' : 'TV'}</span>
                   <span className="absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-black/50 to-transparent" />
                 </div>
