@@ -170,7 +170,7 @@ const NeahplusPlayer = ({ channelId, channelName, onInfo, onPrevChannel, onGuide
   return (
     <div
       ref={containerRef}
-      className="relative aspect-video w-full overflow-hidden rounded-2xl bg-black ring-1 ring-white/10"
+      className="relative mx-auto aspect-video w-full max-h-[42vh] overflow-hidden rounded-xl bg-black ring-1 ring-[#20c7c7]/20 lg:max-h-[46vh]"
     >
       <video
         ref={videoRef}
