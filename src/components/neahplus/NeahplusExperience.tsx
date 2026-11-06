@@ -9,6 +9,7 @@ import {
   List,
   Loader2,
   Play,
+  Pencil,
   RotateCcw,
   Search,
   Star,
@@ -41,6 +42,8 @@ import {
   historicalChannelsWithoutDuplicates,
   loadFavorites,
   migrateLegacyFavorites,
+  loadChannelDisplayNames,
+  saveChannelDisplayNames,
   getNextProgram,
   saveFavorites,
   shortChannelName,
@@ -180,9 +183,10 @@ interface EpgRowProps {
   index: number;
   now: number;
   registerRef: (el: HTMLButtonElement | null, index: number) => void;
+  channelDisplayName: string;
 }
 
-const EpgRow = ({ channel, date, period, onPlay, index, now, registerRef }: EpgRowProps) => {
+const EpgRow = ({ channel, date, period, onPlay, index, now, registerRef, channelDisplayName }: EpgRowProps) => {
   const programs = useMemo(() => getProgramsForDay(channel, date).filter((program) => {
     const hour = new Date(program.start).getHours();
     if (period === 'morning') return hour >= 5 && hour < 12;
@@ -202,7 +206,7 @@ const EpgRow = ({ channel, date, period, onPlay, index, now, registerRef }: EpgR
   );
 
   return (
-    <article className="flex w-[220px] shrink-0 flex-col overflow-hidden rounded-xl border border-white/[0.07] bg-[#121218] sm:w-[245px]">
+    <article className="flex w-full min-w-0 flex-col overflow-hidden rounded-xl border border-white/[0.07] bg-[#121218]">
       <button
         ref={(el) => registerRef(el, index)}
         type="button"
@@ -217,7 +221,7 @@ const EpgRow = ({ channel, date, period, onPlay, index, now, registerRef }: EpgR
           )}
         </span>
         <span className="min-w-0 flex-1">
-          <span className="block truncate text-xs font-bold text-white">{channel.name}</span>
+          <span className="block truncate text-xs font-bold text-white">{channelDisplayName}</span>
           <span className="mt-1 block text-[10px] text-white/35">{programs.length} programme{programs.length > 1 ? 's' : ''}</span>
           <span className="mt-1 inline-flex items-center gap-1 text-[9px] font-bold uppercase tracking-wider text-red-300"><Play className="h-2.5 w-2.5 fill-current" /> Regarder</span>
         </span>
@@ -260,6 +264,9 @@ const NeahplusExperience = () => {
   const [selectedGroupKey, setSelectedGroupKey] = useState<string | null>(null);
   const [activeVariantIndex, setActiveVariantIndex] = useState(0);
   const [favorites, setFavorites] = useState<Set<string>>(new Set());
+  const [customNames, setCustomNames] = useState<Record<string, string>>({});
+  const [showRenameDialog, setShowRenameDialog] = useState(false);
+  const [renameValue, setRenameValue] = useState('');
   const [guideDate, setGuideDate] = useState(() => new Date());
   const [guidePeriod, setGuidePeriod] = useState<GuidePeriod>('all');
   const [resolvingKey, setResolvingKey] = useState<string | null>(null);
@@ -294,6 +301,7 @@ const NeahplusExperience = () => {
 
   useEffect(() => {
     setFavorites(loadFavorites());
+    setCustomNames(loadChannelDisplayNames());
   }, []);
 
   const toggleFavorite = useCallback((key: string) => {
@@ -306,7 +314,11 @@ const NeahplusExperience = () => {
     });
   }, []);
 
-  const realGroups = useMemo(() => groupChannelVariants(catalog?.channels ?? []), [catalog]);
+  const baseRealGroups = useMemo(() => groupChannelVariants(catalog?.channels ?? []), [catalog]);
+  const realGroups = useMemo(
+    () => baseRealGroups.map((group) => ({ ...group, displayName: customNames[group.key] || group.displayName })),
+    [baseRealGroups, customNames],
+  );
   const allGroups = useMemo(
     () => [...realGroups, ...historicalChannelsWithoutDuplicates(realGroups)],
     [realGroups],
@@ -318,6 +330,10 @@ const NeahplusExperience = () => {
   const groupByChannelId = useMemo(
     () => indexChannelGroupsByChannelId(allGroups),
     [allGroups],
+  );
+  const displayNamesByChannelId = useMemo(
+    () => new Map([...groupByChannelId].map(([id, group]) => [id, group.displayName])),
+    [groupByChannelId],
   );
 
   useEffect(() => {
@@ -417,6 +433,20 @@ const NeahplusExperience = () => {
     const vIdx = group.variants.findIndex((v) => v.id === channel.id);
     setActiveVariantIndex(vIdx >= 0 ? vIdx : 0);
   }, [groupByChannelId, selectedGroupKey]);
+
+  const saveSelectedChannelName = useCallback(() => {
+    if (!selectedGroup) return;
+    const nextName = renameValue.trim().slice(0, 48);
+    setCustomNames((previous) => {
+      const next = { ...previous };
+      const originalName = selectedGroup.variants[0]?.name ?? selectedGroup.displayName;
+      if (!nextName || foldText(nextName) === foldText(originalName)) delete next[selectedGroup.key];
+      else next[selectedGroup.key] = nextName;
+      saveChannelDisplayNames(next);
+      return next;
+    });
+    setShowRenameDialog(false);
+  }, [selectedGroup, renameValue]);
 
   const goToPrevChannel = useCallback(() => {
     if (prevGroupKey) {
@@ -736,7 +766,7 @@ const NeahplusExperience = () => {
         )}
 
         {/* Left: Player + info */}
-        <section className={`flex min-h-0 w-full shrink-0 flex-col gap-3 overflow-y-auto p-3 lg:w-[42%] lg:max-w-[720px] lg:p-4 ${tab === 'home' ? 'hidden' : ''}`}>
+        <section className={`flex min-h-0 w-full shrink-0 flex-col gap-3 overflow-y-auto overscroll-y-contain touch-pan-y p-3 [ -webkit-overflow-scrolling:touch ] lg:w-[42%] lg:max-w-[720px] lg:p-4 ${tab === 'home' ? 'hidden' : ''}`}>
           {activeVariant && selectedGroup ? (
             <>
               <div className="group relative mx-auto w-full max-w-[720px]">
@@ -764,6 +794,15 @@ const NeahplusExperience = () => {
                   )}
                 </div>
                 <div className="flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => { setRenameValue(selectedGroup.displayName); setShowRenameDialog(true); }}
+                    aria-label="Personnaliser le nom de la chaîne"
+                    title="Personnaliser le nom"
+                    className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/5 text-white/60 transition hover:bg-white/10 hover:text-white"
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </button>
                   <button
                     type="button"
                     onClick={() => setShowInfoPanel(true)}
@@ -935,7 +974,7 @@ const NeahplusExperience = () => {
           )}
 
           {/* Content grid */}
-          <div ref={gridRef} className={`flex min-h-0 flex-1 flex-col overflow-y-auto ${tab === 'home' ? 'p-3 sm:p-5 lg:p-7' : 'p-3'}`} data-lenis-prevent>
+          <div ref={gridRef} className={`min-h-0 flex-1 flex-col overflow-y-auto overscroll-y-contain touch-pan-y [ -webkit-overflow-scrolling:touch ] ${tab === 'home' ? 'flex p-3 sm:p-5 lg:p-7' : 'flex p-3'}`} data-lenis-prevent>
             {tab === 'home' ? (
               <NeahplusHome
                 channels={catalog.channels}
@@ -943,6 +982,7 @@ const NeahplusExperience = () => {
                 query={query}
                 onQueryChange={setQuery}
                 onSelectChannel={(channel) => { handleSelectChannel(channel); setTab('all'); }}
+                displayNamesByChannelId={displayNamesByChannelId}
               />
             ) : tab === 'guide' ? (
               epgChannels.length === 0 ? (
@@ -950,11 +990,12 @@ const NeahplusExperience = () => {
                   Aucune chaîne avec programme TV (EPG) disponible.
                 </p>
               ) : (
-                <div className="flex gap-3 overflow-x-auto pb-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                <div className="grid grid-cols-1 gap-3 pb-3 sm:grid-cols-2 xl:grid-cols-3">
                   {epgVisible.map((channel, i) => (
                     <EpgRow
                       key={channel.id}
                       channel={channel}
+                      channelDisplayName={displayNamesByChannelId.get(channel.id) ?? channel.name}
                       date={guideDate}
                       period={guidePeriod}
                       index={i}
@@ -1020,6 +1061,21 @@ const NeahplusExperience = () => {
       </footer>
 
       {/* Overlays */}
+      {showRenameDialog && selectedGroup && (
+        <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm" onClick={() => setShowRenameDialog(false)}>
+          <form className="w-full max-w-sm rounded-2xl border border-white/10 bg-[#0b2028] p-5 shadow-2xl" onClick={(event) => event.stopPropagation()} onSubmit={(event) => { event.preventDefault(); saveSelectedChannelName(); }}>
+            <h2 className="text-base font-bold text-white">Personnaliser le nom</h2>
+            <p className="mt-1 text-xs text-white/45">Ce nom sera utilisé dans NEAHPLUS, y compris dans les recherches. Il ne modifie pas le nom officiel de la source.</p>
+            <label className="mt-4 block text-xs font-semibold text-white/65" htmlFor="neahplus-custom-channel-name">Nom de la chaîne</label>
+            <input id="neahplus-custom-channel-name" autoFocus maxLength={48} value={renameValue} onChange={(event) => setRenameValue(event.target.value)} placeholder={selectedGroup.variants[0]?.name ?? selectedGroup.displayName} className="mt-2 w-full rounded-xl border border-white/10 bg-black/25 px-3 py-3 text-sm text-white outline-none focus:border-[#20c7c7]" />
+            <p className="mt-1 text-right text-[10px] text-white/30">{renameValue.length}/48</p>
+            <div className="mt-4 flex justify-end gap-2">
+              <button type="button" onClick={() => setShowRenameDialog(false)} className="rounded-lg px-3 py-2 text-xs font-semibold text-white/55 hover:bg-white/5">Annuler</button>
+              <button type="submit" className="rounded-lg bg-[#20c7c7] px-4 py-2 text-xs font-bold text-[#061519] hover:bg-[#55dddd]">Enregistrer</button>
+            </div>
+          </form>
+        </div>
+      )}
       {showInfoPanel && activeVariant && (
         <InfoPanel
           channel={activeVariant}
@@ -1034,6 +1090,7 @@ const NeahplusExperience = () => {
           currentChannelId={activeVariant?.id ?? null}
           onSelect={handleSelectChannel}
           onClose={() => setShowQuickSearch(false)}
+          displayNamesByChannelId={displayNamesByChannelId}
         />
       )}
     </div>
