@@ -61,6 +61,13 @@ const TABS: { id: Tab; label: string; icon: typeof HomeIcon }[] = [
 const PAGE_SIZE = 60;
 const HOME_SECTION_COUNT = 12;
 
+const CHANNEL_PRIORITY = ['piwi+', 'a+', 'canal+ cinéma', 'canal+ action', 'canal+', 'gulli', 'tf1', 'france 2', 'france 3', 'm6', 'tv5monde', 'france 24', 'tmc'];
+const channelPriority = (name: string): number => {
+  const normalized = foldText(name);
+  const index = CHANNEL_PRIORITY.findIndex((preferred) => normalized === foldText(preferred) || normalized.startsWith(foldText(preferred) + ' '));
+  return index < 0 ? CHANNEL_PRIORITY.length : index;
+};
+
 interface ChannelCardProps {
   group: ChannelGroup;
   selected: boolean;
@@ -279,7 +286,7 @@ const HomeSection = ({
   return (
     <div className="flex flex-col gap-3">
       <h3 className="px-1 text-sm font-bold tracking-tight text-white/85">{title}</h3>
-      <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 xl:grid-cols-3">
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-4">
         {channels.map((channel, i) => {
           const group = groupByChannelId.get(channel.id);
           if (!group) return null;
@@ -415,7 +422,9 @@ const NeahplusExperience = () => {
   const activeVariant = selectedGroup?.variants[activeVariantIndex] ?? null;
 
   const carouselGroups = useMemo(() => {
-    return allGroups.filter((g) => g.hasStream && g.variants.length > 0);
+    return allGroups
+      .filter((g) => g.hasStream && g.variants.length > 0)
+      .sort((a, b) => channelPriority(a.displayName) - channelPriority(b.displayName) || a.displayName.localeCompare(b.displayName, 'fr'));
   }, [allGroups]);
 
   const resolvingRef = useRef<AbortController | null>(null);
@@ -487,7 +496,7 @@ const NeahplusExperience = () => {
   const epgChannels = useMemo(() => {
     if (!catalog) return [];
     return channelsWithEpg(catalog.channels)
-      .sort((a, b) => a.name.localeCompare(b.name, 'fr'))
+      .sort((a, b) => channelPriority(a.name) - channelPriority(b.name) || a.name.localeCompare(b.name, 'fr'))
       .slice(0, 200);
   }, [catalog]);
 
@@ -1025,59 +1034,6 @@ const NeahplusExperience = () => {
                 onQueryChange={setQuery}
                 onSelectChannel={(channel) => { handleSelectChannel(channel); setTab('all'); }}
               />
-            ) : tab === 'legacy-home' ? (
-              <div className="flex flex-col gap-6">
-                {favoriteChannels.length > 0 && (
-                  <HomeSection
-                    title="Mes favoris"
-                    channels={favoriteChannels}
-                    groupByChannelId={groupByChannelId}
-                    now={now}
-                    favorites={favorites}
-                    selectedGroupKey={selectedGroupKey}
-                    resolvingKey={resolvingKey}
-                    onSelectChannel={handleSelectChannel}
-                    onToggleFavorite={toggleFavorite}
-                    registerRef={registerRef}
-                    startIndex={0}
-                  />
-                )}
-                {playingChannels.length > 0 && (
-                  <HomeSection
-                    title="En cours maintenant"
-                    channels={playingChannels}
-                    groupByChannelId={groupByChannelId}
-                    now={now}
-                    favorites={favorites}
-                    selectedGroupKey={selectedGroupKey}
-                    resolvingKey={resolvingKey}
-                    onSelectChannel={handleSelectChannel}
-                    onToggleFavorite={toggleFavorite}
-                    registerRef={registerRef}
-                    startIndex={favoriteChannels.length}
-                  />
-                )}
-                {recommendedChannelList.length > 0 && (
-                  <HomeSection
-                    title="À découvrir"
-                    channels={recommendedChannelList}
-                    groupByChannelId={groupByChannelId}
-                    now={now}
-                    favorites={favorites}
-                    selectedGroupKey={selectedGroupKey}
-                    resolvingKey={resolvingKey}
-                    onSelectChannel={handleSelectChannel}
-                    onToggleFavorite={toggleFavorite}
-                    registerRef={registerRef}
-                    startIndex={favoriteChannels.length + playingChannels.length}
-                  />
-                )}
-                {favoriteChannels.length === 0 && playingChannels.length === 0 && recommendedChannelList.length === 0 && (
-                  <p className="py-16 text-center text-sm text-white/40">
-                    Aucune chaîne disponible pour le moment.
-                  </p>
-                )}
-              </div>
             ) : tab === 'guide' ? (
               epgChannels.length === 0 ? (
                 <p className="py-16 text-center text-sm text-white/40">
