@@ -442,7 +442,9 @@ const NeahplusExperience = () => {
   }, [realGroups]);
 
   useEffect(() => {
-    if (catalog && country === 'France' && !catalog.countries.some((item) => item.name === 'France')) setCountry('');
+    if (catalog && country && !catalog.countries.some((item) => item.name === country)) {
+      setCountry(catalog.countries.some((item) => item.name === 'France') ? 'France' : '');
+    }
   }, [catalog, country]);
 
   const filteredGroups = useMemo(() => {
