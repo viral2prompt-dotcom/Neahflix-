@@ -250,25 +250,7 @@ const EpgRow = ({ channel, date, period, onPlay, index, now, registerRef, channe
 
 const NeahplusEntryTransition = ({ visible }: { visible: boolean }) => visible ? (
   <div className="pointer-events-auto fixed inset-0 z-[120] grid place-items-center overflow-hidden bg-[#061219] text-center motion-safe:animate-[neahplus-entry_1100ms_ease-in-out_both]" role="status" aria-live="polite" aria-label="Ouverture de NEAHPLUS">
-    <style>{\`
-      @keyframes neahplus-entry {
-        0% { opacity: 0; }
-        14% { opacity: 1; }
-        78% { opacity: 1; }
-        100% { opacity: 0; }
-      }
-      @keyframes neahplus-entry-brand {
-        0% { opacity: 0; transform: translateY(14px) scale(.94); filter: blur(8px); }
-        32% { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
-        76% { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
-        100% { opacity: 0; transform: translateY(-8px) scale(1.035); filter: blur(3px); }
-      }
-      @keyframes neahplus-entry-line {
-        0% { transform: scaleX(0); opacity: .2; }
-        45% { transform: scaleX(1); opacity: 1; }
-        100% { transform: scaleX(1); opacity: 0; }
-      }
-    \`}</style>
+    <style>{'@keyframes neahplus-entry { 0% { opacity: 0; } 14% { opacity: 1; } 78% { opacity: 1; } 100% { opacity: 0; } } @keyframes neahplus-entry-brand { 0% { opacity: 0; transform: translateY(14px) scale(.94); filter: blur(8px); } 32% { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); } 76% { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); } 100% { opacity: 0; transform: translateY(-8px) scale(1.035); filter: blur(3px); } } @keyframes neahplus-entry-line { 0% { transform: scaleX(0); opacity: .2; } 45% { transform: scaleX(1); opacity: 1; } 100% { transform: scaleX(1); opacity: 0; } }'}</style>
     <div className="pointer-events-none absolute inset-0 opacity-30" style={{ backgroundImage: 'radial-gradient(circle at 50% 42%, rgba(32,199,199,.26), transparent 38%), linear-gradient(rgba(255,255,255,.035) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.035) 1px, transparent 1px)', backgroundSize: 'auto, 42px 42px, 42px 42px' }} />
     <div className="relative px-6 motion-safe:animate-[neahplus-entry-brand_1000ms_cubic-bezier(0.16,1,0.3,1)_both]">
       <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-[1.6rem] border border-[#55dddd]/30 bg-[#0b2932] shadow-[0_0_65px_rgba(32,199,199,.22)]">
@@ -687,7 +669,7 @@ const NeahplusExperience = () => {
 
   if (loadError) {
     return (
-      <div className="flex flex-1 flex-col items-center justify-center gap-4 p-6 text-center">
+      <div className="relative flex flex-1 flex-col items-center justify-center gap-4 p-6 text-center">
         <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-red-500/10 ring-1 ring-red-500/20">
           <AlertTriangle className="h-10 w-10 text-amber-300" aria-hidden="true" />
         </div>
