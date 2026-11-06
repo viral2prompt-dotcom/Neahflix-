@@ -822,7 +822,7 @@ const NeahplusExperience = () => {
       {drawerOpen && (
         <>
           <button type="button" aria-label="Fermer le menu" onClick={() => setDrawerOpen(false)} className="fixed inset-0 z-[80] bg-black/25 backdrop-blur-[1px]" />
-          <aside id="neahplus-navigation-drawer" className="fixed right-3 top-[4.25rem] z-[90] w-[min(17rem,68vw)] max-h-[58vh] overflow-y-auto rounded-2xl border border-[#20c7c7]/20 bg-[#0b2028]/[0.98] p-3 shadow-[0_18px_55px_rgba(0,0,0,.55)] backdrop-blur-2xl" aria-label="Menu principal NEAHPLUS">
+          <aside id="neahplus-navigation-drawer" className="fixed right-3 top-[4.25rem] z-[90] w-[min(17rem,48vw)] max-h-[58vh] overflow-y-auto rounded-2xl border border-[#20c7c7]/20 bg-[#0b2028]/[0.98] p-3 shadow-[0_18px_55px_rgba(0,0,0,.55)] backdrop-blur-2xl" aria-label="Menu principal NEAHPLUS">
             <div className="mb-2 flex items-center justify-between px-1.5 py-1">
               <div><p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#55dddd]">Navigation</p><p className="mt-0.5 text-xs text-white/45">Votre univers NEAHPLUS</p></div>
               <button type="button" onClick={() => setDrawerOpen(false)} aria-label="Fermer" className="rounded-lg p-1.5 text-white/45 transition hover:bg-white/10 hover:text-white"><X className="h-4 w-4" /></button>
