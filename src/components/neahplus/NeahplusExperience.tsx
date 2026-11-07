@@ -536,6 +536,15 @@ const NeahplusExperience = () => {
     if (group.variants.length > 1) void resolveBestVariant(group);
   }, [resolveBestVariant, selectedGroupKey]);
 
+  // Navigation matérielle PageUp/PageDown entre les chaînes disponibles.
+  const cycleChannel = useCallback((direction: 1 | -1) => {
+    if (carouselGroups.length === 0) return;
+    const currentIndex = carouselGroups.findIndex((group) => group.key === selectedGroupKey);
+    const startIndex = currentIndex < 0 ? (direction > 0 ? -1 : 0) : currentIndex;
+    const nextIndex = (startIndex + direction + carouselGroups.length) % carouselGroups.length;
+    handleSelectGroup(carouselGroups[nextIndex]);
+  }, [carouselGroups, selectedGroupKey, handleSelectGroup]);
+
   const handleSelectChannel = useCallback((channel: NeahplusChannel) => {
     const group = groupByChannelId.get(channel.id);
     if (!group) return;
