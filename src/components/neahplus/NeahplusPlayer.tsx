@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef, useState, type ChangeEvent } from 'react';
 import {
   AlertTriangle,
-  ChevronLeft,
+  ChevronDown,
+  ChevronUp,
   Info,
   Loader2,
   Maximize,
@@ -40,10 +41,11 @@ interface NeahplusPlayerProps {
   isActive: boolean;
   onInfo?: () => void;
   onPrevChannel?: () => void;
+  onNextChannel?: () => void;
   onGuide?: () => void;
 }
 
-const NeahplusPlayer = ({ channelId, channelName, isActive, onInfo, onPrevChannel, onGuide }: NeahplusPlayerProps) => {
+const NeahplusPlayer = ({ channelId, channelName, isActive, onInfo, onPrevChannel, onNextChannel, onGuide }: NeahplusPlayerProps) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [status, setStatus] = useState<PlayerStatus>('resolving');
@@ -235,9 +237,21 @@ const NeahplusPlayer = ({ channelId, channelName, isActive, onInfo, onPrevChanne
             type="button"
             onClick={onPrevChannel}
             aria-label="Chaîne précédente"
+            title="Chaîne précédente (CH−)"
             className="pointer-events-auto flex h-8 w-8 items-center justify-center rounded-lg text-white/80 transition hover:bg-white/15 hover:text-white"
           >
-            <ChevronLeft className="h-4 w-4" />
+            <ChevronUp className="h-4 w-4" />
+          </button>
+        )}
+        {onNextChannel && (
+          <button
+            type="button"
+            onClick={onNextChannel}
+            aria-label="Chaîne suivante"
+            title="Chaîne suivante (CH+)"
+            className="pointer-events-auto flex h-8 w-8 items-center justify-center rounded-lg text-white/80 transition hover:bg-white/15 hover:text-white"
+          >
+            <ChevronDown className="h-4 w-4" />
           </button>
         )}
         <button
