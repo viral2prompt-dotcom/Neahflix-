@@ -24,12 +24,12 @@ interface NeahplusHomeProps {
 }
 
 const categories = [
-  { id: 'all', title: 'Tout', subtitle: 'Toute votre sélection de chaînes, réunie dans un seul espace.', match: () => true },
-  { id: 'cinema', title: 'Cinéma', subtitle: 'Les chaînes dédiées aux films, aux grandes histoires et au septième art.', match: (source: string) => /cinema|film|movie|action|paramount|ocs|cine\\s*\\+|hollywood/.test(source) },
+  { id: 'all', title: 'Tout', subtitle: 'Toute votre sélection de chaînes, réunie dans un seul espace.', match: (_source: string) => true },
+  { id: 'cinema', title: 'Cinéma', subtitle: 'Les chaînes dédiées aux films, aux grandes histoires et au septième art.', match: (source: string) => /cinema|film|movie|action|paramount|ocs|cine\s*\+|hollywood/.test(source) },
   { id: 'sport', title: 'Sport', subtitle: 'Les rendez-vous sportifs, les compétitions et les grandes rencontres.', match: (source: string) => /sport|eurosport|bein|football|rugby|tennis|basket|combat|golf|racing/.test(source) },
   { id: 'youth', title: 'Jeunesse', subtitle: 'Des programmes pour les enfants et toute la famille.', match: (source: string) => /kids|family|piwi|gulli|jeunesse|teletoon|cartoon|boomerang|nick|disney|boing|tiji|ludikids/.test(source) },
-  { id: 'documentary', title: 'Documentaires', subtitle: 'Explorez le monde, la science, l’histoire et la découverte.', match: (source: string) => /documentaire|docu|canal\\+ docs|national geographic|nat geo|discovery|histoire|planete|voyage|wild/.test(source) },
-  { id: 'entertainment', title: 'Divertissement', subtitle: 'Séries, musique, humour et rendez-vous populaires.', match: (source: string) => /divertissement|comedie|humour|musique|tv5|france 2|france 3|tf1|m6|tfx|w9|pop|novelas|nollywood|trace|a\\+/.test(source) },
+  { id: 'documentary', title: 'Documentaires', subtitle: 'Explorez le monde, la science, l’histoire et la découverte.', match: (source: string) => /documentaire|docu|canal\+ docs|national geographic|nat geo|discovery|histoire|planete|voyage|wild/.test(source) },
+  { id: 'entertainment', title: 'Divertissement', subtitle: 'Séries, musique, humour et rendez-vous populaires.', match: (source: string) => /divertissement|comedie|humour|musique|tv5|france 2|france 3|tf1|m6|tfx|w9|pop|novelas|nollywood|trace|a\+/.test(source) },
 ];
 
 const NeahplusHome = ({ channels, now, query, onQueryChange, onSelectChannel, displayNamesByChannelId, isFavorite, onToggleFavorite, pendingChannelId, mode, spaceName, countryLabel, onRenameSpace }: NeahplusHomeProps) => {
@@ -97,7 +97,8 @@ const NeahplusHome = ({ channels, now, query, onQueryChange, onSelectChannel, di
         <>
           <NeahplusHero />
           <NeahplusDiscoveryShelf />
-          <div id="neahplus-categories" className="scroll-mt-6 space-y-10 sm:space-y-12">\n          {categories.map((category) => {
+          <div id="neahplus-categories" className="scroll-mt-6 space-y-10 sm:space-y-12">
+          {categories.map((category) => {
             const rowChannels = category.id === 'all'
               ? searchableChannels
               : searchableChannels.filter((channel) => category.match(foldText([channel.name, ...channel.categories].join(' '))));
