@@ -6,7 +6,6 @@ import {
   ChevronDown,
   ChevronLeft,
   ChevronRight,
-  ChevronUp,
   Globe2,
   Heart,
   Home as HomeIcon,
@@ -930,7 +929,7 @@ const NeahplusExperience = () => {
                   channelId={activeVariant.id}
                   channelName={selectedGroup.displayName}
                   onInfo={() => setShowInfoPanel(true)}
-                  onPrevChannel={() => cycleChannel(-1)}
+                  onPrevChannel={goToPrevChannel}
                   onNextChannel={() => cycleChannel(1)}
                   onGuide={() => navigateTo('guide')}
                 />
