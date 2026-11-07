@@ -6,6 +6,7 @@ import {
   ChevronDown,
   ChevronLeft,
   ChevronRight,
+  ChevronUp,
   Globe2,
   Heart,
   Home as HomeIcon,
@@ -307,6 +308,7 @@ const NeahplusExperience = () => {
   const [showInfoPanel, setShowInfoPanel] = useState(false);
   const [showQuickSearch, setShowQuickSearch] = useState(false);
   const [showChannelList, setShowChannelList] = useState(false);
+  const [showSearchSuggestions, setShowSearchSuggestions] = useState(false);
   const [prevGroupKey, setPrevGroupKey] = useState<string | null>(null);
   const gridRef = useRef<HTMLDivElement>(null);
   const itemRefs = useRef<(HTMLButtonElement | null)[]>([]);
@@ -605,6 +607,15 @@ const NeahplusExperience = () => {
     }
   }, [prevGroupKey, groupByKey, selectedGroupKey, resolveBestVariant]);
 
+  const cycleChannel = useCallback((direction: 1 | -1) => {
+    if (!selectedGroupKey || carouselGroups.length === 0) return;
+    const currentIndex = carouselGroups.findIndex((group) => group.key === selectedGroupKey);
+    const startIndex = currentIndex < 0 ? 0 : currentIndex;
+    const nextIndex = (startIndex + direction + carouselGroups.length) % carouselGroups.length;
+    const nextGroup = carouselGroups[nextIndex];
+    if (nextGroup) handleSelectGroup(nextGroup);
+  }, [selectedGroupKey, carouselGroups, handleSelectGroup]);
+
   const cycleVariant = useCallback((direction: 1 | -1) => {
     if (!selectedGroup || selectedGroup.variants.length <= 1) return;
     setActiveVariantIndex((prev) => {
@@ -643,6 +654,7 @@ const NeahplusExperience = () => {
     catalog: NeahplusCatalog | null;
     selectedGroup: ChannelGroup | null;
     cycleVariant: (direction: 1 | -1) => void;
+    cycleChannel: (direction: 1 | -1) => void;
   };
 
   const keyboardContextRef = useRef<KeyboardContext>({
@@ -656,6 +668,7 @@ const NeahplusExperience = () => {
     catalog: null,
     selectedGroup: null,
     cycleVariant: () => undefined,
+    cycleChannel: () => undefined,
   });
 
   keyboardContextRef.current = {
@@ -669,6 +682,7 @@ const NeahplusExperience = () => {
     catalog,
     selectedGroup,
     cycleVariant,
+    cycleChannel,
   };
 
   useEffect(() => {
@@ -758,12 +772,14 @@ const NeahplusExperience = () => {
         case 'PageUp':
         case 'ChannelUp':
           e.preventDefault();
-          focusGridItem(gridFocusIndex.current - 10);
+          if (context.selectedGroup) context.cycleChannel(-1);
+          else focusGridItem(gridFocusIndex.current - 10);
           break;
         case 'PageDown':
         case 'ChannelDown':
           e.preventDefault();
-          focusGridItem(gridFocusIndex.current + 10);
+          if (context.selectedGroup) context.cycleChannel(1);
+          else focusGridItem(gridFocusIndex.current + 10);
           break;
         case 'Enter':
           break;
@@ -875,82 +891,47 @@ const NeahplusExperience = () => {
 
       {/* Main content area */}
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden lg:flex-row">
-        {/* Channel list sidebar */}
+        {/* Compact text-only channel list */}
         {showChannelList && (
-          <aside className="absolute inset-y-0 left-0 z-40 flex w-72 flex-col border-r border-white/[0.06] bg-[#0b2028] shadow-2xl lg:relative lg:z-0 lg:shadow-none" aria-label="Liste latérale des chaînes">
-            <div className="flex items-center justify-between border-b border-white/[0.06] px-4 py-3">
-              <h2 className="flex items-center gap-2 text-sm font-bold text-white">
-                <List className="h-4 w-4 text-red-400" />
-                Chaînes
-              </h2>
-              <button
-                type="button"
-                onClick={() => setShowChannelList(false)}
-                aria-label="Fermer la liste"
-                className="rounded-lg p-1 text-white/50 transition hover:bg-white/10 hover:text-white lg:hidden"
-              >
-                <X className="h-4 w-4" />
-              </button>
+          <aside id="neahplus-quick-channel-list" className="absolute inset-y-0 left-0 z-40 flex w-[min(17rem,72vw)] flex-col bg-[#0b2028] shadow-2xl lg:relative lg:z-0 lg:w-56 lg:shrink-0 lg:border-r lg:border-white/[0.06] lg:shadow-none" aria-label="Liste rapide des chaînes">
+            <div className="flex items-center justify-between border-b border-white/[0.06] px-3 py-3">
+              <h2 className="text-xs font-bold uppercase tracking-wider text-white/80">Liste des chaînes</h2>
+              <button type="button" onClick={() => setShowChannelList(false)} aria-label="Fermer la liste" className="rounded-lg p-1.5 text-white/45 transition hover:bg-white/10 hover:text-white"><X className="h-4 w-4" /></button>
             </div>
-            <div className="min-h-0 flex-1 overflow-y-auto p-2" data-lenis-prevent>
-              <div className="flex flex-col gap-1">
+            <div className="min-h-0 flex-1 overflow-y-auto px-3 py-2" data-lenis-prevent>
+              <ul className="space-y-0.5">
                 {carouselGroups.map((group) => {
                   const isSelected = group.key === selectedGroupKey;
-                  const isFavorited = favorites.has(group.key);
                   return (
-                    <button
-                      key={group.key}
-                      type="button"
-                      onClick={() => { handleSelectGroup(group); }}
-                      className={`group flex items-center gap-3 rounded-xl p-2.5 text-left transition-all duration-200 ${
-                        isSelected
-                          ? 'bg-violet-400/15 ring-1 ring-violet-400/30'
-                          : 'hover:bg-white/5'
-                      }`}
-                    >
-                      {group.logo ? (
-                        <img src={group.logo} alt="" loading="lazy" className="h-9 w-9 shrink-0 rounded-lg bg-white/5 object-contain p-0.5" />
-                      ) : (
-                        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-[10px] font-black uppercase text-white/90" style={{ background: channelColor(group.displayName) }}>
-                          {group.displayName.slice(0, 2).toUpperCase()}
-                        </span>
-                      )}
-                      <span className="min-w-0 flex-1">
-                        <span className={`block truncate text-xs font-semibold ${isSelected ? 'text-white' : 'text-white/75'}`}>{group.displayName}</span>
-                        <span className="block truncate text-[10px] text-white/35">{group.countries.join(', ') || 'France'}</span>
-                      </span>
-                      {isFavorited && (
-                        <Heart className="h-3 w-3 shrink-0 fill-[#55dddd] text-[#55dddd]" aria-hidden="true" />
-                      )}
-                    </button>
+                    <li key={group.key}>
+                      <button type="button" onClick={() => { handleSelectGroup(group); setShowChannelList(false); }} aria-current={isSelected ? 'true' : undefined} className={"flex w-full items-center gap-2 py-2 text-left text-xs transition hover:text-white " + (isSelected ? 'font-bold text-[#8af0f0]' : 'font-medium text-white/65')}>
+                        <span className="w-4 shrink-0 text-center text-[#8af0f0]">{isSelected ? '✓' : ''}</span>
+                        <span className="min-w-0 flex-1 truncate">{group.displayName}</span>
+                      </button>
+                    </li>
                   );
                 })}
-              </div>
+              </ul>
             </div>
           </aside>
         )}
-
-        {/* Overlay for mobile sidebar */}
-        {showChannelList && (
-          <div
-            className="absolute inset-0 z-30 bg-black/60 lg:hidden"
-            onClick={() => setShowChannelList(false)}
-            aria-hidden="true"
-          />
-        )}
-
-        {/* Left: Player + info */}
+        {/* Overlay for mobile channel list */}
+        {showChannelList && <button type="button" aria-label="Fermer la liste des chaînes" onClick={() => setShowChannelList(false)} className="absolute inset-0 z-30 bg-black/55 lg:hidden" />}
+        
+                {/* Left: Player + info */}
         <section className={`flex min-h-0 w-full shrink-0 flex-col gap-3 overflow-y-auto overscroll-y-contain touch-pan-y p-3 lg:w-[42%] lg:max-w-[720px] lg:p-4 ${['home', 'favorites', 'countries', 'settings'].includes(tab) ? 'hidden' : ''}`} style={{ WebkitOverflowScrolling: 'touch' }}>
           {activeVariant && selectedGroup ? (
             <>
               <div className="group relative mx-auto w-full max-w-[720px]">
+                <div className="mb-2 flex justify-end"><button type="button" onClick={() => setShowChannelList((open) => !open)} aria-expanded={showChannelList} aria-controls="neahplus-quick-channel-list" className="inline-flex items-center gap-2 rounded-lg border border-white/20 px-3 py-1.5 text-[11px] font-semibold text-white/75 transition hover:border-white/50 hover:bg-white/[0.06] hover:text-white"><List className="h-3.5 w-3.5" /> Liste des chaînes</button></div>
                 <NeahplusPlayer
                   key={activeVariant.id}
                   isActive={Boolean(selectedGroupKey)}
                   channelId={activeVariant.id}
                   channelName={selectedGroup.displayName}
                   onInfo={() => setShowInfoPanel(true)}
-                  onPrevChannel={prevGroupKey ? goToPrevChannel : undefined}
+                  onPrevChannel={() => cycleChannel(-1)}
+                  onNextChannel={() => cycleChannel(1)}
                   onGuide={() => navigateTo('guide')}
                 />
               </div>
@@ -969,6 +950,7 @@ const NeahplusExperience = () => {
                   )}
                 </div>
                 <div className="flex items-center gap-1.5">
+                  <button type="button" onClick={() => setShowChannelList((open) => !open)} aria-expanded={showChannelList} aria-label="Afficher la liste des chaînes" title="Liste des chaînes" className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/15 bg-white/[0.04] text-white/65 transition hover:border-white/35 hover:bg-white/10 hover:text-white"><List className="h-4 w-4" /></button>
                   <button
                     type="button"
                     onClick={() => { setRenameValue(selectedGroup.displayName); setShowRenameDialog(true); }}
@@ -1063,17 +1045,33 @@ const NeahplusExperience = () => {
         <section key={tab} data-lenis-prevent className={`flex min-h-0 w-full min-w-0 flex-1 flex-col overflow-x-hidden overflow-y-auto overscroll-y-contain touch-pan-y lg:overflow-y-auto motion-safe:animate-[neahplus-page-in_360ms_cubic-bezier(0.22,1,0.36,1)_both] ${['home', 'favorites', 'countries', 'settings'].includes(tab) ? 'w-full' : 'lg:border-l lg:border-white/[0.06]'}`} style={{ WebkitOverflowScrolling: 'touch' }}>
           {/* Search + filters bar */}
           {(tab === 'all' || tab === 'guide' || tab === 'world') && <div className="flex flex-col gap-2 border-b border-white/[0.06] p-3 sm:flex-row sm:items-center sm:gap-3">
-            <label className="relative flex-1">
-              <span className="sr-only">Rechercher une chaîne</span>
-              <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-white/30" aria-hidden="true" />
-              <input
-                type="search"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="Rechercher une chaîne…"
-                className="w-full rounded-xl border border-white/[0.08] bg-white/[0.03] py-2.5 pl-10 pr-3 text-sm text-white placeholder:text-white/30 focus:border-red-500/50 focus:bg-white/[0.05] focus:outline-none focus:ring-1 focus:ring-red-500/20"
-              />
-            </label>
+            <div className="relative z-30 min-w-0 flex-1">
+              <label className="relative block">
+                <span className="sr-only">Rechercher une chaîne</span>
+                <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-white/30" aria-hidden="true" />
+                <input
+                  type="search"
+                  value={query}
+                  onFocus={() => setShowSearchSuggestions(true)}
+                  onBlur={() => setShowSearchSuggestions(false)}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder="Rechercher une chaîne…"
+                  aria-label="Rechercher une chaîne"
+                  aria-expanded={Boolean(query.trim() && showSearchSuggestions)}
+                  className="w-full rounded-xl border border-white/[0.08] bg-white/[0.03] py-2.5 pl-10 pr-3 text-sm text-white placeholder:text-white/30 focus:border-[#20c7c7]/60 focus:bg-white/[0.05] focus:outline-none focus:ring-1 focus:ring-[#20c7c7]/15"
+                />
+              </label>
+              {query.trim() && showSearchSuggestions && (
+                <div className="absolute left-0 right-0 top-full mt-2 max-h-72 overflow-y-auto rounded-xl border border-white/25 bg-[#0b2028] py-1 shadow-2xl shadow-black/50" role="listbox" aria-label="Résultats de recherche">
+                  {filteredGroups.length ? filteredGroups.slice(0, 8).map((group) => (
+                    <button key={group.key} type="button" role="option" aria-selected={false} onMouseDown={(event) => event.preventDefault()} onClick={() => { handleSelectGroup(group); setQuery(''); setShowSearchSuggestions(false); }} className="flex w-full items-center gap-3 px-3 py-2.5 text-left text-sm text-white/85 transition hover:bg-white/10 hover:text-white">
+                      <span className="min-w-0 flex-1 truncate font-semibold">{group.displayName}</span>
+                      <span className="shrink-0 text-[10px] text-white/35">Regarder</span>
+                    </button>
+                  )) : <p className="px-3 py-3 text-xs text-white/45">Aucune chaîne trouvée.</p>}
+                </div>
+              )}
+            </div>
 
             {tab === 'world' && <span className="text-xs font-medium text-white/40">{catalog.countries.length} pays · {catalog.channels.length} chaînes</span>}
           </div>}
