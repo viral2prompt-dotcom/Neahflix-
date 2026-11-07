@@ -143,7 +143,7 @@ const NeahplusHome = ({ channels, now, query, onQueryChange, onSelectChannel, di
           {searchableChannels.length === 0 ? (
             <p className="rounded-xl border border-white/10 bg-white/[0.03] p-8 text-center text-sm text-white/50">{channels.length === 0 ? 'Votre espace est encore vide. Ajoutez une chaîne avec le bouton « Ajouter » pour la retrouver ici.' : 'Aucune de vos chaînes ne correspond à cette recherche.'}</p>
           ) : (
-            <div className="flex gap-3 overflow-x-auto overscroll-x-contain pb-3 [scrollbar-width:thin] [scrollbar-color:rgba(32,199,199,.35)_transparent] snap-x snap-mandatory touch-pan-x sm:gap-4">{searchableChannels.map(renderChannelCard)}</div>
+            <div className="flex gap-3 overflow-x-auto overscroll-x-contain pb-3 [scrollbar-width:thin] [scrollbar-color:rgba(32,199,199,.35)_transparent] snap-x snap-mandatory [touch-action:pan-x_pan-y] sm:gap-4">{searchableChannels.map(renderChannelCard)}</div>
           )}
         </section>
       )}
