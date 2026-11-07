@@ -553,16 +553,13 @@ const NeahplusExperience = () => {
     if (group.variants.length > 1) void resolveBestVariant(group);
   }, [resolveBestVariant, selectedGroupKey]);
 
+  // À l'ouverture de « Mon espace », sélectionner une chaîne favorite par défaut.
+  // Une chaîne choisie depuis « Plus » reste toutefois sélectionnée même si elle
+  // n'est pas favorite : elle est temporairement lisible sans être enregistrée.
   useEffect(() => {
-    if (tab !== 'favorites') return;
-    const favoriteGroups = carouselGroups.filter((group) => favorites.has(group.key));
-    if (favoriteGroups.length === 0) {
-      setSelectedGroupKey(null);
-      return;
-    }
-    if (!favoriteGroups.some((group) => group.key === selectedGroupKey)) {
-      handleSelectGroup(favoriteGroups[0]);
-    }
+    if (tab !== 'favorites' || selectedGroupKey !== null) return;
+    const firstFavorite = carouselGroups.find((group) => favorites.has(group.key));
+    if (firstFavorite) handleSelectGroup(firstFavorite);
   }, [tab, carouselGroups, favorites, selectedGroupKey, handleSelectGroup]);
 
   // Navigation matérielle PageUp/PageDown entre les chaînes disponibles.
