@@ -6,6 +6,7 @@ import {
   ChevronDown,
   ChevronLeft,
   ChevronRight,
+  ChevronUp,
   Globe2,
   Heart,
   Home as HomeIcon,
@@ -922,7 +923,11 @@ const NeahplusExperience = () => {
           {activeVariant && selectedGroup ? (
             <>
               <div className="group relative mx-auto w-full max-w-[720px]">
-                <div className="mb-2 flex justify-end"><button type="button" onClick={() => setShowChannelList((open) => !open)} aria-expanded={showChannelList} aria-controls="neahplus-quick-channel-list" className="inline-flex items-center gap-2 rounded-lg border border-white/20 px-3 py-1.5 text-[11px] font-semibold text-white/75 transition hover:border-white/50 hover:bg-white/[0.06] hover:text-white"><List className="h-3.5 w-3.5" /> Liste des chaînes</button></div>
+                <div className="mb-2 flex items-center justify-end gap-1.5">
+                  <button type="button" onClick={() => cycleChannel(-1)} aria-label="Chaîne précédente, chaîne vers le haut" title="Chaîne précédente (CH−)" className="flex h-8 w-8 items-center justify-center rounded-lg border border-white/20 text-white/75 transition hover:border-white/50 hover:bg-white/[0.06] hover:text-white"><ChevronUp className="h-4 w-4" /></button>
+                  <button type="button" onClick={() => cycleChannel(1)} aria-label="Chaîne suivante, chaîne vers le bas" title="Chaîne suivante (CH+)" className="flex h-8 w-8 items-center justify-center rounded-lg border border-white/20 text-white/75 transition hover:border-white/50 hover:bg-white/[0.06] hover:text-white"><ChevronDown className="h-4 w-4" /></button>
+                  <button type="button" onClick={() => setShowChannelList((open) => !open)} aria-expanded={showChannelList} aria-controls="neahplus-quick-channel-list" className="inline-flex items-center gap-2 rounded-lg border border-white/20 px-3 py-1.5 text-[11px] font-semibold text-white/75 transition hover:border-white/50 hover:bg-white/[0.06] hover:text-white"><List className="h-3.5 w-3.5" /> Liste des chaînes</button>
+                </div>
                 <NeahplusPlayer
                   key={activeVariant.id}
                   isActive={Boolean(selectedGroupKey)}
