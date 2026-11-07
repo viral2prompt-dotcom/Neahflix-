@@ -949,7 +949,6 @@ const NeahplusExperience = () => {
                   )}
                 </div>
                 <div className="flex items-center gap-1.5">
-                  <button type="button" onClick={() => setShowChannelList((open) => !open)} aria-expanded={showChannelList} aria-label="Afficher la liste des chaînes" title="Liste des chaînes" className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/15 bg-white/[0.04] text-white/65 transition hover:border-white/35 hover:bg-white/10 hover:text-white"><List className="h-4 w-4" /></button>
                   <button
                     type="button"
                     onClick={() => { setRenameValue(selectedGroup.displayName); setShowRenameDialog(true); }}
