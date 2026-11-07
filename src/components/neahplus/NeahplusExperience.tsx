@@ -505,18 +505,6 @@ const NeahplusExperience = () => {
       .sort((a, b) => Number(b.countries.includes('France')) - Number(a.countries.includes('France')) || channelPriority(a.displayName) - channelPriority(b.displayName) || a.displayName.localeCompare(b.displayName, 'fr'));
   }, [allGroups]);
 
-  useEffect(() => {
-    if (tab !== 'favorites') return;
-    const favoriteGroups = carouselGroups.filter((group) => favorites.has(group.key));
-    if (favoriteGroups.length === 0) {
-      setSelectedGroupKey(null);
-      return;
-    }
-    if (!favoriteGroups.some((group) => group.key === selectedGroupKey)) {
-      handleSelectGroup(favoriteGroups[0]);
-    }
-  }, [tab, carouselGroups, favorites, selectedGroupKey, handleSelectGroup]);
-
   const quickListFilteredGroups = useMemo(() => {
     const needle = foldText(quickListQuery.trim());
     if (!needle) return carouselGroups;
@@ -558,6 +546,18 @@ const NeahplusExperience = () => {
     setActiveVariantIndex(0);
     if (group.variants.length > 1) void resolveBestVariant(group);
   }, [resolveBestVariant, selectedGroupKey]);
+
+  useEffect(() => {
+    if (tab !== 'favorites') return;
+    const favoriteGroups = carouselGroups.filter((group) => favorites.has(group.key));
+    if (favoriteGroups.length === 0) {
+      setSelectedGroupKey(null);
+      return;
+    }
+    if (!favoriteGroups.some((group) => group.key === selectedGroupKey)) {
+      handleSelectGroup(favoriteGroups[0]);
+    }
+  }, [tab, carouselGroups, favorites, selectedGroupKey, handleSelectGroup]);
 
   // Navigation matérielle PageUp/PageDown entre les chaînes disponibles.
   const cycleChannel = useCallback((direction: 1 | -1) => {
