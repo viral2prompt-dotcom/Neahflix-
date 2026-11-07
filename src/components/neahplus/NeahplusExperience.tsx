@@ -308,6 +308,8 @@ const NeahplusExperience = () => {
   const [showInfoPanel, setShowInfoPanel] = useState(false);
   const [showQuickSearch, setShowQuickSearch] = useState(false);
   const [showChannelList, setShowChannelList] = useState(false);
+  const [quickListVisibleCount, setQuickListVisibleCount] = useState(80);
+  const [selectingChannelKey, setSelectingChannelKey] = useState<string | null>(null);
   const channelListRef = useRef<HTMLDivElement>(null);
   const [showSearchSuggestions, setShowSearchSuggestions] = useState(false);
   const [prevGroupKey, setPrevGroupKey] = useState<string | null>(null);
@@ -620,11 +622,13 @@ const NeahplusExperience = () => {
   }, []);
 
   const openChannelList = useCallback(() => {
+    const selectedIndex = carouselGroups.findIndex((group) => group.key === selectedGroupKey);
+    setQuickListVisibleCount((count) => Math.max(count, selectedIndex + 1, 80));
     setShowChannelList(true);
     window.requestAnimationFrame(() => {
       channelListRef.current?.querySelector<HTMLButtonElement>('[aria-current="true"]')?.focus();
     });
-  }, []);
+  }, [carouselGroups, selectedGroupKey]);
 
   const cycleVariant = useCallback((direction: 1 | -1) => {
     if (!selectedGroup || selectedGroup.variants.length <= 1) return;
@@ -903,13 +907,13 @@ const NeahplusExperience = () => {
       <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden lg:flex-row">
         {/* Compact text-only channel list */}
         {showChannelList && (
-          <aside id="neahplus-quick-channel-list" className="absolute inset-y-0 left-0 z-40 flex w-[min(17rem,72vw)] flex-col bg-[#0b2028] shadow-2xl lg:relative lg:z-0 lg:w-56 lg:shrink-0 lg:border-r lg:border-white/[0.06] lg:shadow-none" aria-label="Liste rapide des chaînes">
-            <div className="flex items-center justify-between border-b border-white/[0.06] px-3 py-3">
-              <h2 className="text-xs font-bold uppercase tracking-wider text-white/80">Liste des chaînes</h2>
+          <aside id="neahplus-quick-channel-list" className="absolute inset-y-0 left-0 z-40 flex w-[min(17rem,72vw)] flex-col border-r border-[#20c7c7]/20 bg-[#081c25] shadow-[0_18px_55px_rgba(0,0,0,.55)] animate-in fade-in slide-in-from-left-2 duration-150 lg:relative lg:z-0 lg:w-56 lg:shrink-0 lg:shadow-none" aria-label="Liste rapide des chaînes">
+            <div className="flex items-center justify-between border-b border-[#20c7c7]/20 bg-[#0b2932]/75 px-3 py-3">
+              <h2 className="text-xs font-bold uppercase tracking-wider text-white/90">Liste des chaînes</h2>
               <div className="flex items-center gap-1">
-                <button type="button" onClick={() => scrollChannelList(-1)} aria-label="Monter dans la liste des chaînes" title="Monter dans la liste" className="flex h-8 w-8 items-center justify-center rounded-lg border border-white/15 text-white/75 transition hover:border-white/40 hover:bg-white/10"><ChevronUp className="h-4 w-4" /></button>
-                <button type="button" onClick={() => scrollChannelList(1)} aria-label="Descendre dans la liste des chaînes" title="Descendre dans la liste" className="flex h-8 w-8 items-center justify-center rounded-lg border border-white/15 text-white/75 transition hover:border-white/40 hover:bg-white/10"><ChevronDown className="h-4 w-4" /></button>
-                <button type="button" onClick={() => setShowChannelList(false)} aria-label="Fermer la liste" className="rounded-lg p-1.5 text-white/45 transition hover:bg-white/10 hover:text-white"><X className="h-4 w-4" /></button>
+                <button type="button" onClick={() => scrollChannelList(-1)} aria-label="Monter dans la liste des chaînes" title="Monter dans la liste" className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#20c7c7]/35 text-[#8af0f0] transition duration-150 hover:border-[#55dddd] hover:bg-[#20c7c7]/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#55dddd]"><ChevronUp className="h-4 w-4" /></button>
+                <button type="button" onClick={() => scrollChannelList(1)} aria-label="Descendre dans la liste des chaînes" title="Descendre dans la liste" className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#20c7c7]/35 text-[#8af0f0] transition duration-150 hover:border-[#55dddd] hover:bg-[#20c7c7]/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#55dddd]"><ChevronDown className="h-4 w-4" /></button>
+                <button type="button" onClick={() => setShowChannelList(false)} aria-label="Fermer la liste" className="rounded-lg border border-transparent p-1.5 text-white/55 transition duration-150 hover:border-[#20c7c7]/35 hover:bg-[#20c7c7]/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#55dddd]"><X className="h-4 w-4" /></button>
               </div>
             </div>
             <div ref={channelListRef} className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain px-3 py-2 [scrollbar-width:thin]" data-lenis-prevent onKeyDown={(event) => {
@@ -917,18 +921,27 @@ const NeahplusExperience = () => {
               if (event.key === 'ArrowUp') { event.preventDefault(); const previous = (event.target as HTMLElement).closest('li')?.previousElementSibling?.querySelector('button') as HTMLButtonElement | null; previous?.focus(); previous?.scrollIntoView({ block: 'nearest' }); }
             }}>
               <ul className="space-y-0.5">
-                {carouselGroups.map((group) => {
+                {carouselGroups.slice(0, quickListVisibleCount).map((group) => {
                   const isSelected = group.key === selectedGroupKey;
+                  const isSelecting = group.key === selectingChannelKey;
                   return (
                     <li key={group.key}>
-                      <button type="button" onClick={() => { handleSelectGroup(group); setShowChannelList(false); }} aria-current={isSelected ? 'true' : undefined} className={"flex w-full items-center gap-2 py-2 text-left text-xs transition hover:text-white " + (isSelected ? 'font-bold text-[#8af0f0]' : 'font-medium text-white/65')}>
-                        <span className="w-4 shrink-0 text-center text-[#8af0f0]">{isSelected ? '✓' : ''}</span>
+                      <button type="button" onClick={() => {
+                        setSelectingChannelKey(group.key);
+                        handleSelectGroup(group);
+                        window.setTimeout(() => { setShowChannelList(false); setSelectingChannelKey(null); }, 360);
+                      }} aria-current={isSelected ? 'true' : undefined} aria-busy={isSelecting} className={"flex w-full items-center gap-2 rounded-lg border px-2 py-2 text-left text-xs transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#55dddd] " + (isSelecting ? 'border-[#55dddd]/55 bg-[#20c7c7]/15 text-[#a5ffff]' : isSelected ? 'border-[#20c7c7]/30 bg-[#20c7c7]/10 font-bold text-[#8af0f0]' : 'border-transparent font-medium text-white/65 hover:border-[#20c7c7]/35 hover:bg-[#20c7c7]/10 hover:text-white active:border-[#55dddd] active:bg-[#20c7c7]/20')}>
+                        <span className="flex w-4 shrink-0 items-center justify-center text-[#8af0f0]">{isSelecting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : isSelected ? '✓' : ''}</span>
                         <span className="min-w-0 flex-1 truncate">{group.displayName}</span>
+                        {isSelecting && <span className="shrink-0 text-[9px] font-semibold text-[#8af0f0]">Chargement…</span>}
                       </button>
                     </li>
                   );
                 })}
               </ul>
+              {quickListVisibleCount < carouselGroups.length && (
+                <button type="button" onClick={() => setQuickListVisibleCount((count) => Math.min(count + 80, carouselGroups.length))} className="mt-2 w-full rounded-lg border border-[#20c7c7]/25 bg-[#20c7c7]/[0.06] px-3 py-2.5 text-[10px] font-bold text-[#8af0f0] transition hover:border-[#55dddd]/60 hover:bg-[#20c7c7]/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#55dddd]">Afficher 80 chaînes supplémentaires</button>
+              )}
             </div>
           </aside>
         )}
@@ -941,7 +954,7 @@ const NeahplusExperience = () => {
             <>
               <div className="group relative mx-auto w-full max-w-[720px]">
                 <div className="mb-2 flex items-center justify-end gap-1.5">
-                  <button type="button" onClick={() => showChannelList ? setShowChannelList(false) : openChannelList()} aria-expanded={showChannelList} aria-controls="neahplus-quick-channel-list" className="inline-flex items-center gap-2 rounded-lg border border-white/20 px-3 py-1.5 text-[11px] font-semibold text-white/75 transition hover:border-white/50 hover:bg-white/[0.06] hover:text-white"><List className="h-3.5 w-3.5" /> Liste des chaînes</button>
+                  <button type="button" onClick={() => showChannelList ? setShowChannelList(false) : openChannelList()} aria-expanded={showChannelList} aria-controls="neahplus-quick-channel-list" className={`inline-flex items-center gap-2 rounded-lg border px-3 py-1.5 text-[11px] font-semibold transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#55dddd] ${showChannelList ? 'border-[#55dddd] bg-[#20c7c7]/20 text-[#a5ffff] shadow-[0_0_16px_rgba(32,199,199,.18)]' : 'border-[#20c7c7]/35 text-white/80 hover:border-[#55dddd] hover:bg-[#20c7c7]/15 hover:text-white active:border-[#55dddd] active:bg-[#20c7c7]/25'}`}><List className="h-3.5 w-3.5" /> Liste des chaînes</button>
                 </div>
                 <NeahplusPlayer
                   key={activeVariant.id}
@@ -1246,11 +1259,10 @@ const NeahplusExperience = () => {
       </div>
 
       {/* Footer */}
-      <footer className="shrink-0 border-t border-white/[0.06] bg-[#0d0d14] px-3 py-2.5">
-        <div className="mx-auto flex max-w-3xl items-center justify-center gap-2 rounded-xl border border-white/[0.07] bg-white/[0.025] px-3 py-2 text-center">
-          <Info className="h-3.5 w-3.5 shrink-0 text-[#55dddd]/70" aria-hidden="true" />
-          <p className="text-[10px] leading-4 text-white/40"><span className="font-bold text-[#d6ad55]">Guide TV indépendant.</span> NEAHPLUS organise les chaînes et leurs sources, sans affiliation à CANAL+.</p>
-          <p className="mt-1 text-[10px] leading-4 text-[#d6ad55]/75">NEAHFLIX · Le plaisir du cinéma à un prix juste.</p>
+      <footer className="shrink-0 border-t border-[#20c7c7]/15 bg-[#07151d] px-3 py-2.5">
+        <div className="relative mx-auto flex max-w-3xl items-center justify-center overflow-hidden rounded-xl border border-[#20c7c7]/25 bg-gradient-to-r from-[#0b2028] via-[#102a35] to-[#0b2028] px-4 py-2.5 text-center shadow-[inset_0_1px_0_rgba(85,221,221,.08),0_4px_18px_rgba(0,0,0,.18)]">
+          <span className="pointer-events-none absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-[#55dddd]/60 to-transparent" />
+          <p className="relative text-[10px] leading-4 tracking-wide text-white/75 sm:text-xs"><span className="font-black tracking-[0.12em] text-[#55dddd]">NEAHFLIX</span><span className="mx-2 text-[#55dddd]/55">·</span>Le plaisir du cinéma à un prix juste.</p>
         </div>
       </footer>
 
