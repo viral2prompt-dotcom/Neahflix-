@@ -581,6 +581,10 @@ const NeahplusExperience = () => {
     setSelectedGroupKey(group.key);
     const vIdx = group.variants.findIndex((v) => v.id === channel.id);
     setActiveVariantIndex(vIdx >= 0 ? vIdx : 0);
+    window.requestAnimationFrame(() => {
+      mainContentRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+      playerSectionRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+    });
   }, [groupByChannelId, selectedGroupKey]);
 
   const openChannelFromHome = useCallback((channel: NeahplusChannel) => {
