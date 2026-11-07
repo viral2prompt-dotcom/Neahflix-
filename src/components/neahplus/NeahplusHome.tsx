@@ -97,7 +97,7 @@ const NeahplusHome = ({ channels, now, query, onQueryChange, onSelectChannel, di
         <>
           <NeahplusHero />
           <NeahplusDiscoveryShelf />
-          {categories.map((category) => {
+          <div id="neahplus-categories" className="scroll-mt-6 space-y-10 sm:space-y-12">\n          {categories.map((category) => {
             const rowChannels = category.id === 'all'
               ? searchableChannels
               : searchableChannels.filter((channel) => category.match(foldText([channel.name, ...channel.categories].join(' '))));
