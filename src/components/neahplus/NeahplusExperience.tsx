@@ -587,12 +587,16 @@ const NeahplusExperience = () => {
   const openChannelFromHome = useCallback((channel: NeahplusChannel) => {
     if (pendingNavigationTimer.current !== null) {
       window.clearTimeout(pendingNavigationTimer.current);
-      pendingNavigationTimer.current = null;
     }
+    // Laisser la carte afficher son état « Connexion… » avant d'ouvrir le lecteur.
+    setPendingChannelId(channel.id);
     if (tab !== 'all') navigationHistory.current.push(tab);
     handleSelectChannel(channel);
-    setPendingChannelId(null);
-    setTab('all');
+    pendingNavigationTimer.current = window.setTimeout(() => {
+      setTab('all');
+      setPendingChannelId(null);
+      pendingNavigationTimer.current = null;
+    }, 420);
   }, [handleSelectChannel, tab]);
 
   const isFavoriteChannel = useCallback((channel: NeahplusChannel) => {
@@ -889,7 +893,7 @@ const NeahplusExperience = () => {
 
   return (
     <div className="relative flex h-dvh min-h-0 w-full flex-col overflow-hidden bg-[#07171d] text-white">
-      <style>{'@keyframes neahplus-overlay-in { from { opacity: 0; } to { opacity: 1; } } @keyframes neahplus-overlay-out { from { opacity: 1; } to { opacity: 0; } } @keyframes neahplus-drawer-in { from { opacity: 0; transform: translate3d(12px,-6px,0) scale(.98); } to { opacity: 1; transform: translate3d(0,0,0) scale(1); } } @keyframes neahplus-drawer-out { from { opacity: 1; transform: translate3d(0,0,0) scale(1); } to { opacity: 0; transform: translate3d(10px,-4px,0) scale(.985); } } @keyframes neahplus-page-in { from { opacity: 0.88; transform: translate3d(0,4px,0); } to { opacity: 1; transform: translate3d(0,0,0); } }'}</style>
+      <style>{'@keyframes neahplus-overlay-in { from { opacity: 0; } to { opacity: 1; } } @keyframes neahplus-overlay-out { from { opacity: 1; } to { opacity: 0; } } @keyframes neahplus-drawer-in { from { opacity: 0; transform: translate3d(12px,-6px,0) scale(.98); } to { opacity: 1; transform: translate3d(0,0,0) scale(1); } } @keyframes neahplus-drawer-out { from { opacity: 1; transform: translate3d(0,0,0) scale(1); } to { opacity: 0; transform: translate3d(10px,-4px,0) scale(.985); } } @keyframes neahplus-page-in { from { opacity: 0.88; transform: translate3d(0,4px,0); } to { opacity: 1; transform: translate3d(0,0,0); } } @keyframes neahplus-player-in { from { opacity: 0; transform: translate3d(0,16px,0) scale(.992); filter: blur(5px); } 65% { opacity: .85; filter: blur(1px); } to { opacity: 1; transform: translate3d(0,0,0) scale(1); filter: blur(0); } }'}</style>
       {/* Top navigation bar */}
       <nav className="relative z-50 flex shrink-0 items-center gap-3 border-b border-white/[0.06] bg-[#0b2028]/95 px-3 py-2.5 backdrop-blur-xl sm:px-5" aria-label="Navigation NEAHPLUS TV">
         {((tab !== 'home') || navigationHistory.current.length > 0) && (
@@ -994,7 +998,7 @@ const NeahplusExperience = () => {
         {showChannelList && <button type="button" aria-label="Fermer la liste des chaînes" onClick={() => setShowChannelList(false)} className="absolute inset-0 z-30 bg-black/55 lg:hidden" />}
         
                 {/* Left: Player + info */}
-        <section ref={playerSectionRef} className={`flex min-h-max w-full flex-none touch-pan-y flex-col gap-3 overflow-visible p-3 lg:min-h-0 lg:max-h-full lg:w-[42%] lg:max-w-[720px] lg:overflow-y-auto lg:overscroll-y-contain lg:p-4 ${['home', 'countries', 'settings'].includes(tab) ? 'hidden' : ''}`} style={{ WebkitOverflowScrolling: 'touch' }}>
+        <section key={selectedGroupKey ?? 'empty-player'} ref={playerSectionRef} className={`motion-safe:animate-[neahplus-player-in_420ms_cubic-bezier(0.22,1,0.36,1)_both] flex min-h-max w-full flex-none touch-pan-y flex-col gap-3 overflow-visible p-3 lg:min-h-0 lg:max-h-full lg:w-[42%] lg:max-w-[720px] lg:overflow-y-auto lg:overscroll-y-contain lg:p-4 ${['home', 'countries', 'settings'].includes(tab) ? 'hidden' : ''}`} style={{ WebkitOverflowScrolling: 'touch' }}>
           {activeVariant && selectedGroup ? (
             <>
               <div className="group relative mx-auto w-full max-w-[720px]">
