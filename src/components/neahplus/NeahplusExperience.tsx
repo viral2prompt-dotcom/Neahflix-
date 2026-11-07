@@ -613,14 +613,17 @@ const NeahplusExperience = () => {
     const group = groupByChannelId.get(channel.id);
     if (group?.variants.length) void resolveBestVariant(group);
 
-    // Afficher immédiatement le lecteur. Le scroll est garanti après le rendu React.
-    pendingViewerScroll.current = true;
-    setTab('all');
+    // Laisser le témoin et le spinner être peints sur la carte d'accueil
+    // avant de basculer vers l'écran de visualisation.
     pendingNavigationTimer.current = window.setTimeout(() => {
-      setHomeNavigationPhase('idle');
-      setPendingChannelId(null);
-      pendingNavigationTimer.current = null;
-    }, 360);
+      pendingViewerScroll.current = true;
+      setTab('all');
+      pendingNavigationTimer.current = window.setTimeout(() => {
+        setHomeNavigationPhase('idle');
+        setPendingChannelId(null);
+        pendingNavigationTimer.current = null;
+      }, 360);
+    }, 280);
   }, [groupByChannelId, handleSelectChannel, resolveBestVariant, tab]);
 
   const isFavoriteChannel = useCallback((channel: NeahplusChannel) => {
