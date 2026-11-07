@@ -914,7 +914,7 @@ const NeahplusExperience = () => {
       )}
 
       {/* Main content area */}
-      <div className="relative flex min-h-0 flex-1 flex-col overflow-x-hidden overflow-y-auto overscroll-y-contain touch-pan-y lg:flex-row lg:overflow-hidden" style={{ WebkitOverflowScrolling: "touch" }}>
+      <div data-lenis-prevent className="relative flex min-h-0 flex-1 flex-col overflow-x-hidden overflow-y-auto overscroll-y-contain touch-pan-y lg:flex-row lg:overflow-hidden" style={{ WebkitOverflowScrolling: "touch" }}>
         {/* Compact text-only channel list */}
         {showChannelList && (
           <aside id="neahplus-quick-channel-list" className="absolute inset-y-0 left-0 z-40 flex w-[min(17rem,72vw)] flex-col border-r border-[#20c7c7]/20 bg-[#081c25] shadow-[0_18px_55px_rgba(0,0,0,.55)] animate-in fade-in slide-in-from-left-2 duration-150 lg:relative lg:z-0 lg:w-56 lg:shrink-0 lg:shadow-none" aria-label="Liste rapide des chaînes">
@@ -1091,7 +1091,7 @@ const NeahplusExperience = () => {
         </section>
 
         {/* Right: Browse / Guide / Home */}
-        <section key={tab} className={`flex min-h-max w-full min-w-0 flex-none flex-col overflow-x-hidden overflow-visible overscroll-y-contain touch-pan-y lg:min-h-0 lg:flex-1 lg:overflow-y-auto motion-safe:animate-[neahplus-page-in_160ms_ease-out_both] ${['home', 'favorites', 'countries', 'settings'].includes(tab) ? 'w-full' : 'lg:border-l lg:border-white/[0.06]'}`} style={{ WebkitOverflowScrolling: 'touch' }}>
+        <section key={tab} data-lenis-prevent className={`flex min-h-max w-full min-w-0 flex-none flex-col overflow-x-hidden overflow-visible overscroll-y-contain touch-pan-y lg:min-h-0 lg:flex-1 lg:overflow-y-auto motion-safe:animate-[neahplus-page-in_160ms_ease-out_both] ${['home', 'favorites', 'countries', 'settings'].includes(tab) ? 'w-full' : 'lg:border-l lg:border-white/[0.06]'}`} style={{ WebkitOverflowScrolling: 'touch' }}>
           {/* Search + filters bar */}
           {(tab === 'all' || tab === 'guide' || tab === 'world') && <div className="flex flex-col gap-2 border-b border-white/[0.06] p-3 sm:flex-row sm:items-center sm:gap-3">
             <div className="relative z-30 min-w-0 flex-1">
