@@ -192,28 +192,35 @@ const NeahplusPlayer = ({ channelId, channelName, isActive, onInfo, onPrevChanne
       />
 
       {overlayStatus && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-[linear-gradient(145deg,rgba(5,20,27,.96),rgba(4,10,16,.96))] p-6 text-center" role="status" aria-live="polite">
+        <div className="absolute inset-0 flex flex-col items-center justify-center overflow-hidden bg-[linear-gradient(145deg,#061720_0%,#081c27_48%,#050e16_100%)] p-6 text-center" role="status" aria-live="polite">
+          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_50%_42%,rgba(32,199,199,.2),transparent_58%)]" />
+          <div className="pointer-events-none absolute inset-3 rounded-xl border border-[#20c7c7]/15" />
+          <div className="pointer-events-none absolute inset-x-10 top-1/2 h-px -translate-y-1/2 bg-gradient-to-r from-transparent via-[#20c7c7]/20 to-transparent" />
           {overlayStatus === 'error' ? (
-            <AlertTriangle className="h-10 w-10 text-amber-300" aria-hidden="true" />
+            <AlertTriangle className="relative mb-4 h-9 w-9 text-amber-300" aria-hidden="true" />
           ) : (
-            <Loader2 className="h-10 w-10 animate-spin text-amber-300 motion-reduce:animate-none" aria-hidden="true" />
+            <Loader2 className="relative mb-5 h-8 w-8 animate-spin text-[#55dddd] motion-reduce:animate-none" aria-hidden="true" />
           )}
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(32,199,199,.14),transparent_58%)]" />
-          <span className="relative rounded-full border border-[#20c7c7]/25 bg-[#0b2932]/80 px-3 py-1 text-[9px] font-black tracking-[0.22em] text-[#75e6e6]">NEAHPLUS · TV EN DIRECT</span>
-          <p className="relative text-sm font-semibold text-white">{overlayStatus === 'resolving' ? `Connexion à ${channelName}…` : STATUS_LABEL[overlayStatus]}</p>
-          {overlayStatus !== 'error' && <p className="relative max-w-xs text-xs leading-5 text-white/55">Un instant, le direct arrive.</p>}
-          {overlayStatus === 'error' && message && (
-            <p className="max-w-md text-sm leading-6 text-white/80">{message}</p>
-          )}
-          {overlayStatus === 'error' && (
-            <button
-              type="button"
-              onClick={() => setAttempt((value) => value + 1)}
-              className="mt-1 inline-flex items-center gap-2 rounded-lg bg-amber-500 px-4 py-2 text-sm font-semibold text-[#1b1305] transition hover:bg-amber-400"
-            >
-              <RotateCcw className="h-4 w-4" aria-hidden="true" />
-              Réessayer
-            </button>
+          {overlayStatus !== 'error' ? (
+            <div className="relative flex flex-col items-center">
+              <p className="text-xl font-black tracking-[0.2em] text-[#55dddd] drop-shadow-[0_0_18px_rgba(32,199,199,.28)]">NEAHPLUS</p>
+              <span className="mt-3 h-px w-20 bg-gradient-to-r from-transparent via-[#55dddd]/80 to-transparent" />
+              <p className="mt-3 text-xs font-semibold tracking-[0.12em] text-white/75">Chargement de chaîne</p>
+            </div>
+          ) : (
+            <>
+              <span className="relative rounded-full border border-[#20c7c7]/25 bg-[#0b2932]/80 px-3 py-1 text-[9px] font-black tracking-[0.22em] text-[#75e6e6]">NEAHPLUS</span>
+              <p className="relative mt-3 text-sm font-semibold text-white">{STATUS_LABEL[overlayStatus]}</p>
+              {message && <p className="relative mt-2 max-w-md text-sm leading-6 text-white/80">{message}</p>}
+              <button
+                type="button"
+                onClick={() => setAttempt((value) => value + 1)}
+                className="relative mt-4 inline-flex items-center gap-2 rounded-lg border border-amber-300/30 bg-amber-500 px-4 py-2 text-sm font-semibold text-[#1b1305] transition hover:bg-amber-400"
+              >
+                <RotateCcw className="h-4 w-4" aria-hidden="true" />
+                Réessayer
+              </button>
+            </>
           )}
         </div>
       )}
