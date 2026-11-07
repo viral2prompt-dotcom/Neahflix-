@@ -1,7 +1,7 @@
 import { getNeahplusChannelLogo, getNeahplusChannelPriority } from './neahplusBranding';
 import NeahplusDiscoveryShelf from './NeahplusDiscoveryShelf';
 import NeahplusHero from './NeahplusHero';
-import { useMemo, useRef } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { ChevronLeft, ChevronRight, Heart, Loader2, Pencil, Play, Search } from 'lucide-react';
 import type { NeahplusChannel } from './neahplusCatalog';
 import { currentProgram } from './neahplusCatalog';
@@ -24,16 +24,17 @@ interface NeahplusHomeProps {
 }
 
 const categories = [
-  { id: 'all', title: 'Tout', subtitle: 'Toute votre sélection de chaînes, réunie dans un seul espace.', match: (_source: string) => true },
-  { id: 'cinema', title: 'Cinéma', subtitle: 'Les chaînes dédiées aux films, aux grandes histoires et au septième art.', match: (source: string) => /cinema|film|movie|action|paramount|ocs|cine\s*\+|hollywood/.test(source) },
-  { id: 'sport', title: 'Sport', subtitle: 'Les rendez-vous sportifs, les compétitions et les grandes rencontres.', match: (source: string) => /sport|eurosport|bein|football|rugby|tennis|basket|combat|golf|racing/.test(source) },
-  { id: 'youth', title: 'Jeunesse', subtitle: 'Des programmes pour les enfants et toute la famille.', match: (source: string) => /kids|family|piwi|gulli|jeunesse|teletoon|cartoon|boomerang|nick|disney|boing|tiji|ludikids/.test(source) },
-  { id: 'documentary', title: 'Documentaires', subtitle: 'Explorez le monde, la science, l’histoire et la découverte.', match: (source: string) => /documentaire|docu|canal\+ docs|national geographic|nat geo|discovery|histoire|planete|voyage|wild/.test(source) },
-  { id: 'entertainment', title: 'Divertissement', subtitle: 'Séries, musique, humour et rendez-vous populaires.', match: (source: string) => /divertissement|comedie|humour|musique|tv5|france 2|france 3|tf1|m6|tfx|w9|pop|novelas|nollywood|trace|a\+/.test(source) },
+  { id: 'all', title: 'Tout', kicker: 'TOUT LE DIRECT, AU MÊME ENDROIT', subtitle: 'Toute votre sélection de chaînes, réunie dans un seul espace.', match: (_source: string) => true },
+  { id: 'cinema', title: 'Cinéma', kicker: 'LE GRAND ÉCRAN À LA TÉLÉVISION', subtitle: 'Les chaînes dédiées aux films, aux grandes histoires et au septième art.', match: (source: string) => /cinema|film|movie|action|paramount|ocs|cine\s*\+|hollywood/.test(source) },
+  { id: 'sport', title: 'Sport', kicker: 'AU CŒUR DES COMPÉTITIONS', subtitle: 'Les rendez-vous sportifs, les compétitions et les grandes rencontres.', match: (source: string) => /sport|eurosport|bein|football|rugby|tennis|basket|combat|golf|racing/.test(source) },
+  { id: 'youth', title: 'Jeunesse', kicker: 'LES RENDEZ-VOUS DES PLUS JEUNES', subtitle: 'Des programmes pour les enfants et toute la famille.', match: (source: string) => /kids|family|piwi|gulli|jeunesse|teletoon|cartoon|boomerang|nick|disney|boing|tiji|ludikids/.test(source) },
+  { id: 'documentary', title: 'Documentaires', kicker: 'SAVOIR, EXPLORER ET DÉCOUVRIR', subtitle: 'Explorez le monde, la science, l’histoire et la découverte.', match: (source: string) => /documentaire|docu|canal\+ docs|national geographic|nat geo|discovery|histoire|planete|voyage|wild/.test(source) },
+  { id: 'entertainment', title: 'Divertissement', kicker: 'SÉRIES, MUSIQUE ET CULTURE', subtitle: 'Séries, musique, humour et rendez-vous populaires.', match: (source: string) => /divertissement|comedie|humour|musique|tv5|france 2|france 3|tf1|m6|tfx|w9|pop|novelas|nollywood|trace|a\+/.test(source) },
 ];
 
 const NeahplusHome = ({ channels, now, query, onQueryChange, onSelectChannel, displayNamesByChannelId, isFavorite, onToggleFavorite, pendingChannelId, mode, spaceName, countryLabel, onRenameSpace }: NeahplusHomeProps) => {
   const rowRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const [searchFocused, setSearchFocused] = useState(false);
   const needle = foldText(query.trim());
   const searchableChannels = useMemo(() => channels.filter((channel) => {
     if (!needle) return true;
@@ -87,9 +88,17 @@ const NeahplusHome = ({ channels, now, query, onQueryChange, onSelectChannel, di
           <div className="mt-1 flex items-center gap-2"><h1 className="min-w-0 truncate text-xl font-black text-white sm:text-2xl">{mode === 'favorites' ? spaceName : 'Découvrez NEAHPLUS'}</h1>{mode === 'favorites' && <button type="button" onClick={onRenameSpace} aria-label="Renommer mon espace NEAHPLUS" title="Renommer mon espace" className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-white/40 transition hover:bg-white/10 hover:text-[#75e6e6]"><Pencil className="h-3.5 w-3.5" /></button>}</div>
           {mode === 'favorites' && <p className="mt-1 text-xs text-white/45">Toutes vos chaînes réunies au même endroit.</p>}
         </div>
-        <label className="relative w-full sm:max-w-sm">
+        <label className="relative z-30 w-full sm:max-w-sm">
           <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-white/40" />
-          <input value={query} onChange={(event) => onQueryChange(event.target.value)} type="search" placeholder="Rechercher une chaîne…" className="w-full rounded-xl border border-white/10 bg-white/[0.06] py-3 pl-10 pr-4 text-sm text-white placeholder:text-white/40 outline-none transition focus:border-[#20c7c7]" />
+          <input value={query} onFocus={() => setSearchFocused(true)} onBlur={() => setSearchFocused(false)} onChange={(event) => onQueryChange(event.target.value)} type="search" placeholder="Rechercher une chaîne…" aria-label="Rechercher une chaîne" aria-expanded={Boolean(query.trim() && searchFocused && searchableChannels.length)} className="w-full rounded-xl border border-white/10 bg-white/[0.06] py-3 pl-10 pr-4 text-sm text-white placeholder:text-white/40 outline-none transition focus:border-[#20c7c7]" />
+          {query.trim() && searchFocused && (
+            <div className="absolute left-0 right-0 top-full z-[100] mt-2 max-h-72 overflow-y-auto rounded-xl border border-white/25 bg-[#0b2028] py-1 shadow-2xl shadow-black/50" role="listbox" aria-label="Résultats de recherche">
+              {searchableChannels.length ? searchableChannels.slice(0, 8).map((channel) => {
+                const name = displayNamesByChannelId.get(channel.id) ?? channel.name;
+                return <button key={channel.id} type="button" role="option" aria-selected="false" onMouseDown={(event) => event.preventDefault()} onClick={() => { onSelectChannel(channel); onQueryChange(""); setSearchFocused(false); }} className="flex w-full items-center gap-3 px-3 py-2.5 text-left text-sm text-white/85 transition hover:bg-white/10 hover:text-white"><span className="min-w-0 flex-1 truncate font-semibold">{name}</span><span className="shrink-0 text-[10px] text-white/35">Regarder</span></button>;
+              }) : <p className="px-3 py-3 text-xs text-white/45">Aucune chaîne trouvée.</p>}
+            </div>
+          )}
         </label>
       </div>
 
@@ -107,7 +116,7 @@ const NeahplusHome = ({ channels, now, query, onQueryChange, onSelectChannel, di
               <section key={category.id} className="space-y-4" aria-label={`Catégorie ${category.title}`}>
                 <div className="flex items-end justify-between gap-3 border-b border-white/[0.08] pb-3">
                   <div className="min-w-0">
-                    <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#d6ad55]">NEAHPLUS · SÉLECTION</p>
+                    <p className="inline-flex max-w-full rounded-full border border-white/35 px-2.5 py-1 text-[9px] font-bold uppercase tracking-[0.14em] text-white/80">{category.kicker}</p>
                     <h2 className="mt-1 text-xl font-black text-white sm:text-2xl">{category.title}</h2>
                     <p className="mt-1 max-w-2xl text-xs leading-5 text-white/45 sm:text-sm">{category.subtitle}</p>
                     <p className="mt-1 text-[10px] text-white/30">{rowChannels.length} chaîne{rowChannels.length > 1 ? 's' : ''}</p>
