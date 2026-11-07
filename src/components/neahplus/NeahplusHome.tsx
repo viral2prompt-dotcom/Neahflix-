@@ -123,6 +123,7 @@ const NeahplusHome = ({ channels, now, query, onQueryChange, onSelectChannel, di
               </section>
             );
           })}
+          </div>
         </>
       ) : (
         <section className="space-y-4">
