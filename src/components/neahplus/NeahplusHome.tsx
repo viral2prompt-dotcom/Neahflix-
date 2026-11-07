@@ -35,6 +35,7 @@ const categories = [
 const NeahplusHome = ({ channels, now, query, onQueryChange, onSelectChannel, displayNamesByChannelId, isFavorite, onToggleFavorite, pendingChannelId, mode, spaceName, countryLabel, onRenameSpace }: NeahplusHomeProps) => {
   const rowRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const [searchFocused, setSearchFocused] = useState(false);
+  const [pressedChannelId, setPressedChannelId] = useState<string | null>(null);
   const needle = foldText(query.trim());
   const searchableChannels = useMemo(() => channels.filter((channel) => {
     if (!needle) return true;
@@ -59,8 +60,8 @@ const NeahplusHome = ({ channels, now, query, onQueryChange, onSelectChannel, di
     const pending = pendingChannelId === channel.id;
     const logo = channel.logo ?? getNeahplusChannelLogo(channel.name);
     return (
-      <article key={channel.id} className={`group w-[calc(50vw-2.25rem)] max-w-[230px] shrink-0 snap-start overflow-hidden rounded-xl border bg-[#102027] transition-[border-color,box-shadow,transform] duration-100 sm:w-[190px] ${pending ? 'border-[#55dddd] ring-2 ring-[#20c7c7]/40 shadow-lg shadow-[#20c7c7]/10' : 'border-white/10 hover:border-[#20c7c7]/50'}`}>
-        <button type="button" onClick={() => onSelectChannel(channel)} disabled={pending} aria-label={pending ? `Connexion à ${displayName}` : `Regarder ${displayName}`} className="block w-full text-left transition-transform duration-75 active:scale-[0.985] active:bg-[#20c7c7]/10 active:ring-2 active:ring-inset active:ring-[#55dddd] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#20c7c7]">
+      <article key={channel.id} className={`group w-[calc(50vw-2.25rem)] max-w-[230px] shrink-0 snap-start overflow-visible rounded-xl border bg-[#102027] transition-[border-color,box-shadow,transform,outline] duration-75 sm:w-[190px] ${pending || pressedChannelId === channel.id ? 'border-[#0c3037] outline outline-2 outline-offset-2 outline-[#0c3037] shadow-[0_0_14px_rgba(12,48,55,.65)]' : 'border-white/10 hover:border-[#20c7c7]/50'}`}>
+        <button type="button" onClick={() => onSelectChannel(channel)} disabled={pending} aria-label={pending ? `Connexion à ${displayName}` : `Regarder ${displayName}`} onPointerDown={() => setPressedChannelId(channel.id)} onPointerUp={() => setPressedChannelId(null)} onPointerCancel={() => setPressedChannelId(null)} onPointerLeave={() => setPressedChannelId(null)} className="block w-full text-left transition-transform duration-75 active:scale-[0.985] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#20c7c7]">
           <div className="relative flex aspect-[16/10] items-center justify-center overflow-hidden bg-gradient-to-br from-[#153b43] via-[#10252e] to-[#09151c] p-4">
             <span className="flex h-14 w-14 items-center justify-center rounded-2xl border border-[#20c7c7]/30 bg-[#20c7c7]/10 text-lg font-black text-[#67e5e5]">{displayName.slice(0, 2).toUpperCase()}</span>
             {logo && <img src={logo} alt={`Logo ${displayName}`} loading="lazy" onError={(event) => { event.currentTarget.style.display = 'none'; }} className="absolute inset-0 m-auto max-h-[75%] max-w-[78%] object-contain drop-shadow-xl transition group-hover:scale-105" />}
