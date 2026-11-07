@@ -308,6 +308,7 @@ const NeahplusExperience = () => {
   const [showInfoPanel, setShowInfoPanel] = useState(false);
   const [showQuickSearch, setShowQuickSearch] = useState(false);
   const [showChannelList, setShowChannelList] = useState(false);
+  const channelListRef = useRef<HTMLDivElement>(null);
   const [showSearchSuggestions, setShowSearchSuggestions] = useState(false);
   const [prevGroupKey, setPrevGroupKey] = useState<string | null>(null);
   const gridRef = useRef<HTMLDivElement>(null);
@@ -545,16 +546,14 @@ const NeahplusExperience = () => {
   }, [groupByChannelId, selectedGroupKey]);
 
   const openChannelFromHome = useCallback((channel: NeahplusChannel) => {
-    const alreadyPending = pendingNavigationTimer.current !== null;
-    if (pendingNavigationTimer.current !== null) window.clearTimeout(pendingNavigationTimer.current);
-    if (!alreadyPending && tab !== 'all') navigationHistory.current.push(tab);
-    handleSelectChannel(channel);
-    setPendingChannelId(channel.id);
-    pendingNavigationTimer.current = window.setTimeout(() => {
-      setTab('all');
-      setPendingChannelId(null);
+    if (pendingNavigationTimer.current !== null) {
+      window.clearTimeout(pendingNavigationTimer.current);
       pendingNavigationTimer.current = null;
-    }, 220);
+    }
+    if (tab !== 'all') navigationHistory.current.push(tab);
+    handleSelectChannel(channel);
+    setPendingChannelId(null);
+    setTab('all');
   }, [handleSelectChannel, tab]);
 
   const isFavoriteChannel = useCallback((channel: NeahplusChannel) => {
@@ -607,14 +606,9 @@ const NeahplusExperience = () => {
     }
   }, [prevGroupKey, groupByKey, selectedGroupKey, resolveBestVariant]);
 
-  const cycleChannel = useCallback((direction: 1 | -1) => {
-    if (!selectedGroupKey || carouselGroups.length === 0) return;
-    const currentIndex = carouselGroups.findIndex((group) => group.key === selectedGroupKey);
-    const startIndex = currentIndex < 0 ? 0 : currentIndex;
-    const nextIndex = (startIndex + direction + carouselGroups.length) % carouselGroups.length;
-    const nextGroup = carouselGroups[nextIndex];
-    if (nextGroup) handleSelectGroup(nextGroup);
-  }, [selectedGroupKey, carouselGroups, handleSelectGroup]);
+  const scrollChannelList = useCallback((direction: 1 | -1) => {
+    channelListRef.current?.scrollBy({ top: direction * 220, behavior: 'smooth' });
+  }, []);
 
   const cycleVariant = useCallback((direction: 1 | -1) => {
     if (!selectedGroup || selectedGroup.variants.length <= 1) return;
@@ -896,9 +890,16 @@ const NeahplusExperience = () => {
           <aside id="neahplus-quick-channel-list" className="absolute inset-y-0 left-0 z-40 flex w-[min(17rem,72vw)] flex-col bg-[#0b2028] shadow-2xl lg:relative lg:z-0 lg:w-56 lg:shrink-0 lg:border-r lg:border-white/[0.06] lg:shadow-none" aria-label="Liste rapide des chaînes">
             <div className="flex items-center justify-between border-b border-white/[0.06] px-3 py-3">
               <h2 className="text-xs font-bold uppercase tracking-wider text-white/80">Liste des chaînes</h2>
-              <button type="button" onClick={() => setShowChannelList(false)} aria-label="Fermer la liste" className="rounded-lg p-1.5 text-white/45 transition hover:bg-white/10 hover:text-white"><X className="h-4 w-4" /></button>
+              <div className="flex items-center gap-1">
+                <button type="button" onClick={() => scrollChannelList(-1)} aria-label="Monter dans la liste des chaînes" title="Monter dans la liste" className="flex h-8 w-8 items-center justify-center rounded-lg border border-white/15 text-white/75 transition hover:border-white/40 hover:bg-white/10"><ChevronUp className="h-4 w-4" /></button>
+                <button type="button" onClick={() => scrollChannelList(1)} aria-label="Descendre dans la liste des chaînes" title="Descendre dans la liste" className="flex h-8 w-8 items-center justify-center rounded-lg border border-white/15 text-white/75 transition hover:border-white/40 hover:bg-white/10"><ChevronDown className="h-4 w-4" /></button>
+                <button type="button" onClick={() => setShowChannelList(false)} aria-label="Fermer la liste" className="rounded-lg p-1.5 text-white/45 transition hover:bg-white/10 hover:text-white"><X className="h-4 w-4" /></button>
+              </div>
             </div>
-            <div className="min-h-0 flex-1 overflow-y-auto px-3 py-2" data-lenis-prevent>
+            <div ref={channelListRef} className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain px-3 py-2 [scrollbar-width:thin]" data-lenis-prevent onKeyDown={(event) => {
+              if (event.key === 'ArrowDown') { event.preventDefault(); const next = (event.target as HTMLElement).closest('li')?.nextElementSibling?.querySelector('button') as HTMLButtonElement | null; next?.focus(); next?.scrollIntoView({ block: 'nearest' }); }
+              if (event.key === 'ArrowUp') { event.preventDefault(); const previous = (event.target as HTMLElement).closest('li')?.previousElementSibling?.querySelector('button') as HTMLButtonElement | null; previous?.focus(); previous?.scrollIntoView({ block: 'nearest' }); }
+            }}>
               <ul className="space-y-0.5">
                 {carouselGroups.map((group) => {
                   const isSelected = group.key === selectedGroupKey;
@@ -924,8 +925,6 @@ const NeahplusExperience = () => {
             <>
               <div className="group relative mx-auto w-full max-w-[720px]">
                 <div className="mb-2 flex items-center justify-end gap-1.5">
-                  <button type="button" onClick={() => cycleChannel(-1)} aria-label="Chaîne précédente, chaîne vers le haut" title="Chaîne précédente (CH−)" className="flex h-8 w-8 items-center justify-center rounded-lg border border-white/20 text-white/75 transition hover:border-white/50 hover:bg-white/[0.06] hover:text-white"><ChevronUp className="h-4 w-4" /></button>
-                  <button type="button" onClick={() => cycleChannel(1)} aria-label="Chaîne suivante, chaîne vers le bas" title="Chaîne suivante (CH+)" className="flex h-8 w-8 items-center justify-center rounded-lg border border-white/20 text-white/75 transition hover:border-white/50 hover:bg-white/[0.06] hover:text-white"><ChevronDown className="h-4 w-4" /></button>
                   <button type="button" onClick={() => setShowChannelList((open) => !open)} aria-expanded={showChannelList} aria-controls="neahplus-quick-channel-list" className="inline-flex items-center gap-2 rounded-lg border border-white/20 px-3 py-1.5 text-[11px] font-semibold text-white/75 transition hover:border-white/50 hover:bg-white/[0.06] hover:text-white"><List className="h-3.5 w-3.5" /> Liste des chaînes</button>
                 </div>
                 <NeahplusPlayer
@@ -935,7 +934,6 @@ const NeahplusExperience = () => {
                   channelName={selectedGroup.displayName}
                   onInfo={() => setShowInfoPanel(true)}
                   onPrevChannel={goToPrevChannel}
-                  onNextChannel={() => cycleChannel(1)}
                   onGuide={() => navigateTo('guide')}
                 />
               </div>
