@@ -101,10 +101,12 @@ const ChannelCarousel = ({ groups, selectedKey, favoritedKeys, onSelectGroup, on
             </button>
           );
         })}
+        {onOpenMore && (
         <button type="button" onClick={onOpenMore} aria-label="Afficher plus de chaînes et compléter ma sélection" className="flex h-[96px] w-[112px] shrink-0 flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-[#55dddd]/45 bg-[#20c7c7]/[0.06] text-[#8af0f0] transition hover:border-[#55dddd] hover:bg-[#20c7c7]/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#55dddd]">
           <span className="flex h-9 w-9 items-center justify-center rounded-full border border-[#55dddd]/40 bg-[#20c7c7]/10 text-xl font-light">+</span>
           <span className="text-[10px] font-bold uppercase tracking-wider">Plus</span>
         </button>
+        )}
         {groups.length === 0 && (
           <span className="flex h-[96px] w-[150px] shrink-0 items-center justify-center px-2 text-center text-[10px] leading-4 text-white/35">Aucune chaîne sélectionnée. Utilisez « Plus » pour en ajouter.</span>
         )}
