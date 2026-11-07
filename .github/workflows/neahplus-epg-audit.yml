@@ -1,0 +1,193 @@
+name: Temporary NEAHPLUS EPG audit
+
+on:
+  push:
+    branches:
+      - feature/neahplus-canal-inspired-2b
+    paths:
+      - .github/workflows/neahplus-epg-audit.yml
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Compare NEAHPLUS channels with XMLTV guides
+        shell: bash
+        run: |
+          mkdir -p audit
+          node <<'NODE'
+          const countries = ["AL","DE","FR","TR","GB","BA","PL","IT","ES","PT","RU","NL","BG","HR","RO","RS","ME"];
+
+          const decode = s => String(s || "")
+            .replace(/<!\\[CDATA\\[([\\s\\S]*?)\\]\\]>/g, "$1")
+            .replace(/&amp;/g, "&").replace(/&quot;/g, '"')
+            .replace(/&apos;|&#39;/g, "'").replace(/&lt;/g, "<")
+            .replace(/&gt;/g, ">").replace(/&#(\\d+);/g, (_, n) => String.fromCodePoint(Number(n)))
+            .replace(/&#x([0-9a-f]+);/gi, (_, n) => String.fromCodePoint(parseInt(n,16)));
+
+          const norm = s => decode(s).normalize("NFD").replace(/[\\u0300-\\u036f]/g, "")
+            .toLowerCase().replace(/^\\s*\\[[^\\]]+\\]\\s*/, "")
+            .replace(/^(?:4k|hd|fhd|uhd)\\s*[a-z]{2}\\s*:\\s*/i, "")
+            .replace(/^[a-z]{2}\\s*:\\s*/i, "")
+            .replace(/\\s*\\(\\d+\\)\\s*$/, "")
+            .replace(/\\b(hd|fhd|uhd|4k|sd)\\b/g, "")
+            .replace(/[^a-z0-9]/g, "");
+
+          const attr = (s, key) => {
+            const m = s.match(new RegExp("(?:^|\\\\s)" + key + '="([^"]*)"', "i"));
+            return m ? decode(m[1]) : "";
+          };
+
+          function similarity(a,b) {
+            if (!a || !b) return 0;
+            if (a === b) return 1;
+            if (Math.abs(a.length-b.length) > Math.max(2, Math.ceil(Math.max(a.length,b.length)*0.10))) return 0;
+            const prev = Array.from({length:b.length+1},(_,i)=>i);
+            for(let i=1;i<=a.length;i++) {
+              let diagonal=prev[0]; prev[0]=i;
+              for(let j=1;j<=b.length;j++) {
+                const old=prev[j];
+                prev[j]=Math.min(prev[j]+1,prev[j-1]+1,diagonal+(a[i-1]===b[j-1]?0:1));
+                diagonal=old;
+              }
+            }
+            return 1-prev[b.length]/Math.max(a.length,b.length);
+          }
+
+          async function fetchText(url) {
+            let last;
+            for(let attempt=1;attempt<=3;attempt++) {
+              try {
+                const response=await fetch(url,{signal:AbortSignal.timeout(90000),headers:{"User-Agent":"NEAHPLUS-EPG-audit/1.0"}});
+                if(!response.ok) throw new Error("HTTP "+response.status);
+                return await response.text();
+              } catch(error) {
+                last=error;
+                if(attempt<3) await new Promise(r=>setTimeout(r,1200*attempt));
+              }
+            }
+            throw last;
+          }
+
+          async function main() {
+            let cursor=null, catalog=[], pages=0;
+            do {
+              let url="https://oha.to/live/catalog/live/channels.json";
+              if(cursor) url+="?cursor="+encodeURIComponent(cursor);
+              const page=JSON.parse(await fetchText(url));
+              catalog.push(...(page.items||[]));
+              cursor=page.nextCursor||null;
+              pages++;
+              if(pages>500) throw new Error("Pagination stopped at 500 pages");
+            } while(cursor);
+
+            const channels=catalog.map(c=>({name:c.name,key:norm(c.name)})).filter(c=>c.key.length>=5);
+            const candidateMap=new Map();
+            const guideStats=[];
+            const failures=[];
+
+            for(const code of countries) {
+              try {
+                const xml=await fetchText(`https://iptv-epg.org/files/epg-${code.toLowerCase()}.xml`);
+                const programmeCounts=new Map();
+                for(const m of xml.matchAll(/<programme\\b([^>]*)>/gi)) {
+                  const id=attr(m[1],"channel");
+                  if(id) programmeCounts.set(id,(programmeCounts.get(id)||0)+1);
+                }
+
+                const entries=[...xml.matchAll(/<channel\\b([^>]*)>([\\s\\S]*?)<\\/channel>/gi)].map(m=>{
+                  const id=attr(m[1],"id");
+                  const names=[...m[2].matchAll(/<display-name[^>]*>([\\s\\S]*?)<\\/display-name>/gi)]
+                    .map(x=>decode(x[1].replace(/<[^>]*>/g,"").trim())).filter(Boolean);
+                  return {id,names,keys:names.map(norm).filter(k=>k.length>=5)};
+                }).filter(e=>e.id && e.keys.length);
+
+                const localMatches=new Set();
+                for(const channel of channels) {
+                  let best=null;
+                  for(const entry of entries) for(let i=0;i<entry.keys.length;i++) {
+                    const score=similarity(channel.key,entry.keys[i]);
+                    if(!best || score>best.score) best={entry,displayName:entry.names[i],score};
+                  }
+                  if(!best || best.score<0.92) continue;
+                  localMatches.add(channel.name);
+                  const key=channel.name+"|"+code+"|"+best.entry.id;
+                  const candidate={channel:channel.name,country:code,guideName:best.displayName||best.entry.names[0]||"",xmltvId:best.entry.id,score:Math.round(best.score*100),programmeCount:programmeCounts.get(best.entry.id)||0};
+                  const old=candidateMap.get(key);
+                  if(!old || candidate.score>old.score) candidateMap.set(key,candidate);
+                }
+                guideStats.push({country:code,guideChannels:entries.length,matchedChannels:localMatches.size,matchedWithPrograms:[...candidateMap.values()].filter(x=>x.country===code&&x.programmeCount>0).length});
+              } catch(error) {
+                failures.push({country:code,error:String(error.message||error)});
+              }
+            }
+
+            const candidates=[...candidateMap.values()];
+            const byChannel=new Map();
+            for(const candidate of candidates) {
+              const list=byChannel.get(candidate.channel)||[];
+              list.push(candidate); byChannel.set(candidate.channel,list);
+            }
+            const selected=[];
+            for(const [channel,list] of byChannel) {
+              list.sort((a,b)=>b.score-a.score||b.programmeCount-a.programmeCount);
+              const top=list[0], second=list[1];
+              selected.push({...top,ambiguous:!!second && top.score-second.score<4,otherCandidate:second?second.country+":"+second.guideName:""});
+            }
+            selected.sort((a,b)=>b.score-a.score||b.programmeCount-a.programmeCount||a.channel.localeCompare(b.channel));
+
+            const report={
+              generatedAt:new Date().toISOString(),
+              catalogue:{pages,channels:catalog.length},
+              guidesAttempted:countries.length,
+              guidesSucceeded:guideStats.length,
+              guideStats,failures,
+              matches:{uniqueChannels:selected.length,exact:selected.filter(x=>x.score===100).length,probable:selected.filter(x=>x.score<100).length,withPrograms:selected.filter(x=>x.programmeCount>0).length,ambiguous:selected.filter(x=>x.ambiguous).length},
+              candidates:selected
+            };
+            require("node:fs").writeFileSync("audit/neahplus-epg-matches.json",JSON.stringify(report,null,2));
+            const csvRows=[["NEAHPLUS channel","Country","XMLTV display name","XMLTV ID","Similarity %","Programme entries","Ambiguous","Alternative"].join(",")];
+            for(const x of selected) csvRows.push([x.channel,x.country,x.guideName,x.xmltvId,x.score,x.programmeCount,x.ambiguous,x.otherCandidate].map(v=>'"'+String(v??"").replace(/"/g,'""')+'"').join(","));
+            require("node:fs").writeFileSync("audit/neahplus-epg-matches.csv",csvRows.join("\\n"));
+            const summary=[
+              "# NEAHPLUS — audit de correspondance EPG",
+              "",
+              `Catalogue : **${catalog.length} chaînes** sur ${pages} pages.`,
+              `Guides XMLTV traités : **${guideStats.length}/${countries.length}**.`,
+              "",
+              "## Résultat",
+              `- Chaînes correspondantes (seuil ≥ 92 %) : **${report.matches.uniqueChannels}**`,
+              `- Correspondances exactes : **${report.matches.exact}**`,
+              `- Correspondances probables : **${report.matches.probable}**`,
+              `- Avec programmes : **${report.matches.withPrograms}**`,
+              `- Ambiguës : **${report.matches.ambiguous}**`,
+              "",
+              "## Correspondances candidates",
+              "| Chaîne NEAHPLUS | Guide | Nom XMLTV | ID | Score | Programmes | Ambiguë |",
+              "|---|---|---|---|---:|---:|---|",
+              ...selected.map(x=>`| ${x.channel.replace(/\\|/g,"/")} | ${x.country} | ${x.guideName.replace(/\\|/g,"/")} | ${x.xmltvId} | ${x.score}% | ${x.programmeCount} | ${x.ambiguous?"Oui":"Non"} |`),
+              "",
+              "## Guides",
+              "| Pays | Chaînes du guide | Correspondances |",
+              "|---|---:|---:|",
+              ...guideStats.map(x=>`| ${x.country} | ${x.guideChannels} | ${x.matchedChannels} |`),
+              "",
+              failures.length ? "## Guides en échec\n"+failures.map(x=>`- ${x.country}: ${x.error}`).join("\\n") : "Tous les guides demandés ont été téléchargés."
+            ];
+            require("node:fs").appendFileSync(process.env.GITHUB_STEP_SUMMARY,summary.join("\\n")+"\\n");
+            console.log(JSON.stringify(report.matches));
+          }
+          main().catch(error=>{console.error(error);process.exit(1)});
+          NODE
+      - name: Upload audit report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: neahplus-epg-audit
+          path: audit/
+          if-no-files-found: warn
+          retention-days: 3
