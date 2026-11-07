@@ -1726,6 +1726,7 @@ const AppWithIntro: React.FC = () => {
   // Les passerelles externes suspendent temporairement l'économiseur pendant
   // leur visite, sans toucher à la préférence stockée de l'utilisateur.
   const isPlatformGatewayRoute = location.pathname.startsWith('/platform/');
+  const isNeahplusRoute = location.pathname === '/platform/neahplus';
 
   // Screensaver logic
   const [screensaverEnabled, setScreensaverEnabled] = useState(() => localStorage.getItem('screensaver_enabled') !== 'false');
@@ -1934,7 +1935,7 @@ const AppWithIntro: React.FC = () => {
       {/* Ne pas afficher le Header sur les routes lecteur et Wrapped */}
       {shouldShowHeader && <Header />}
       <PersistenceManager />
-      <div className={isPlatformGatewayRoute ? 'pb-20 lg:pb-0' : shouldShowHeader && !isHeroHeaderPage ? 'pt-20 pb-20 lg:pb-0' : 'pb-20 lg:pb-0'}>
+      <div className={isNeahplusRoute ? 'h-dvh overflow-hidden' : isPlatformGatewayRoute ? 'pb-20 lg:pb-0' : shouldShowHeader && !isHeroHeaderPage ? 'pt-20 pb-20 lg:pb-0' : 'pb-20 lg:pb-0'}>
         <AlertNotificationManager />
         <DefaultProfileNudge />
         <ProfileGate>
@@ -1963,7 +1964,7 @@ const AppWithIntro: React.FC = () => {
             <Route path="*" element={<NotFound />} />
           </Routes>
         </ProfileGate>
-        {!isWatchRoute && <Footer isIntegration={isPlatformGatewayRoute} />}
+        {!isWatchRoute && !isNeahplusRoute && <Footer isIntegration={isPlatformGatewayRoute} />}
       </div>
 
       {/* Redirect Popup */}

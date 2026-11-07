@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef, useState, type ChangeEvent } from 'react';
 import {
   AlertTriangle,
-  ChevronLeft,
+  ChevronDown,
+  ChevronUp,
   Info,
   Loader2,
   Maximize,
@@ -19,7 +20,7 @@ type PlayerStatus = 'resolving' | 'loading' | 'playing' | 'paused' | 'error';
 
 const STATUS_LABEL: Record<Exclude<PlayerStatus, 'paused'>, string> = {
   resolving: 'Connexion à la chaîne',
-  loading: 'Chargement du flux',
+  loading: 'Chargement du direct…',
   playing: 'En direct',
   error: 'Chaîne indisponible',
 };
@@ -37,12 +38,14 @@ const errorMessage = (error: unknown): string => {
 interface NeahplusPlayerProps {
   channelId: string;
   channelName: string;
+  isActive: boolean;
   onInfo?: () => void;
   onPrevChannel?: () => void;
+  onNextChannel?: () => void;
   onGuide?: () => void;
 }
 
-const NeahplusPlayer = ({ channelId, channelName, onInfo, onPrevChannel, onGuide }: NeahplusPlayerProps) => {
+const NeahplusPlayer = ({ channelId, channelName, isActive, onInfo, onPrevChannel, onNextChannel, onGuide }: NeahplusPlayerProps) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [status, setStatus] = useState<PlayerStatus>('resolving');
@@ -55,6 +58,13 @@ const NeahplusPlayer = ({ channelId, channelName, onInfo, onPrevChannel, onGuide
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return undefined;
+    if (!isActive) {
+      video.pause();
+      video.removeAttribute('src');
+      video.load();
+      setStatus('paused');
+      return undefined;
+    }
     const controller = new AbortController();
     let hls: Hls | null = null;
     let failed = false;
@@ -119,13 +129,14 @@ const NeahplusPlayer = ({ channelId, channelName, onInfo, onPrevChannel, onGuide
 
     return () => {
       controller.abort();
+      video.pause();
       video.removeEventListener('playing', handlePlaying);
       video.removeEventListener('pause', handlePause);
       hls?.destroy();
       video.removeAttribute('src');
       video.load();
     };
-  }, [channelId, attempt]);
+  }, [channelId, attempt, isActive]);
 
   const resume = () => {
     const video = videoRef.current;
@@ -170,7 +181,7 @@ const NeahplusPlayer = ({ channelId, channelName, onInfo, onPrevChannel, onGuide
   return (
     <div
       ref={containerRef}
-      className="relative aspect-video w-full overflow-hidden rounded-2xl bg-black ring-1 ring-white/10"
+      className={`relative mx-auto aspect-video w-full max-h-[42vh] overflow-hidden rounded-xl bg-black transition-shadow duration-300 lg:max-h-[46vh] ${status === 'resolving' || status === 'loading' ? 'ring-2 ring-[#20c7c7]/55 shadow-[0_0_28px_rgba(32,199,199,.16)]' : 'ring-1 ring-[#20c7c7]/20'}`}
     >
       <video
         ref={videoRef}
@@ -181,25 +192,35 @@ const NeahplusPlayer = ({ channelId, channelName, onInfo, onPrevChannel, onGuide
       />
 
       {overlayStatus && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black/75 p-6 text-center">
+        <div className="absolute inset-0 flex flex-col items-center justify-center overflow-hidden bg-[linear-gradient(145deg,#061720_0%,#081c27_48%,#050e16_100%)] p-6 text-center" role="status" aria-live="polite">
+          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_50%_42%,rgba(32,199,199,.2),transparent_58%)]" />
+          <div className="pointer-events-none absolute inset-3 rounded-xl border border-[#20c7c7]/15" />
+          <div className="pointer-events-none absolute inset-x-10 top-1/2 h-px -translate-y-1/2 bg-gradient-to-r from-transparent via-[#20c7c7]/20 to-transparent" />
           {overlayStatus === 'error' ? (
-            <AlertTriangle className="h-10 w-10 text-amber-300" aria-hidden="true" />
+            <AlertTriangle className="relative mb-4 h-9 w-9 text-amber-300" aria-hidden="true" />
           ) : (
-            <Loader2 className="h-10 w-10 animate-spin text-red-400 motion-reduce:animate-none" aria-hidden="true" />
+            <Loader2 className="relative mb-5 h-8 w-8 animate-spin text-[#55dddd] motion-reduce:animate-none" aria-hidden="true" />
           )}
-          <p className="text-sm font-semibold text-white">{STATUS_LABEL[overlayStatus]}</p>
-          {overlayStatus === 'error' && message && (
-            <p className="max-w-md text-sm leading-6 text-white/80">{message}</p>
-          )}
-          {overlayStatus === 'error' && (
-            <button
-              type="button"
-              onClick={() => setAttempt((value) => value + 1)}
-              className="mt-1 inline-flex items-center gap-2 rounded-lg bg-red-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-400"
-            >
-              <RotateCcw className="h-4 w-4" aria-hidden="true" />
-              Réessayer
-            </button>
+          {overlayStatus !== 'error' ? (
+            <div className="relative flex flex-col items-center">
+              <p className="text-xl font-black tracking-[0.2em] text-[#55dddd] drop-shadow-[0_0_18px_rgba(32,199,199,.28)]">NEAHPLUS</p>
+              <span className="mt-3 h-px w-20 bg-gradient-to-r from-transparent via-[#55dddd]/80 to-transparent" />
+              <p className="mt-3 text-xs font-semibold tracking-[0.12em] text-white/75">Chargement de chaîne</p>
+            </div>
+          ) : (
+            <>
+              <span className="relative rounded-full border border-[#20c7c7]/25 bg-[#0b2932]/80 px-3 py-1 text-[9px] font-black tracking-[0.22em] text-[#75e6e6]">NEAHPLUS</span>
+              <p className="relative mt-3 text-sm font-semibold text-white">{STATUS_LABEL[overlayStatus]}</p>
+              {message && <p className="relative mt-2 max-w-md text-sm leading-6 text-white/80">{message}</p>}
+              <button
+                type="button"
+                onClick={() => setAttempt((value) => value + 1)}
+                className="relative mt-4 inline-flex items-center gap-2 rounded-lg border border-amber-300/30 bg-amber-500 px-4 py-2 text-sm font-semibold text-[#1b1305] transition hover:bg-amber-400"
+              >
+                <RotateCcw className="h-4 w-4" aria-hidden="true" />
+                Réessayer
+              </button>
+            </>
           )}
         </div>
       )}
@@ -210,7 +231,7 @@ const NeahplusPlayer = ({ channelId, channelName, onInfo, onPrevChannel, onGuide
           onClick={resume}
           className="absolute inset-0 flex items-center justify-center bg-black/40 transition hover:bg-black/30"
         >
-          <span className="flex h-16 w-16 items-center justify-center rounded-full bg-red-500 text-white shadow-lg">
+          <span className="flex h-16 w-16 items-center justify-center rounded-full bg-[#20c7c7] text-[#061519] shadow-lg">
             <Play className="ml-1 h-7 w-7 fill-current" aria-hidden="true" />
           </span>
           <span className="sr-only">Reprendre la lecture</span>
@@ -223,9 +244,21 @@ const NeahplusPlayer = ({ channelId, channelName, onInfo, onPrevChannel, onGuide
             type="button"
             onClick={onPrevChannel}
             aria-label="Chaîne précédente"
+            title="Chaîne précédente (CH−)"
             className="pointer-events-auto flex h-8 w-8 items-center justify-center rounded-lg text-white/80 transition hover:bg-white/15 hover:text-white"
           >
-            <ChevronLeft className="h-4 w-4" />
+            <ChevronUp className="h-4 w-4" />
+          </button>
+        )}
+        {onNextChannel && (
+          <button
+            type="button"
+            onClick={onNextChannel}
+            aria-label="Chaîne suivante"
+            title="Chaîne suivante (CH+)"
+            className="pointer-events-auto flex h-8 w-8 items-center justify-center rounded-lg text-white/80 transition hover:bg-white/15 hover:text-white"
+          >
+            <ChevronDown className="h-4 w-4" />
           </button>
         )}
         <button

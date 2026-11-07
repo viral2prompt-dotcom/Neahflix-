@@ -12,7 +12,7 @@ const axios = require('axios');
 const path = require('path');
 const fsp = require('fs').promises;
 const { CACHE_DIR, generateCacheKey } = require('../utils/cacheManager');
-const { fetchTmdbDetails, searchTmdb } = require('../utils/tmdbCache');
+const { fetchTmdbDetails, searchTmdb, fetchTmdbTrending } = require('../utils/tmdbCache');
 const { acquireRedisLock } = require('../utils/redisLock');
 const { respondWithResolvedSources } = require('../utils/embedExtraction');
 
@@ -376,6 +376,65 @@ async function findTvSeriesOnTMDB(title, releaseYear, overview) {
 // ===========================================================================
 // ROUTES  (mounted at /api, so paths are relative)
 // ===========================================================================
+
+// ---------------------------------------------------------------------------
+// GET /neahplus/discover -- vitrine de découverte NEAHPLUS (distincte de l'EPG)
+// ---------------------------------------------------------------------------
+router.get('/neahplus/discover', async (req, res) => {
+  if (!TMDB_API_KEY) {
+    return res.status(503).json({ error: 'Service de découverte temporairement indisponible' });
+  }
+
+  const mediaType = ['all', 'movie', 'tv'].includes(String(req.query.type || 'all'))
+    ? String(req.query.type || 'all')
+    : null;
+  const timeWindow = ['day', 'week'].includes(String(req.query.period || 'week'))
+    ? String(req.query.period || 'week')
+    : null;
+  const page = Math.min(5, Math.max(1, Number.parseInt(String(req.query.page || '1'), 10) || 1));
+
+  if (!mediaType || !timeWindow) {
+    return res.status(400).json({ error: 'Paramètres de découverte invalides' });
+  }
+
+  try {
+    const data = await fetchTmdbTrending(TMDB_API_URL, TMDB_API_KEY, mediaType, timeWindow, page, 'fr-FR');
+    if (!data || !Array.isArray(data.results)) {
+      return res.status(502).json({ error: 'Données de découverte indisponibles' });
+    }
+
+    const results = data.results
+      .filter((item) => item && Number.isInteger(item.id) && ['movie', 'tv'].includes(item.media_type || mediaType))
+      .map((item) => {
+        const kind = item.media_type || mediaType;
+        return {
+          id: item.id,
+          mediaType: kind,
+          title: kind === 'movie' ? item.title || item.original_title || '' : item.name || item.original_name || '',
+          originalTitle: kind === 'movie' ? item.original_title || '' : item.original_name || '',
+          overview: item.overview || '',
+          posterPath: item.poster_path || null,
+          backdropPath: item.backdrop_path || null,
+          releaseDate: kind === 'movie' ? item.release_date || '' : item.first_air_date || '',
+          voteAverage: Number.isFinite(item.vote_average) ? item.vote_average : null,
+          genreIds: Array.isArray(item.genre_ids) ? item.genre_ids.filter(Number.isInteger) : [],
+        };
+      })
+      .filter((item) => item.title);
+
+    res.set('Cache-Control', 'public, max-age=900, stale-while-revalidate=3600');
+    return res.json({
+      results,
+      page: data.page || page,
+      totalPages: Math.min(5, Number(data.total_pages) || 1),
+      attribution: 'TMDB',
+      scheduleDisclaimer: 'Ces tendances sont des recommandations de découverte et ne représentent pas les horaires de diffusion des chaînes.',
+    });
+  } catch (error) {
+    console.error('[NEAHPLUS TMDB] Discovery failed:', error.message);
+    return res.status(502).json({ error: 'Données de découverte indisponibles' });
+  }
+});
 
 // ---------------------------------------------------------------------------
 // GET /tmdb/:type/:id  -- retrieve Coflix links via TMDB ID
