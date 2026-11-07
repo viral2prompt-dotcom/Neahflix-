@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import {
   AlertTriangle,
@@ -109,7 +109,7 @@ const ChannelCard = ({
     <div
       className={`group relative touch-pan-y overflow-hidden rounded-2xl border transition-all duration-300 ${
         selected
-          ? 'border-violet-400/70 bg-violet-400/10 outline outline-2 outline-offset-2 outline-violet-400 shadow-lg shadow-violet-500/15'
+          ? 'border-violet-400/45 bg-violet-400/10 ring-1 ring-violet-400/35 shadow-lg shadow-violet-500/10'
           : 'border-white/[0.08] bg-gradient-to-b from-white/[0.04] to-white/[0.01] hover:border-white/20 hover:from-white/[0.07] hover:to-white/[0.02]'
       }`}
     >
@@ -293,6 +293,7 @@ const NeahplusExperience = () => {
   const [spaceRenameValue, setSpaceRenameValue] = useState('');
   const navigationHistory = useRef<Tab[]>([]);
   const pendingNavigationTimer = useRef<number | null>(null);
+  const pendingViewerScroll = useRef(false);
   const [query, setQuery] = useState('');
   const [country, setCountry] = useState(() => {
     try { return localStorage.getItem('neahplus:country') ?? 'France'; } catch { return 'France'; }
@@ -357,6 +358,17 @@ const NeahplusExperience = () => {
       if (pendingNavigationTimer.current !== null) window.clearTimeout(pendingNavigationTimer.current);
     };
   }, []);
+
+  // Après une sélection depuis l'accueil, positionner le lecteur tout en haut
+  // une fois que React a réellement affiché l'écran de visualisation.
+  useLayoutEffect(() => {
+    if (!pendingViewerScroll.current || tab !== 'all' || !selectedGroupKey) return;
+    const main = mainContentRef.current;
+    const player = playerSectionRef.current;
+    if (main) main.scrollTop = 0;
+    if (player) player.scrollTop = 0;
+    pendingViewerScroll.current = false;
+  }, [tab, selectedGroupKey]);
 
   useEffect(() => {
     try { localStorage.setItem('neahplus:country', country); } catch { /* stockage local indisponible */ }
@@ -592,26 +604,24 @@ const NeahplusExperience = () => {
 
   const openChannelFromHome = useCallback((channel: NeahplusChannel) => {
     if (pendingNavigationTimer.current !== null) window.clearTimeout(pendingNavigationTimer.current);
-    setHomeNavigationPhase('idle');
-    // Confirmer immédiatement le toucher, puis laisser le court chargement sur la carte.
+    setHomeNavigationPhase('entering');
     setPendingChannelId(channel.id);
     if (tab !== 'all') navigationHistory.current.push(tab);
     handleSelectChannel(channel, false);
+
+    // Lancer la détection de la source dès le toucher, sans attendre l'animation.
+    const group = groupByChannelId.get(channel.id);
+    if (group?.variants.length) void resolveBestVariant(group);
+
+    // Afficher immédiatement le lecteur. Le scroll est garanti après le rendu React.
+    pendingViewerScroll.current = true;
+    setTab('all');
     pendingNavigationTimer.current = window.setTimeout(() => {
-      setTab('all');
-      setHomeNavigationPhase('entering');
-      // Le nouvel écran s'ouvre directement en haut, sans faire défiler l'accueil.
-      window.requestAnimationFrame(() => {
-        mainContentRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
-        playerSectionRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
-      });
-      pendingNavigationTimer.current = window.setTimeout(() => {
-        setHomeNavigationPhase('idle');
-        setPendingChannelId(null);
-        pendingNavigationTimer.current = null;
-      }, 360);
-    }, 420);
-  }, [handleSelectChannel, tab]);
+      setHomeNavigationPhase('idle');
+      setPendingChannelId(null);
+      pendingNavigationTimer.current = null;
+    }, 360);
+  }, [groupByChannelId, handleSelectChannel, resolveBestVariant, tab]);
 
   const isFavoriteChannel = useCallback((channel: NeahplusChannel) => {
     const group = groupByChannelId.get(channel.id);
