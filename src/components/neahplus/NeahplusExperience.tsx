@@ -332,6 +332,7 @@ const NeahplusExperience = () => {
       window.clearTimeout(pendingNavigationTimer.current);
       pendingNavigationTimer.current = null;
       setPendingChannelId(null);
+      setHomeNavigationPhase('idle');
     }
     if (next === tab) return;
     navigationHistory.current.push(tab);
