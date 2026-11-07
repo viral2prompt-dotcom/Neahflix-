@@ -505,6 +505,18 @@ const NeahplusExperience = () => {
       .sort((a, b) => Number(b.countries.includes('France')) - Number(a.countries.includes('France')) || channelPriority(a.displayName) - channelPriority(b.displayName) || a.displayName.localeCompare(b.displayName, 'fr'));
   }, [allGroups]);
 
+  useEffect(() => {
+    if (tab !== 'favorites') return;
+    const favoriteGroups = carouselGroups.filter((group) => favorites.has(group.key));
+    if (favoriteGroups.length === 0) {
+      setSelectedGroupKey(null);
+      return;
+    }
+    if (!favoriteGroups.some((group) => group.key === selectedGroupKey)) {
+      handleSelectGroup(favoriteGroups[0]);
+    }
+  }, [tab, carouselGroups, favorites, selectedGroupKey, handleSelectGroup]);
+
   const quickListFilteredGroups = useMemo(() => {
     const needle = foldText(quickListQuery.trim());
     if (!needle) return carouselGroups;
@@ -967,7 +979,7 @@ const NeahplusExperience = () => {
         {showChannelList && <button type="button" aria-label="Fermer la liste des chaînes" onClick={() => setShowChannelList(false)} className="absolute inset-0 z-30 bg-black/55 lg:hidden" />}
         
                 {/* Left: Player + info */}
-        <section className={`flex min-h-max w-full flex-none touch-pan-y flex-col gap-3 overflow-visible p-3 lg:min-h-0 lg:max-h-full lg:w-[42%] lg:max-w-[720px] lg:overflow-y-auto lg:overscroll-y-contain lg:p-4 ${['home', 'favorites', 'countries', 'settings'].includes(tab) ? 'hidden' : ''}`} style={{ WebkitOverflowScrolling: 'touch' }}>
+        <section className={`flex min-h-max w-full flex-none touch-pan-y flex-col gap-3 overflow-visible p-3 lg:min-h-0 lg:max-h-full lg:w-[42%] lg:max-w-[720px] lg:overflow-y-auto lg:overscroll-y-contain lg:p-4 ${['home', 'countries', 'settings'].includes(tab) ? 'hidden' : ''}`} style={{ WebkitOverflowScrolling: 'touch' }}>
           {activeVariant && selectedGroup ? (
             <>
               <div className="group relative mx-auto w-full max-w-[720px]">
@@ -1052,18 +1064,6 @@ const NeahplusExperience = () => {
                 </div>
               )}
 
-              {/* Channel carousel */}
-              <ChannelCarousel
-                groups={tab === 'favorites'
-                  ? carouselGroups.filter((group) => favorites.has(group.key))
-                  : carouselGroups}
-                selectedKey={selectedGroupKey}
-                favoritedKeys={favorites}
-                onSelectGroup={handleSelectGroup}
-                onToggleFavorite={toggleFavorite}
-                onOpenMore={tab === 'favorites' ? () => setShowChannelList(true) : undefined}
-              />
-
               {/* Program synopsis */}
               <ProgramSynopsis
                 channel={activeVariant}
@@ -1090,10 +1090,22 @@ const NeahplusExperience = () => {
               </button>
             </div>
           )}
+
+          {/* Channel carousel: favorites only in Mon espace, full catalog elsewhere */}
+          <ChannelCarousel
+            groups={tab === 'favorites'
+              ? carouselGroups.filter((group) => favorites.has(group.key))
+              : carouselGroups}
+            selectedKey={selectedGroupKey}
+            favoritedKeys={favorites}
+            onSelectGroup={handleSelectGroup}
+            onToggleFavorite={toggleFavorite}
+            onOpenMore={tab === 'favorites' ? () => setShowChannelList(true) : undefined}
+          />
         </section>
 
         {/* Right: Browse / Guide / Home */}
-        <section key={tab} data-lenis-prevent className={`flex min-h-max w-full min-w-0 flex-none flex-col overflow-x-clip overflow-y-visible overscroll-y-contain touch-pan-y motion-safe:animate-[neahplus-page-in_160ms_ease-out_both] lg:min-h-0 lg:flex-1 lg:overflow-x-hidden lg:overflow-y-auto ${['home', 'favorites', 'countries', 'settings'].includes(tab) ? 'w-full' : 'lg:border-l lg:border-white/[0.06]'}`} style={{ WebkitOverflowScrolling: 'touch' }}>
+        <section key={tab} data-lenis-prevent className={`flex min-h-max w-full min-w-0 flex-none flex-col overflow-x-clip overflow-y-visible overscroll-y-contain touch-pan-y motion-safe:animate-[neahplus-page-in_160ms_ease-out_both] lg:min-h-0 lg:flex-1 lg:overflow-x-hidden lg:overflow-y-auto ${['home', 'favorites', 'countries', 'settings'].includes(tab) ? 'w-full' : 'lg:border-l lg:border-white/[0.06]'} ${tab === 'favorites' ? 'hidden' : ''}`} style={{ WebkitOverflowScrolling: 'touch' }}>
           {/* Search + filters bar */}
           {(tab === 'all' || tab === 'guide' || tab === 'world') && <div className="flex flex-col gap-2 border-b border-white/[0.06] p-3 sm:flex-row sm:items-center sm:gap-3">
             <div className="relative z-30 min-w-0 flex-1">
