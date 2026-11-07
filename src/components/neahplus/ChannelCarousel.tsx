@@ -9,7 +9,7 @@ interface ChannelCarouselProps {
   favoritedKeys: Set<string>;
   onSelectGroup: (group: ChannelGroup) => void;
   onToggleFavorite: (key: string) => void;
-  onOpenMore: () => void;
+  onOpenMore?: () => void;
 }
 
 const ChannelCarousel = ({ groups, selectedKey, favoritedKeys, onSelectGroup, onToggleFavorite, onOpenMore }: ChannelCarouselProps) => {
