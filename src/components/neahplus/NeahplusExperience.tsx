@@ -309,6 +309,7 @@ const NeahplusExperience = () => {
   const [showQuickSearch, setShowQuickSearch] = useState(false);
   const [showChannelList, setShowChannelList] = useState(false);
   const [quickListVisibleCount, setQuickListVisibleCount] = useState(80);
+  const [quickListQuery, setQuickListQuery] = useState('');
   const [selectingChannelKey, setSelectingChannelKey] = useState<string | null>(null);
   const channelListRef = useRef<HTMLDivElement>(null);
   const [showSearchSuggestions, setShowSearchSuggestions] = useState(false);
@@ -504,6 +505,14 @@ const NeahplusExperience = () => {
       .sort((a, b) => Number(b.countries.includes('France')) - Number(a.countries.includes('France')) || channelPriority(a.displayName) - channelPriority(b.displayName) || a.displayName.localeCompare(b.displayName, 'fr'));
   }, [allGroups]);
 
+  const quickListFilteredGroups = useMemo(() => {
+    const needle = foldText(quickListQuery.trim());
+    if (!needle) return carouselGroups;
+    return carouselGroups.filter((group) => foldText(group.displayName).includes(needle) || group.variants.some((variant) => foldText(variant.name).includes(needle)));
+  }, [carouselGroups, quickListQuery]);
+
+  useEffect(() => { setQuickListVisibleCount(80); }, [quickListQuery]);
+
   const resolvingRef = useRef<AbortController | null>(null);
 
   const resolveBestVariant = useCallback(async (group: ChannelGroup) => {
@@ -622,6 +631,7 @@ const NeahplusExperience = () => {
   }, []);
 
   const openChannelList = useCallback(() => {
+    setQuickListQuery('');
     const selectedIndex = carouselGroups.findIndex((group) => group.key === selectedGroupKey);
     setQuickListVisibleCount((count) => Math.max(count, selectedIndex + 1, 80));
     setShowChannelList(true);
@@ -904,7 +914,7 @@ const NeahplusExperience = () => {
       )}
 
       {/* Main content area */}
-      <div className="relative flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-y-contain touch-pan-y lg:flex-row lg:overflow-hidden" style={{ WebkitOverflowScrolling: "touch" }}>
+      <div className="relative flex min-h-0 flex-1 flex-col overflow-x-hidden overflow-y-auto overscroll-y-contain touch-pan-y lg:flex-row lg:overflow-hidden" style={{ WebkitOverflowScrolling: "touch" }}>
         {/* Compact text-only channel list */}
         {showChannelList && (
           <aside id="neahplus-quick-channel-list" className="absolute inset-y-0 left-0 z-40 flex w-[min(17rem,72vw)] flex-col border-r border-[#20c7c7]/20 bg-[#081c25] shadow-[0_18px_55px_rgba(0,0,0,.55)] animate-in fade-in slide-in-from-left-2 duration-150 lg:relative lg:z-0 lg:w-56 lg:shrink-0 lg:shadow-none" aria-label="Liste rapide des chaînes">
@@ -916,12 +926,19 @@ const NeahplusExperience = () => {
                 <button type="button" onClick={() => setShowChannelList(false)} aria-label="Fermer la liste" className="rounded-lg border border-transparent p-1.5 text-white/55 transition duration-150 hover:border-[#20c7c7]/35 hover:bg-[#20c7c7]/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#55dddd]"><X className="h-4 w-4" /></button>
               </div>
             </div>
+            <div className="shrink-0 border-b border-[#20c7c7]/10 px-3 py-2">
+              <label className="relative block">
+                <span className="sr-only">Rechercher dans la liste des chaînes</span>
+                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#8af0f0]/55" aria-hidden="true" />
+                <input type="search" value={quickListQuery} onChange={(event) => setQuickListQuery(event.target.value)} placeholder="Rechercher une chaîne…" aria-label="Rechercher dans la liste des chaînes" className="w-full rounded-xl border border-[#20c7c7]/20 bg-[#061820] py-2.5 pl-9 pr-3 text-xs text-white placeholder:text-white/35 outline-none transition focus:border-[#55dddd]/70 focus:ring-2 focus:ring-[#20c7c7]/15" />
+              </label>
+            </div>
             <div ref={channelListRef} className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain px-3 py-2 [scrollbar-width:thin]" data-lenis-prevent onKeyDown={(event) => {
               if (event.key === 'ArrowDown') { event.preventDefault(); const next = (event.target as HTMLElement).closest('li')?.nextElementSibling?.querySelector('button') as HTMLButtonElement | null; next?.focus(); next?.scrollIntoView({ block: 'nearest' }); }
               if (event.key === 'ArrowUp') { event.preventDefault(); const previous = (event.target as HTMLElement).closest('li')?.previousElementSibling?.querySelector('button') as HTMLButtonElement | null; previous?.focus(); previous?.scrollIntoView({ block: 'nearest' }); }
             }}>
               <ul className="space-y-0.5">
-                {carouselGroups.slice(0, quickListVisibleCount).map((group) => {
+                {quickListFilteredGroups.slice(0, quickListVisibleCount).map((group) => {
                   const isSelected = group.key === selectedGroupKey;
                   const isSelecting = group.key === selectingChannelKey;
                   return (
@@ -939,8 +956,9 @@ const NeahplusExperience = () => {
                   );
                 })}
               </ul>
-              {quickListVisibleCount < carouselGroups.length && (
-                <button type="button" onClick={() => setQuickListVisibleCount((count) => Math.min(count + 80, carouselGroups.length))} className="mt-2 w-full rounded-lg border border-[#20c7c7]/25 bg-[#20c7c7]/[0.06] px-3 py-2.5 text-[10px] font-bold text-[#8af0f0] transition hover:border-[#55dddd]/60 hover:bg-[#20c7c7]/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#55dddd]">Afficher 80 chaînes supplémentaires</button>
+              {quickListFilteredGroups.length === 0 ? <p className="px-2 py-5 text-center text-[11px] text-white/40">Aucune chaîne trouvée.</p> : null}
+              {quickListVisibleCount < quickListFilteredGroups.length && (
+                <button type="button" onClick={() => setQuickListVisibleCount((count) => Math.min(count + 80, quickListFilteredGroups.length))} className="mt-2 w-full rounded-lg border border-[#20c7c7]/25 bg-[#20c7c7]/[0.06] px-3 py-2.5 text-[10px] font-bold text-[#8af0f0] transition hover:border-[#55dddd]/60 hover:bg-[#20c7c7]/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#55dddd]">Afficher 80 chaînes supplémentaires</button>
               )}
             </div>
           </aside>
@@ -949,7 +967,7 @@ const NeahplusExperience = () => {
         {showChannelList && <button type="button" aria-label="Fermer la liste des chaînes" onClick={() => setShowChannelList(false)} className="absolute inset-0 z-30 bg-black/55 lg:hidden" />}
         
                 {/* Left: Player + info */}
-        <section className={`flex min-h-0 w-full flex-col gap-3 overflow-visible p-3 lg:max-h-full lg:w-[42%] lg:max-w-[720px] lg:flex-none lg:overflow-y-auto lg:overscroll-y-contain lg:p-4 ${['home', 'favorites', 'countries', 'settings'].includes(tab) ? 'hidden' : ''}`} style={{ WebkitOverflowScrolling: 'touch' }}>
+        <section className={`flex min-h-max w-full flex-none flex-col gap-3 overflow-visible p-3 lg:min-h-0 lg:max-h-full lg:w-[42%] lg:max-w-[720px] lg:overflow-y-auto lg:overscroll-y-contain lg:p-4 ${['home', 'favorites', 'countries', 'settings'].includes(tab) ? 'hidden' : ''}`} style={{ WebkitOverflowScrolling: 'touch' }}>
           {activeVariant && selectedGroup ? (
             <>
               <div className="group relative mx-auto w-full max-w-[720px]">
@@ -1073,7 +1091,7 @@ const NeahplusExperience = () => {
         </section>
 
         {/* Right: Browse / Guide / Home */}
-        <section key={tab} data-lenis-prevent className={`flex min-h-0 w-full min-w-0 flex-1 flex-col overflow-x-hidden overflow-visible overscroll-y-contain touch-pan-y lg:overflow-y-auto motion-safe:animate-[neahplus-page-in_160ms_ease-out_both] ${['home', 'favorites', 'countries', 'settings'].includes(tab) ? 'w-full' : 'lg:border-l lg:border-white/[0.06]'}`} style={{ WebkitOverflowScrolling: 'touch' }}>
+        <section key={tab} className={`flex min-h-max w-full min-w-0 flex-none flex-col overflow-x-hidden overflow-visible overscroll-y-contain touch-pan-y lg:min-h-0 lg:flex-1 lg:overflow-y-auto motion-safe:animate-[neahplus-page-in_160ms_ease-out_both] ${['home', 'favorites', 'countries', 'settings'].includes(tab) ? 'w-full' : 'lg:border-l lg:border-white/[0.06]'}`} style={{ WebkitOverflowScrolling: 'touch' }}>
           {/* Search + filters bar */}
           {(tab === 'all' || tab === 'guide' || tab === 'world') && <div className="flex flex-col gap-2 border-b border-white/[0.06] p-3 sm:flex-row sm:items-center sm:gap-3">
             <div className="relative z-30 min-w-0 flex-1">
@@ -1153,7 +1171,7 @@ const NeahplusExperience = () => {
           {(tab === 'all' || tab === 'world') && <p className="px-3 py-2 text-xs font-medium text-white/40" aria-live="polite">{filteredGroups.length} chaîne{filteredGroups.length > 1 ? 's' : ''}</p>}
 
           {/* Content grid */}
-          <div ref={gridRef} className={`flex-col overscroll-y-contain touch-pan-y ${['home', 'favorites', 'countries', 'settings'].includes(tab) ? 'min-h-max flex-none overflow-visible p-3 sm:p-5 lg:p-7' : 'min-h-0 flex-1 overflow-y-auto p-3'}`} style={{ WebkitOverflowScrolling: 'touch' }} data-lenis-prevent>
+          <div ref={gridRef} className={`flex-col overscroll-y-contain touch-pan-y ${['home', 'favorites', 'countries', 'settings'].includes(tab) ? 'min-h-max flex-none overflow-visible p-3 sm:p-5 lg:p-7' : 'min-h-max flex-none overflow-visible p-3 lg:min-h-0 lg:flex-1 lg:overflow-y-auto'}`} style={{ WebkitOverflowScrolling: 'touch' }}>
             {tab === 'home' || tab === 'favorites' ? (
               <NeahplusHome
                 channels={homeChannels}
