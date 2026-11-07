@@ -109,7 +109,7 @@ const ChannelCard = ({
     <div
       className={`group relative touch-pan-y overflow-hidden rounded-2xl border transition-all duration-300 ${
         selected
-          ? 'border-violet-400/45 bg-violet-400/10 ring-1 ring-violet-400/35 shadow-lg shadow-violet-500/10'
+          ? 'border-violet-400/70 bg-violet-400/10 outline outline-2 outline-offset-2 outline-violet-400 shadow-lg shadow-violet-500/15'
           : 'border-white/[0.08] bg-gradient-to-b from-white/[0.04] to-white/[0.01] hover:border-white/20 hover:from-white/[0.07] hover:to-white/[0.02]'
       }`}
     >
@@ -553,7 +553,8 @@ const NeahplusExperience = () => {
       mainContentRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
       playerSectionRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
     });
-    if (group.variants.length > 1) void resolveBestVariant(group);
+    // Déclencher la détection dès le toucher, même si la chaîne n'a qu'une seule source.
+    if (group.variants.length > 0) void resolveBestVariant(group);
   }, [resolveBestVariant, selectedGroupKey]);
 
   // À l'ouverture de « Mon espace », sélectionner une chaîne favorite par défaut.
