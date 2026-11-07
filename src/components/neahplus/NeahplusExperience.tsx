@@ -890,7 +890,7 @@ const NeahplusExperience = () => {
       )}
 
       {/* Main content area */}
-      <div className="flex min-h-0 flex-1 flex-col overflow-hidden lg:flex-row">
+      <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden lg:flex-row">
         {/* Compact text-only channel list */}
         {showChannelList && (
           <aside id="neahplus-quick-channel-list" className="absolute inset-y-0 left-0 z-40 flex w-[min(17rem,72vw)] flex-col bg-[#0b2028] shadow-2xl lg:relative lg:z-0 lg:w-56 lg:shrink-0 lg:border-r lg:border-white/[0.06] lg:shadow-none" aria-label="Liste rapide des chaînes">
