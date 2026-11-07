@@ -1054,12 +1054,14 @@ const NeahplusExperience = () => {
 
               {/* Channel carousel */}
               <ChannelCarousel
-                groups={carouselGroups.filter((group) => favorites.has(group.key))}
+                groups={tab === 'favorites'
+                  ? carouselGroups.filter((group) => favorites.has(group.key))
+                  : carouselGroups}
                 selectedKey={selectedGroupKey}
                 favoritedKeys={favorites}
                 onSelectGroup={handleSelectGroup}
                 onToggleFavorite={toggleFavorite}
-                onOpenMore={() => setShowChannelList(true)}
+                onOpenMore={tab === 'favorites' ? () => setShowChannelList(true) : undefined}
               />
 
               {/* Program synopsis */}
