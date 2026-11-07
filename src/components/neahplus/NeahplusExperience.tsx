@@ -315,6 +315,8 @@ const NeahplusExperience = () => {
   const [showSearchSuggestions, setShowSearchSuggestions] = useState(false);
   const [prevGroupKey, setPrevGroupKey] = useState<string | null>(null);
   const gridRef = useRef<HTMLDivElement>(null);
+  const mainContentRef = useRef<HTMLDivElement>(null);
+  const playerSectionRef = useRef<HTMLElement>(null);
   const itemRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const gridFocusIndex = useRef(0);
   const tabButtonsRef = useRef<(HTMLButtonElement | null)[]>([]);
@@ -544,6 +546,10 @@ const NeahplusExperience = () => {
     setPrevGroupKey(selectedGroupKey);
     setSelectedGroupKey(group.key);
     setActiveVariantIndex(0);
+    window.requestAnimationFrame(() => {
+      mainContentRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+      playerSectionRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+    });
     if (group.variants.length > 1) void resolveBestVariant(group);
   }, [resolveBestVariant, selectedGroupKey]);
 
@@ -835,6 +841,14 @@ const NeahplusExperience = () => {
     return () => clearTimeout(timer);
   }, [tab]);
 
+  if (entryTransitionVisible) {
+    return (
+      <div className="relative flex h-dvh min-h-0 w-full flex-col overflow-hidden bg-[#061219]">
+        <NeahplusEntryTransition visible />
+      </div>
+    );
+  }
+
   if (loadError) {
     return (
       <div className="relative flex flex-1 flex-col items-center justify-center gap-4 p-6 text-center">
@@ -926,7 +940,7 @@ const NeahplusExperience = () => {
       )}
 
       {/* Main content area */}
-      <div data-lenis-prevent className="relative flex min-h-0 flex-1 flex-col overflow-x-hidden overflow-y-auto overscroll-y-contain touch-pan-y lg:flex-row lg:overflow-hidden" style={{ WebkitOverflowScrolling: "touch" }}>
+      <div ref={mainContentRef} data-lenis-prevent className="relative flex min-h-0 flex-1 flex-col overflow-x-hidden overflow-y-auto overscroll-y-contain touch-pan-y lg:flex-row lg:overflow-hidden" style={{ WebkitOverflowScrolling: "touch" }}>
         {/* Compact text-only channel list */}
         {showChannelList && (
           <aside id="neahplus-quick-channel-list" className="absolute inset-y-0 left-0 z-40 flex w-[min(17rem,72vw)] flex-col border-r border-[#20c7c7]/20 bg-[#081c25] shadow-[0_18px_55px_rgba(0,0,0,.55)] animate-in fade-in slide-in-from-left-2 duration-150 lg:relative lg:z-0 lg:w-56 lg:shrink-0 lg:shadow-none" aria-label="Liste rapide des chaînes">
@@ -979,7 +993,7 @@ const NeahplusExperience = () => {
         {showChannelList && <button type="button" aria-label="Fermer la liste des chaînes" onClick={() => setShowChannelList(false)} className="absolute inset-0 z-30 bg-black/55 lg:hidden" />}
         
                 {/* Left: Player + info */}
-        <section className={`flex min-h-max w-full flex-none touch-pan-y flex-col gap-3 overflow-visible p-3 lg:min-h-0 lg:max-h-full lg:w-[42%] lg:max-w-[720px] lg:overflow-y-auto lg:overscroll-y-contain lg:p-4 ${['home', 'countries', 'settings'].includes(tab) ? 'hidden' : ''}`} style={{ WebkitOverflowScrolling: 'touch' }}>
+        <section ref={playerSectionRef} className={`flex min-h-max w-full flex-none touch-pan-y flex-col gap-3 overflow-visible p-3 lg:min-h-0 lg:max-h-full lg:w-[42%] lg:max-w-[720px] lg:overflow-y-auto lg:overscroll-y-contain lg:p-4 ${['home', 'countries', 'settings'].includes(tab) ? 'hidden' : ''}`} style={{ WebkitOverflowScrolling: 'touch' }}>
           {activeVariant && selectedGroup ? (
             <>
               <div className="group relative mx-auto w-full max-w-[720px]">
