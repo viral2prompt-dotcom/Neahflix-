@@ -23,22 +23,22 @@ jobs:
           const countries = ["AL","DE","FR","TR","GB","BA","PL","IT","ES","PT","RU","NL","BG","HR","RO","RS","ME"];
 
           const decode = s => String(s || "")
-            .replace(/<!\\[CDATA\\[([\\s\\S]*?)\\]\\]>/g, "$1")
+            .replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, "$1")
             .replace(/&amp;/g, "&").replace(/&quot;/g, '"')
             .replace(/&apos;|&#39;/g, "'").replace(/&lt;/g, "<")
-            .replace(/&gt;/g, ">").replace(/&#(\\d+);/g, (_, n) => String.fromCodePoint(Number(n)))
+            .replace(/&gt;/g, ">").replace(/&#(\d+);/g, (_, n) => String.fromCodePoint(Number(n)))
             .replace(/&#x([0-9a-f]+);/gi, (_, n) => String.fromCodePoint(parseInt(n,16)));
 
-          const norm = s => decode(s).normalize("NFD").replace(/[\\u0300-\\u036f]/g, "")
-            .toLowerCase().replace(/^\\s*\\[[^\\]]+\\]\\s*/, "")
-            .replace(/^(?:4k|hd|fhd|uhd)\\s*[a-z]{2}\\s*:\\s*/i, "")
-            .replace(/^[a-z]{2}\\s*:\\s*/i, "")
-            .replace(/\\s*\\(\\d+\\)\\s*$/, "")
-            .replace(/\\b(hd|fhd|uhd|4k|sd)\\b/g, "")
+          const norm = s => decode(s).normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+            .toLowerCase().replace(/^\s*\[[^\]]+\]\s*/, "")
+            .replace(/^(?:4k|hd|fhd|uhd)\s*[a-z]{2}\s*:\s*/i, "")
+            .replace(/^[a-z]{2}\s*:\s*/i, "")
+            .replace(/\s*\(\d+\)\s*$/, "")
+            .replace(/\b(hd|fhd|uhd|4k|sd)\b/g, "")
             .replace(/[^a-z0-9]/g, "");
 
           const attr = (s, key) => {
-            const m = s.match(new RegExp("(?:^|\\\\s)" + key + '="([^"]*)"', "i"));
+            const m = s.match(new RegExp("(?:^|\\s)" + key + '="([^"]*)"', "i"));
             return m ? decode(m[1]) : "";
           };
 
@@ -94,14 +94,14 @@ jobs:
               try {
                 const xml=await fetchText(`https://iptv-epg.org/files/epg-${code.toLowerCase()}.xml`);
                 const programmeCounts=new Map();
-                for(const m of xml.matchAll(/<programme\\b([^>]*)>/gi)) {
+                for(const m of xml.matchAll(/<programme\b([^>]*)>/gi)) {
                   const id=attr(m[1],"channel");
                   if(id) programmeCounts.set(id,(programmeCounts.get(id)||0)+1);
                 }
 
-                const entries=[...xml.matchAll(/<channel\\b([^>]*)>([\\s\\S]*?)<\\/channel>/gi)].map(m=>{
+                const entries=[...xml.matchAll(/<channel\b([^>]*)>([\s\S]*?)<\/channel>/gi)].map(m=>{
                   const id=attr(m[1],"id");
-                  const names=[...m[2].matchAll(/<display-name[^>]*>([\\s\\S]*?)<\\/display-name>/gi)]
+                  const names=[...m[2].matchAll(/<display-name[^>]*>([\s\S]*?)<\/display-name>/gi)]
                     .map(x=>decode(x[1].replace(/<[^>]*>/g,"").trim())).filter(Boolean);
                   return {id,names,keys:names.map(norm).filter(k=>k.length>=5)};
                 }).filter(e=>e.id && e.keys.length);
@@ -152,7 +152,7 @@ jobs:
             require("node:fs").writeFileSync("audit/neahplus-epg-matches.json",JSON.stringify(report,null,2));
             const csvRows=[["NEAHPLUS channel","Country","XMLTV display name","XMLTV ID","Similarity %","Programme entries","Ambiguous","Alternative"].join(",")];
             for(const x of selected) csvRows.push([x.channel,x.country,x.guideName,x.xmltvId,x.score,x.programmeCount,x.ambiguous,x.otherCandidate].map(v=>'"'+String(v??"").replace(/"/g,'""')+'"').join(","));
-            require("node:fs").writeFileSync("audit/neahplus-epg-matches.csv",csvRows.join("\\n"));
+            require("node:fs").writeFileSync("audit/neahplus-epg-matches.csv",csvRows.join("\n"));
             const summary=[
               "# NEAHPLUS — audit de correspondance EPG",
               "",
@@ -169,16 +169,16 @@ jobs:
               "## Correspondances candidates",
               "| Chaîne NEAHPLUS | Guide | Nom XMLTV | ID | Score | Programmes | Ambiguë |",
               "|---|---|---|---|---:|---:|---|",
-              ...selected.map(x=>`| ${x.channel.replace(/\\|/g,"/")} | ${x.country} | ${x.guideName.replace(/\\|/g,"/")} | ${x.xmltvId} | ${x.score}% | ${x.programmeCount} | ${x.ambiguous?"Oui":"Non"} |`),
+              ...selected.map(x=>`| ${x.channel.replace(/\|/g,"/")} | ${x.country} | ${x.guideName.replace(/\|/g,"/")} | ${x.xmltvId} | ${x.score}% | ${x.programmeCount} | ${x.ambiguous?"Oui":"Non"} |`),
               "",
               "## Guides",
               "| Pays | Chaînes du guide | Correspondances |",
               "|---|---:|---:|",
               ...guideStats.map(x=>`| ${x.country} | ${x.guideChannels} | ${x.matchedChannels} |`),
               "",
-              failures.length ? "## Guides en échec\n"+failures.map(x=>`- ${x.country}: ${x.error}`).join("\\n") : "Tous les guides demandés ont été téléchargés."
+              failures.length ? "## Guides en échec\n"+failures.map(x=>`- ${x.country}: ${x.error}`).join("\n") : "Tous les guides demandés ont été téléchargés."
             ];
-            require("node:fs").appendFileSync(process.env.GITHUB_STEP_SUMMARY,summary.join("\\n")+"\\n");
+            require("node:fs").appendFileSync(process.env.GITHUB_STEP_SUMMARY,summary.join("\n")+"\n");
             console.log(JSON.stringify(report.matches));
           }
           main().catch(error=>{console.error(error);process.exit(1)});
