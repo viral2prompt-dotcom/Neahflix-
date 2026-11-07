@@ -88,7 +88,7 @@ const NeahplusHome = ({ channels, now, query, onQueryChange, onSelectChannel, di
           <div className="mt-1 flex items-center gap-2"><h1 className="min-w-0 truncate text-xl font-black text-white sm:text-2xl">{mode === 'favorites' ? spaceName : 'Découvrez NEAHPLUS'}</h1>{mode === 'favorites' && <button type="button" onClick={onRenameSpace} aria-label="Renommer mon espace NEAHPLUS" title="Renommer mon espace" className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-white/40 transition hover:bg-white/10 hover:text-[#75e6e6]"><Pencil className="h-3.5 w-3.5" /></button>}</div>
           {mode === 'favorites' && <p className="mt-1 text-xs text-white/45">Toutes vos chaînes réunies au même endroit.</p>}
         </div>
-        <label className="relative z-30 w-full sm:max-w-sm">
+        <div className="relative z-30 w-full sm:max-w-sm">
           <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-white/40" />
           <input value={query} onFocus={() => setSearchFocused(true)} onBlur={() => setSearchFocused(false)} onChange={(event) => onQueryChange(event.target.value)} type="search" placeholder="Rechercher une chaîne…" aria-label="Rechercher une chaîne" aria-expanded={Boolean(query.trim() && searchFocused && searchableChannels.length)} className="w-full rounded-xl border border-white/10 bg-white/[0.06] py-3 pl-10 pr-4 text-sm text-white placeholder:text-white/40 outline-none transition focus:border-[#20c7c7]" />
           {query.trim() && searchFocused && (
@@ -99,7 +99,7 @@ const NeahplusHome = ({ channels, now, query, onQueryChange, onSelectChannel, di
               }) : <p className="px-3 py-3 text-xs text-white/45">Aucune chaîne trouvée.</p>}
             </div>
           )}
-        </label>
+        </div>
       </div>
 
       {mode === 'home' ? (
