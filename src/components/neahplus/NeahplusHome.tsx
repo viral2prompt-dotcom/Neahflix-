@@ -1,4 +1,5 @@
 import { getNeahplusChannelLogo, getNeahplusChannelPriority } from './neahplusBranding';
+import NeahplusDiscoveryShelf from './NeahplusDiscoveryShelf';
 import { useMemo, useRef, useState } from 'react';
 import { ChevronLeft, ChevronRight, Heart, Loader2, Pencil, Play, Search, Radio } from 'lucide-react';
 import type { NeahplusChannel } from './neahplusCatalog';
@@ -79,6 +80,8 @@ const NeahplusHome = ({ channels, now, query, onQueryChange, onSelectChannel, di
           <input value={query} onChange={(event) => onQueryChange(event.target.value)} type="search" placeholder="Rechercher une chaîne…" className="w-full rounded-xl border border-white/10 bg-white/[0.06] py-3 pl-10 pr-4 text-sm text-white placeholder:text-white/40 outline-none transition focus:border-[#20c7c7]" />
         </label>
       </div>
+
+      {mode === 'home' && <NeahplusDiscoveryShelf />}
 
       <div className="flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" role="group" aria-label="Filtrer les chaînes par catégorie">
         {categoryLabels.map((label) => (
