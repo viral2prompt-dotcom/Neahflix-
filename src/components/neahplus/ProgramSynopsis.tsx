@@ -28,7 +28,7 @@ const ProgramSynopsis = ({ channel, channelDisplayName, now }: ProgramSynopsisPr
   }
 
   return (
-    <div className="flex flex-col gap-2.5 rounded-2xl border border-white/[0.06] bg-gradient-to-b from-white/[0.04] to-transparent px-4 py-3.5">
+    <div className="flex touch-pan-y flex-col gap-2.5 rounded-2xl border border-white/[0.06] bg-gradient-to-b from-white/[0.04] to-transparent px-4 py-3.5">
       <div className="flex items-center gap-2">
         <Tv className="h-4 w-4 shrink-0 text-red-400" />
         <h3 className="truncate text-sm font-bold tracking-tight text-white">{channelDisplayName}</h3>
