@@ -1091,7 +1091,7 @@ const NeahplusExperience = () => {
         </section>
 
         {/* Right: Browse / Guide / Home */}
-        <section key={tab} data-lenis-prevent className={`flex min-h-0 w-full min-w-0 flex-1 flex-col overflow-x-hidden overflow-y-auto overscroll-y-contain touch-pan-y motion-safe:animate-[neahplus-page-in_160ms_ease-out_both] ${['home', 'favorites', 'countries', 'settings'].includes(tab) ? 'w-full' : 'lg:border-l lg:border-white/[0.06]'}`} style={{ WebkitOverflowScrolling: 'touch' }}>
+        <section key={tab} data-lenis-prevent className={`flex min-h-max w-full min-w-0 flex-none flex-col overflow-x-clip overflow-y-visible overscroll-y-contain touch-pan-y motion-safe:animate-[neahplus-page-in_160ms_ease-out_both] lg:min-h-0 lg:flex-1 lg:overflow-x-hidden lg:overflow-y-auto ${['home', 'favorites', 'countries', 'settings'].includes(tab) ? 'w-full' : 'lg:border-l lg:border-white/[0.06]'}`} style={{ WebkitOverflowScrolling: 'touch' }}>
           {/* Search + filters bar */}
           {(tab === 'all' || tab === 'guide' || tab === 'world') && <div className="flex flex-col gap-2 border-b border-white/[0.06] p-3 sm:flex-row sm:items-center sm:gap-3">
             <div className="relative z-30 min-w-0 flex-1">
