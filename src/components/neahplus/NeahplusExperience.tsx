@@ -832,7 +832,7 @@ const NeahplusExperience = () => {
 
   return (
     <div className="relative flex h-full min-h-0 w-full flex-1 flex-col overflow-hidden bg-[#07171d] text-white">
-      <style>{'@keyframes neahplus-overlay-in { from { opacity: 0; } to { opacity: 1; } } @keyframes neahplus-overlay-out { from { opacity: 1; } to { opacity: 0; } } @keyframes neahplus-drawer-in { from { opacity: 0; transform: translate3d(12px,-6px,0) scale(.98); } to { opacity: 1; transform: translate3d(0,0,0) scale(1); } } @keyframes neahplus-drawer-out { from { opacity: 1; transform: translate3d(0,0,0) scale(1); } to { opacity: 0; transform: translate3d(10px,-4px,0) scale(.985); } } @keyframes neahplus-page-in { from { opacity: 0; transform: translate3d(0,10px,0); filter: blur(2px); } to { opacity: 1; transform: translate3d(0,0,0); filter: blur(0); } }'}</style>
+      <style>{'@keyframes neahplus-overlay-in { from { opacity: 0; } to { opacity: 1; } } @keyframes neahplus-overlay-out { from { opacity: 1; } to { opacity: 0; } } @keyframes neahplus-drawer-in { from { opacity: 0; transform: translate3d(12px,-6px,0) scale(.98); } to { opacity: 1; transform: translate3d(0,0,0) scale(1); } } @keyframes neahplus-drawer-out { from { opacity: 1; transform: translate3d(0,0,0) scale(1); } to { opacity: 0; transform: translate3d(10px,-4px,0) scale(.985); } } @keyframes neahplus-page-in { from { opacity: 0.88; transform: translate3d(0,4px,0); } to { opacity: 1; transform: translate3d(0,0,0); } }'}</style>
       {/* Top navigation bar */}
       <nav className="relative z-50 flex shrink-0 items-center gap-3 border-b border-white/[0.06] bg-[#0b2028]/95 px-3 py-2.5 backdrop-blur-xl sm:px-5" aria-label="Navigation NEAHPLUS TV">
         {((tab !== 'home') || navigationHistory.current.length > 0) && (
@@ -920,7 +920,7 @@ const NeahplusExperience = () => {
         {showChannelList && <button type="button" aria-label="Fermer la liste des chaînes" onClick={() => setShowChannelList(false)} className="absolute inset-0 z-30 bg-black/55 lg:hidden" />}
         
                 {/* Left: Player + info */}
-        <section className={`flex min-h-0 w-full shrink-0 flex-col gap-3 overflow-y-auto overscroll-y-contain touch-pan-y p-3 lg:w-[42%] lg:max-w-[720px] lg:p-4 ${['home', 'favorites', 'countries', 'settings'].includes(tab) ? 'hidden' : ''}`} style={{ WebkitOverflowScrolling: 'touch' }}>
+        <section className={`flex max-h-full min-h-0 w-full shrink-0 flex-col gap-3 overflow-y-auto overscroll-y-contain touch-pan-y p-3 lg:w-[42%] lg:max-w-[720px] lg:p-4 ${['home', 'favorites', 'countries', 'settings'].includes(tab) ? 'hidden' : ''}`} style={{ WebkitOverflowScrolling: 'touch' }}>
           {activeVariant && selectedGroup ? (
             <>
               <div className="group relative mx-auto w-full max-w-[720px]">
@@ -1043,7 +1043,7 @@ const NeahplusExperience = () => {
         </section>
 
         {/* Right: Browse / Guide / Home */}
-        <section key={tab} data-lenis-prevent className={`flex min-h-0 w-full min-w-0 flex-1 flex-col overflow-x-hidden overflow-y-auto overscroll-y-contain touch-pan-y lg:overflow-y-auto motion-safe:animate-[neahplus-page-in_360ms_cubic-bezier(0.22,1,0.36,1)_both] ${['home', 'favorites', 'countries', 'settings'].includes(tab) ? 'w-full' : 'lg:border-l lg:border-white/[0.06]'}`} style={{ WebkitOverflowScrolling: 'touch' }}>
+        <section key={tab} data-lenis-prevent className={`flex min-h-0 w-full min-w-0 flex-1 flex-col overflow-x-hidden overflow-y-auto overscroll-y-contain touch-pan-y lg:overflow-y-auto motion-safe:animate-[neahplus-page-in_160ms_ease-out_both] ${['home', 'favorites', 'countries', 'settings'].includes(tab) ? 'w-full' : 'lg:border-l lg:border-white/[0.06]'}`} style={{ WebkitOverflowScrolling: 'touch' }}>
           {/* Search + filters bar */}
           {(tab === 'all' || tab === 'guide' || tab === 'world') && <div className="flex flex-col gap-2 border-b border-white/[0.06] p-3 sm:flex-row sm:items-center sm:gap-3">
             <div className="relative z-30 min-w-0 flex-1">
