@@ -58,15 +58,24 @@ const NeahplusHome = ({ channels, now, query, onQueryChange, onSelectChannel, di
     const displayName = displayNamesByChannelId.get(channel.id) ?? channel.name;
     const favorited = isFavorite(channel);
     const pending = pendingChannelId === channel.id;
+    const loading = pending || pressedChannelId === channel.id;
     const logo = channel.logo ?? getNeahplusChannelLogo(channel.name);
+    const touchProps = {
+      onPointerDown: () => setPressedChannelId(channel.id),
+      onPointerUp: () => {},
+      onPointerCancel: () => { if (!pending) setPressedChannelId(null); },
+      onPointerLeave: (event: React.PointerEvent<HTMLButtonElement>) => {
+        if (event.pointerType === 'mouse' && !pending) setPressedChannelId(null);
+      },
+    };
     return (
-      <article key={channel.id} className={`group w-[calc(50vw-2.25rem)] max-w-[230px] shrink-0 snap-start overflow-visible rounded-xl border bg-[#102027] transition-[border-color,box-shadow,transform,outline] duration-75 sm:w-[190px] ${pending || pressedChannelId === channel.id ? 'border-[#174b5a] outline outline-2 outline-offset-2 outline-[#174b5a] shadow-[0_0_16px_rgba(23,75,90,.8)]' : 'border-white/10 hover:border-[#20c7c7]/50'}`}>
-        <button type="button" onClick={() => onSelectChannel(channel)} disabled={pending} aria-label={pending ? `Connexion à ${displayName}` : `Regarder ${displayName}`} onPointerDown={() => setPressedChannelId(channel.id)} onPointerUp={() => {}} onPointerCancel={() => { if (!pending) setPressedChannelId(null); }} className="block w-full text-left transition-transform duration-75 active:scale-[0.985] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#20c7c7]">
+      <article key={channel.id} className={`group w-[calc(50vw-2.25rem)] max-w-[230px] shrink-0 snap-start overflow-visible rounded-xl border bg-[#102027] transition-[border-color,box-shadow,transform,outline] duration-75 sm:w-[190px] ${loading ? 'border-[#173b5e] bg-[#173b5e]/10 ring-1 ring-[#173b5e]/70 shadow-lg shadow-[#173b5e]/35' : 'border-white/10 hover:border-[#20c7c7]/50'}`}>
+        <button type="button" onClick={() => onSelectChannel(channel)} disabled={pending} aria-label={loading ? `Connexion à ${displayName}` : `Regarder ${displayName}`} {...touchProps} className="block w-full text-left transition-transform duration-75 active:scale-[0.985] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#20c7c7]">
           <div className="relative flex aspect-[16/10] items-center justify-center overflow-hidden bg-gradient-to-br from-[#153b43] via-[#10252e] to-[#09151c] p-4">
             <span className="flex h-14 w-14 items-center justify-center rounded-2xl border border-[#20c7c7]/30 bg-[#20c7c7]/10 text-lg font-black text-[#67e5e5]">{displayName.slice(0, 2).toUpperCase()}</span>
             {logo && <img src={logo} alt={`Logo ${displayName}`} loading="lazy" onError={(event) => { event.currentTarget.style.display = 'none'; }} className="absolute inset-0 m-auto max-h-[75%] max-w-[78%] object-contain drop-shadow-xl transition group-hover:scale-105" />}
             <span className={`absolute left-2 top-2 rounded-md px-2 py-1 text-[9px] font-black uppercase ${program ? 'bg-emerald-500 text-[#041a16]' : 'bg-black/50 text-white/70'}`}>{program ? 'En direct' : 'TV'}</span>
-            {pending && <span className="absolute inset-0 flex items-center justify-center gap-2 bg-[#061519]/75 text-xs font-bold text-[#8af0f0]"><Loader2 className="h-4 w-4 animate-spin" /> Connexion…</span>}
+            {loading && <span className="absolute inset-0 flex items-center justify-center gap-2 bg-[#061519]/75 text-xs font-bold text-[#8af0f0]"><Loader2 className="h-4 w-4 animate-spin" /> Connexion…</span>}
           </div>
           <div className="px-3 pb-2 pt-3">
             <p className="truncate text-xs font-bold text-white sm:text-sm">{displayName}</p>
@@ -74,7 +83,7 @@ const NeahplusHome = ({ channels, now, query, onQueryChange, onSelectChannel, di
           </div>
         </button>
         <div className="flex items-center gap-1.5 px-3 pb-3">
-          <button type="button" onClick={() => onSelectChannel(channel)} disabled={pending} className="inline-flex min-w-0 flex-1 items-center justify-center gap-1.5 rounded-lg bg-[#20c7c7] px-2 py-2 text-[10px] font-bold text-[#061519] transition hover:bg-[#55dddd] active:scale-[0.97] active:ring-2 active:ring-[#55dddd] disabled:opacity-70"><Play className="h-3 w-3 fill-current" /> {pending ? 'Connexion…' : 'Regarder'}</button>
+          <button type="button" onClick={() => onSelectChannel(channel)} disabled={pending} {...touchProps} className="inline-flex min-w-0 flex-1 items-center justify-center gap-1.5 rounded-lg bg-[#20c7c7] px-2 py-2 text-[10px] font-bold text-[#061519] transition hover:bg-[#55dddd] active:scale-[0.97] active:ring-2 active:ring-[#55dddd] disabled:opacity-70"><Play className="h-3 w-3 fill-current" /> {loading ? 'Connexion…' : 'Regarder'}</button>
           <button type="button" onClick={() => onToggleFavorite(channel)} aria-label={favorited ? `Retirer ${displayName} de mon espace NEAHPLUS` : `Ajouter ${displayName} à mon espace NEAHPLUS`} aria-pressed={favorited} title={favorited ? 'Dans mon espace NEAHPLUS' : 'Ajouter à mon espace NEAHPLUS'} className={`inline-flex shrink-0 items-center justify-center gap-1 rounded-lg border px-2 py-2 text-[10px] font-semibold transition ${favorited ? 'border-[#d6ad55]/85 bg-[#d6ad55]/10 text-red-500 shadow-[0_0_10px_rgba(214,173,85,.12)]' : 'border-[#d6ad55]/55 bg-[#d6ad55]/[0.04] text-white/65 hover:border-[#e7c878] hover:bg-[#d6ad55]/10 hover:text-[#f0d58a]'}`}><Heart className="h-3.5 w-3.5" fill={favorited ? 'currentColor' : 'none'} /><span>{favorited ? 'Ajoutée' : 'Ajouter'}</span></button>
         </div>
       </article>
