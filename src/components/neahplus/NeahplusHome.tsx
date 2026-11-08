@@ -2,6 +2,7 @@ import { getNeahplusChannelLogo, getNeahplusChannelPriority } from './neahplusBr
 import NeahplusDiscoveryShelf from './NeahplusDiscoveryShelf';
 import NeahplusHero from './NeahplusHero';
 import { useMemo, useRef, useState } from 'react';
+import type { PointerEvent as ReactPointerEvent } from 'react';
 import { ChevronLeft, ChevronRight, Heart, Loader2, Pencil, Play, Search } from 'lucide-react';
 import type { NeahplusChannel } from './neahplusCatalog';
 import { currentProgram } from './neahplusCatalog';
@@ -64,7 +65,7 @@ const NeahplusHome = ({ channels, now, query, onQueryChange, onSelectChannel, di
       onPointerDown: () => setPressedChannelId(channel.id),
       onPointerUp: () => {},
       onPointerCancel: () => { if (!pending) setPressedChannelId(null); },
-      onPointerLeave: (event: React.PointerEvent<HTMLButtonElement>) => {
+      onPointerLeave: (event: ReactPointerEvent<HTMLButtonElement>) => {
         if (event.pointerType === 'mouse' && !pending) setPressedChannelId(null);
       },
     };
