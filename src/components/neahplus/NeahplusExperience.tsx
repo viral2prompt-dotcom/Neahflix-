@@ -621,7 +621,7 @@ const NeahplusExperience = () => {
     setHomeNavigationPhase('entering');
     setPendingChannelId(channel.id);
     if (tab !== 'all') navigationHistory.current.push(tab);
-    handleSelectChannel(channel, false);
+    handleSelectChannel(channel);
 
     // Lancer la détection de la source dès le toucher, sans attendre l'animation.
     const group = groupByChannelId.get(channel.id);
