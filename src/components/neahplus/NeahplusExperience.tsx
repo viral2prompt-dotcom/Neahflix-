@@ -633,6 +633,9 @@ const NeahplusExperience = () => {
       pendingViewerScroll.current = true;
       setTab('all');
       pendingNavigationTimer.current = window.setTimeout(() => {
+        // Replacer le défilement tout en haut une fois l'écran de visualisation affiché.
+        if (mainContentRef.current) mainContentRef.current.scrollTop = 0;
+        if (playerSectionRef.current) playerSectionRef.current.scrollTop = 0;
         setHomeNavigationPhase('idle');
         setPendingChannelId(null);
         pendingNavigationTimer.current = null;
