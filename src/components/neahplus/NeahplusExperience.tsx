@@ -972,7 +972,7 @@ const NeahplusExperience = () => {
       )}
 
       {/* Main content area */}
-      <div ref={mainContentRef} data-lenis-prevent className={`relative flex min-h-0 flex-1 flex-col overflow-x-hidden overflow-y-auto overscroll-y-contain touch-pan-y lg:flex-row lg:overflow-hidden ${homeNavigationPhase === 'entering' ? 'motion-safe:animate-[neahplus-viewer-enter_360ms_cubic-bezier(0.22,1,0.36,1)_both]' : ''}`} style={{ WebkitOverflowScrolling: "touch" }}>
+      <div ref={mainContentRef} data-lenis-prevent className="relative flex min-h-0 flex-1 flex-col overflow-x-hidden overflow-y-auto overscroll-y-contain touch-pan-y lg:flex-row lg:overflow-hidden" style={{ WebkitOverflowScrolling: "touch" }}>
         {/* Compact text-only channel list */}
         {showChannelList && (
           <aside id="neahplus-quick-channel-list" className="absolute inset-y-0 left-0 z-40 flex w-[min(17rem,72vw)] flex-col border-r border-[#20c7c7]/20 bg-[#081c25] shadow-[0_18px_55px_rgba(0,0,0,.55)] animate-in fade-in slide-in-from-left-2 duration-150 lg:relative lg:z-0 lg:w-56 lg:shrink-0 lg:shadow-none" aria-label="Liste rapide des chaînes">
@@ -1025,7 +1025,7 @@ const NeahplusExperience = () => {
         {showChannelList && <button type="button" aria-label="Fermer la liste des chaînes" onClick={() => setShowChannelList(false)} className="absolute inset-0 z-30 bg-black/55 lg:hidden" />}
         
                 {/* Left: Player + info */}
-        <section key={selectedGroupKey ?? 'empty-player'} ref={playerSectionRef} className={`motion-safe:animate-[neahplus-player-in_420ms_cubic-bezier(0.22,1,0.36,1)_both] flex min-h-max w-full flex-none touch-pan-y flex-col gap-3 overflow-visible p-3 lg:min-h-0 lg:max-h-full lg:w-[42%] lg:max-w-[720px] lg:overflow-y-auto lg:overscroll-y-contain lg:p-4 ${['home', 'countries', 'settings'].includes(tab) ? 'hidden' : ''}`} style={{ WebkitOverflowScrolling: 'touch' }}>
+        <section key={selectedGroupKey ?? 'empty-player'} ref={playerSectionRef} className={`${homeNavigationPhase === 'entering' ? '' : 'motion-safe:animate-[neahplus-player-in_420ms_cubic-bezier(0.22,1,0.36,1)_both]'} flex min-h-max w-full flex-none touch-pan-y flex-col gap-3 overflow-visible p-3 lg:min-h-0 lg:max-h-full lg:w-[42%] lg:max-w-[720px] lg:overflow-y-auto lg:overscroll-y-contain lg:p-4 ${['home', 'countries', 'settings'].includes(tab) ? 'hidden' : ''}`} style={{ WebkitOverflowScrolling: 'touch' }}>
           {activeVariant && selectedGroup ? (
             <>
               <div className="group relative mx-auto w-full max-w-[720px]">
