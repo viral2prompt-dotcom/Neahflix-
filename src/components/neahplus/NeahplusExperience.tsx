@@ -359,15 +359,29 @@ const NeahplusExperience = () => {
     };
   }, []);
 
-  // Après une sélection depuis l'accueil, positionner le lecteur tout en haut
-  // une fois que React a réellement affiché l'écran de visualisation.
+  // Après une sélection depuis l'accueil, placer le lecteur en haut
+  // après le rendu, puis après le recalcul de mise en page du navigateur.
   useLayoutEffect(() => {
     if (!pendingViewerScroll.current || tab !== 'all' || !selectedGroupKey) return;
     const main = mainContentRef.current;
     const player = playerSectionRef.current;
-    if (main) main.scrollTop = 0;
-    if (player) player.scrollTop = 0;
+    const resetViewerScroll = () => {
+      if (main) main.scrollTop = 0;
+      if (player) player.scrollTop = 0;
+    };
+
+    resetViewerScroll();
+    let secondFrame = 0;
+    const firstFrame = window.requestAnimationFrame(() => {
+      resetViewerScroll();
+      secondFrame = window.requestAnimationFrame(resetViewerScroll);
+    });
     pendingViewerScroll.current = false;
+
+    return () => {
+      window.cancelAnimationFrame(firstFrame);
+      if (secondFrame) window.cancelAnimationFrame(secondFrame);
+    };
   }, [tab, selectedGroupKey]);
 
   useEffect(() => {
