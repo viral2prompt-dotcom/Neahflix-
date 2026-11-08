@@ -8,16 +8,23 @@ import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
 const ts = require('typescript');
 
+const DIR = 'src/components/neahplus';
+
 const loadTs = (path) => {
   const js = ts.transpileModule(readFileSync(path, 'utf8'), {
     compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020 },
   }).outputText;
   const mod = { exports: {} };
-  new Function('require', 'module', 'exports', js)(require, mod, mod.exports);
+  const localRequire = (specifier) => {
+    if (specifier.startsWith('./')) {
+      const dependencyPath = `${DIR}/${specifier.slice(2)}.ts`;
+      return loadTs(dependencyPath);
+    }
+    return require(specifier);
+  };
+  new Function('require', 'module', 'exports', js)(localRequire, mod, mod.exports);
   return mod.exports;
 };
-
-const DIR = 'src/components/neahplus';
 const catalog = loadTs(`${DIR}/neahplusCatalog.ts`);
 const utils = loadTs(`${DIR}/neahplusTvUtils.ts`);
 
@@ -293,6 +300,30 @@ test('l’index des chaînes retrouve directement le groupe de chaque variante',
   assert.equal(index.get('tf1-fr-hd'), groups.find((g) => g.key === 'tf1'));
   assert.equal(index.get('tf1-be'), groups.find((g) => g.key === 'tf1@belgique'));
   assert.equal(index.has('unknown'), false);
+});
+
+test('les noms personnalisés des chaînes sont chargés et sauvegardés localement', () => {
+  const store = installStorage({
+    'neahplus:channel-display-names': JSON.stringify({
+      'tf1': 'TF1 Famille',
+      'canal+': 'Canal Cinéma',
+      'invalid': '',
+      'bad': 42,
+    }),
+  });
+
+  const names = utils.loadChannelDisplayNames();
+  assert.deepEqual(names, { tf1: 'TF1 Famille', 'canal+': 'Canal Cinéma' });
+
+  utils.saveChannelDisplayNames({ tf1: 'TF1 Principal' });
+  assert.deepEqual(JSON.parse(store.get('neahplus:channel-display-names')), {
+    tf1: 'TF1 Principal',
+  });
+});
+
+test('les noms personnalisés invalides ou absents ne sont pas chargés', () => {
+  installStorage({ 'neahplus:channel-display-names': 'not-json' });
+  assert.deepEqual(utils.loadChannelDisplayNames(), {});
 });
 
 test('la recherche du prochain programme choisit le plus proche sans dépendre de l’ordre', () => {

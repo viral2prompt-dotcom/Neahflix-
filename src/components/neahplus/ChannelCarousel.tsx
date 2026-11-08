@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, type KeyboardEvent } from 'react';
-import { ChevronLeft, ChevronRight, Star, Tv } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Heart, Tv } from 'lucide-react';
 import type { ChannelGroup } from './neahplusTvUtils';
 import { channelColor } from './neahplusTvUtils';
 
@@ -9,9 +9,10 @@ interface ChannelCarouselProps {
   favoritedKeys: Set<string>;
   onSelectGroup: (group: ChannelGroup) => void;
   onToggleFavorite: (key: string) => void;
+  onOpenMore?: () => void;
 }
 
-const ChannelCarousel = ({ groups, selectedKey, favoritedKeys, onSelectGroup, onToggleFavorite }: ChannelCarouselProps) => {
+const ChannelCarousel = ({ groups, selectedKey, favoritedKeys, onSelectGroup, onToggleFavorite, onOpenMore }: ChannelCarouselProps) => {
   const scrollerRef = useRef<HTMLDivElement>(null);
   const cardRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
   const focusKey = useRef<string | null>(null);
@@ -54,7 +55,7 @@ const ChannelCarousel = ({ groups, selectedKey, favoritedKeys, onSelectGroup, on
           </button>
         </div>
       </div>
-      <div ref={scrollerRef} onKeyDown={handleKey} className="flex gap-2.5 overflow-x-auto scroll-smooth pb-1 [&::-webkit-scrollbar]:hidden [scrollbar-width:none] [-ms-overflow-style:none]" role="listbox" aria-label="Chaînes disponibles">
+      <div ref={scrollerRef} onKeyDown={handleKey} className="flex gap-2.5 overflow-x-auto overscroll-x-contain scroll-smooth pb-1 [touch-action:pan-x_pan-y] [&::-webkit-scrollbar]:hidden [scrollbar-width:none] [-ms-overflow-style:none]" role="listbox" aria-label="Chaînes disponibles">
         {groups.map((group) => {
           const isSelected = group.key === selectedKey;
           const isFavorited = favoritedKeys.has(group.key);
@@ -69,7 +70,7 @@ const ChannelCarousel = ({ groups, selectedKey, favoritedKeys, onSelectGroup, on
               aria-selected={isSelected}
               className={`group relative flex h-[96px] w-[148px] shrink-0 flex-col items-center justify-center gap-2 rounded-2xl border p-2.5 transition-all duration-300 ${
                 isSelected
-                  ? 'border-red-500/50 bg-red-500/10 ring-1 ring-red-500/40'
+                  ? 'border-violet-400/45 bg-violet-400/10 ring-1 ring-violet-400/35'
                   : 'border-white/[0.06] bg-gradient-to-b from-white/[0.04] to-white/[0.01] hover:border-white/20 hover:from-white/[0.07]'
               }`}
             >
@@ -85,26 +86,29 @@ const ChannelCarousel = ({ groups, selectedKey, favoritedKeys, onSelectGroup, on
               <span className={`block w-full truncate text-center text-xs font-semibold ${isSelected ? 'text-white' : 'text-white/70'}`}>{group.displayName}</span>
               <div className="absolute right-1.5 top-1.5 flex items-center gap-1">
                 {group.variants.length > 1 && (
-                  <span className="rounded-full bg-red-500/80 px-1.5 py-0.5 text-[8px] font-bold text-white">{group.variants.length}</span>
+                  <span className="rounded-full bg-violet-500/80 px-1.5 py-0.5 text-[8px] font-bold text-white">{group.variants.length}</span>
                 )}
                 <span
                   role="button"
                   tabIndex={-1}
                   onClick={(event) => { event.stopPropagation(); onToggleFavorite(group.key); }}
-                  aria-label={isFavorited ? 'Retirer des favoris' : 'Ajouter aux favoris'}
-                  className={`rounded-md p-0.5 transition ${isFavorited ? 'text-amber-400' : 'text-white/15 hover:text-white/40'}`}
+                  aria-label={isFavorited ? 'Retirer de mon espace NEAHPLUS' : 'Ajouter à mon espace NEAHPLUS'}
+                  className={`rounded-md border border-[#d6ad55]/60 p-0.5 transition ${isFavorited ? 'bg-[#d6ad55]/10 text-red-500' : 'text-white/35 hover:bg-[#d6ad55]/10 hover:text-[#f0d58a]'}`}
                 >
-                  <Star className="h-3 w-3" fill={isFavorited ? 'currentColor' : 'none'} />
+                  <Heart className="h-3 w-3" fill={isFavorited ? 'currentColor' : 'none'} />
                 </span>
               </div>
             </button>
           );
         })}
+        {onOpenMore && (
+        <button type="button" onClick={onOpenMore} aria-label="Afficher plus de chaînes et compléter ma sélection" className="flex h-[96px] w-[112px] shrink-0 flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-[#55dddd]/45 bg-[#20c7c7]/[0.06] text-[#8af0f0] transition hover:border-[#55dddd] hover:bg-[#20c7c7]/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#55dddd]">
+          <span className="flex h-9 w-9 items-center justify-center rounded-full border border-[#55dddd]/40 bg-[#20c7c7]/10 text-xl font-light">+</span>
+          <span className="text-[10px] font-bold uppercase tracking-wider">Plus</span>
+        </button>
+        )}
         {groups.length === 0 && (
-          <div className="flex h-[96px] w-full items-center justify-center gap-2 text-sm text-white/35">
-            <Tv className="h-4 w-4" />
-            Aucune chaîne dans cette catégorie.
-          </div>
+          <span className="flex h-[96px] w-[150px] shrink-0 items-center justify-center px-2 text-center text-[10px] leading-4 text-white/35">Aucune chaîne sélectionnée. Utilisez « Plus » pour en ajouter.</span>
         )}
       </div>
     </div>

@@ -214,6 +214,30 @@ async function fetchTmdbImages(tmdbApiUrl, tmdbApiKey, id, type) {
   }
 }
 
+/**
+ * Récupère les tendances TMDB pour la vitrine NEAHPLUS.
+ * Cache Redis partagé : les tendances ne nécessitent pas un rafraîchissement fréquent.
+ */
+async function fetchTmdbTrending(tmdbApiUrl, tmdbApiKey, mediaType = 'all', timeWindow = 'week', page = 1, language = 'fr-FR') {
+  if (!['all', 'movie', 'tv'].includes(mediaType)) throw new TypeError('type de tendance TMDB invalide');
+  if (!['day', 'week'].includes(timeWindow)) throw new TypeError('période de tendance TMDB invalide');
+  const safePage = Math.min(5, Math.max(1, Number.parseInt(page, 10) || 1));
+  const redisKey = `tmdb:trending:${mediaType}:${timeWindow}:${safePage}:${language}`;
+  const cached = await redisGet(redisKey);
+  if (cached) return cached;
+
+  try {
+    const response = await axios.get(`${tmdbApiUrl}/trending/${mediaType}/${timeWindow}`, {
+      params: { api_key: tmdbApiKey, language, page: safePage },
+      timeout: 10000
+    });
+    if (response.data) await redisSet(redisKey, response.data, 6 * 60 * 60);
+    return response.data || null;
+  } catch {
+    return null;
+  }
+}
+
 module.exports = {
   fetchTmdbDetails,
   searchTmdb,
@@ -221,6 +245,7 @@ module.exports = {
   fetchTmdbAlternativeTitles,
   fetchTmdbFrenchReleaseYear,
   fetchTmdbImages,
+  fetchTmdbTrending,
   TTL_DETAILS,
   TTL_SEARCH
 };
