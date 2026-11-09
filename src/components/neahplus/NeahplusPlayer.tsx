@@ -27,12 +27,13 @@ interface NeahplusPlayerProps {
   channelId: string;
   channelName: string;
   isActive: boolean;
+  streamUrl: string | null;
   muted: boolean;
   volume: number;
   onAudioStateChange: (muted: boolean, volume: number) => void;
 }
 
-const NeahplusPlayer = ({ channelId, channelName, isActive, muted, volume, onAudioStateChange }: NeahplusPlayerProps) => {
+const NeahplusPlayer = ({ channelId, channelName, isActive, streamUrl: resolvedStreamUrl, muted, volume, onAudioStateChange }: NeahplusPlayerProps) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [status, setStatus] = useState<PlayerStatus>('resolving');
   const [message, setMessage] = useState<string | null>(null);
@@ -75,7 +76,7 @@ const NeahplusPlayer = ({ channelId, channelName, isActive, muted, volume, onAud
     setMessage(null);
 
     const start = async () => {
-      const streamUrl = await resolveNeahplusStream(channelId, controller.signal);
+      const streamUrl = resolvedStreamUrl ?? await resolveNeahplusStream(channelId, controller.signal);
       if (controller.signal.aborted) return;
       setStatus('loading');
 
@@ -119,7 +120,7 @@ const NeahplusPlayer = ({ channelId, channelName, isActive, muted, volume, onAud
       video.removeAttribute('src');
       video.load();
     };
-  }, [channelId, attempt, isActive]);
+  }, [channelId, attempt, isActive, resolvedStreamUrl]);
 
   useEffect(() => {
     const video = videoRef.current;
