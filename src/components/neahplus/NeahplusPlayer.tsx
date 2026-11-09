@@ -28,12 +28,13 @@ interface NeahplusPlayerProps {
   isActive: boolean;
   isResolving: boolean;
   streamUrl: string | null;
+  onRetry: () => void;
   muted: boolean;
   volume: number;
   onAudioStateChange: (muted: boolean, volume: number) => void;
 }
 
-const NeahplusPlayer = ({ channelName, isActive, isResolving, streamUrl: resolvedStreamUrl, muted, volume, onAudioStateChange }: NeahplusPlayerProps) => {
+const NeahplusPlayer = ({ channelName, isActive, isResolving, streamUrl: resolvedStreamUrl, onRetry, muted, volume, onAudioStateChange }: NeahplusPlayerProps) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [status, setStatus] = useState<PlayerStatus>('resolving');
   const [message, setMessage] = useState<string | null>(null);
@@ -184,7 +185,7 @@ const NeahplusPlayer = ({ channelName, isActive, isResolving, streamUrl: resolve
               {displayedMessage && <p className="relative mt-2 max-w-md text-sm leading-6 text-white/80">{displayedMessage}</p>}
               <button
                 type="button"
-                onClick={() => setAttempt((value) => value + 1)}
+                onClick={() => { setAttempt((value) => value + 1); onRetry(); }}
                 className="relative mt-4 inline-flex items-center gap-2 rounded-lg border border-amber-300/30 bg-amber-500 px-4 py-2 text-sm font-semibold text-[#1b1305] transition hover:bg-amber-400"
               >
                 <RotateCcw className="h-4 w-4" aria-hidden="true" />
