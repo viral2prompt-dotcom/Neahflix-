@@ -260,17 +260,17 @@ const EpgRow = ({ channel, date, period, onPlay, index, now, registerRef, channe
   );
 };
 
-const NeahplusEntryTransition = ({ visible }: { visible: boolean }) => visible ? (
-  <div className="pointer-events-auto fixed inset-0 z-[120] grid place-items-center overflow-hidden bg-[#061219] text-center motion-safe:animate-[neahplus-entry_1100ms_ease-in-out_both]" role="status" aria-live="polite" aria-label="Ouverture de NEAHPLUS">
-    <style>{'@keyframes neahplus-entry { 0% { opacity: 0; } 14% { opacity: 1; } 78% { opacity: 1; } 100% { opacity: 0; } } @keyframes neahplus-entry-brand { 0% { opacity: 0; transform: translateY(14px) scale(.94); filter: blur(8px); } 32% { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); } 76% { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); } 100% { opacity: 0; transform: translateY(-8px) scale(1.035); filter: blur(3px); } } @keyframes neahplus-entry-line { 0% { transform: scaleX(0); opacity: .2; } 45% { transform: scaleX(1); opacity: 1; } 100% { transform: scaleX(1); opacity: 0; } }'}</style>
+const NeahplusEntryTransition = ({ visible, ready = false }: { visible: boolean; ready?: boolean }) => visible ? (
+  <div className={`pointer-events-auto fixed inset-0 z-[120] grid place-items-center overflow-hidden bg-[#061219] text-center ${ready ? 'motion-safe:animate-[neahplus-entry-exit_650ms_ease-in-out_both]' : ''}`} role="status" aria-live="polite" aria-label="Ouverture de NEAHPLUS">
+    <style>{'@keyframes neahplus-entry-exit { from { opacity: 1; } to { opacity: 0; } }'}</style>
     <div className="pointer-events-none absolute inset-0 opacity-30" style={{ backgroundImage: 'radial-gradient(circle at 50% 42%, rgba(32,199,199,.26), transparent 38%), linear-gradient(rgba(255,255,255,.035) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.035) 1px, transparent 1px)', backgroundSize: 'auto, 42px 42px, 42px 42px' }} />
-    <div className="relative px-6 motion-safe:animate-[neahplus-entry-brand_1000ms_cubic-bezier(0.16,1,0.3,1)_both]">
+    <div className="relative px-6">
       <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-[1.6rem] border border-[#55dddd]/30 bg-[#0b2932] shadow-[0_0_65px_rgba(32,199,199,.22)]">
         <Tv className="h-9 w-9 text-[#55dddd]" aria-hidden="true" />
       </div>
       <p className="text-3xl font-black tracking-[0.2em] text-white">NEAH<span className="text-[#55dddd]">PLUS</span></p>
       <p className="mt-3 text-xs font-semibold tracking-[0.18em] text-white/65">VOTRE TÉLÉVISION, VOTRE UNIVERS</p>
-      <div className="mx-auto mt-7 h-px w-44 origin-left bg-gradient-to-r from-transparent via-[#55dddd] to-transparent motion-safe:animate-[neahplus-entry-line_850ms_ease-out_both]" />
+      <div className="mx-auto mt-7 h-px w-44 origin-left bg-gradient-to-r from-transparent via-[#55dddd] to-transparent" />
     </div>
   </div>
 ) : null;
@@ -419,11 +419,16 @@ const NeahplusExperience = () => {
       setEntryTransitionVisible(false);
       return;
     }
+    if (loadError) {
+      setEntryTransitionVisible(false);
+      return;
+    }
     setEntryTransitionVisible(true);
+    if (!catalogComplete) return;
     const reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
-    const timer = window.setTimeout(() => setEntryTransitionVisible(false), reducedMotion ? 80 : 1100);
+    const timer = window.setTimeout(() => setEntryTransitionVisible(false), reducedMotion ? 80 : 650);
     return () => window.clearTimeout(timer);
-  }, [location.key, location.pathname]);
+  }, [location.key, location.pathname, catalogComplete, loadError]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -555,7 +560,6 @@ const NeahplusExperience = () => {
 
   const resolveBestVariant = useCallback(async (group: ChannelGroup, preferredIndex = 0) => {
     resolvingRef.current?.abort();
-    setResolvedStreamUrl(null);
     if (group.variants.length === 0) {
       setResolvingKey(null);
       return;
@@ -580,6 +584,7 @@ const NeahplusExperience = () => {
 
     if (!controller.signal.aborted) {
       setActiveVariantIndex(preferredIndex);
+      setResolvedStreamUrl(null);
       setResolvingKey(null);
     }
   }, []);
@@ -886,10 +891,10 @@ const NeahplusExperience = () => {
     return () => clearTimeout(timer);
   }, [tab]);
 
-  if (entryTransitionVisible) {
+  if (entryTransitionVisible && !loadError) {
     return (
       <div className="relative flex h-dvh min-h-0 w-full flex-col overflow-hidden bg-[#061219]">
-        <NeahplusEntryTransition visible />
+        <NeahplusEntryTransition visible ready={catalogComplete} />
       </div>
     );
   }
@@ -1046,8 +1051,8 @@ const NeahplusExperience = () => {
                   <button type="button" onClick={() => showChannelList ? setShowChannelList(false) : openChannelList()} aria-expanded={showChannelList} aria-controls="neahplus-quick-channel-list" className={`inline-flex items-center gap-2 rounded-lg border px-3 py-1.5 text-[11px] font-semibold transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#55dddd] ${showChannelList ? 'border-[#55dddd] bg-[#20c7c7]/20 text-[#a5ffff] shadow-[0_0_16px_rgba(32,199,199,.18)]' : 'border-[#20c7c7]/35 text-white/80 hover:border-[#55dddd] hover:bg-[#20c7c7]/15 hover:text-white active:border-[#55dddd] active:bg-[#20c7c7]/25'}`}><ListVideo className="h-3.5 w-3.5" /> Liste des chaînes</button>
                 </div>
                 <NeahplusPlayer
-                  key={activeVariant.id}
-                  isActive={Boolean(selectedGroupKey) && !resolvingKey}
+                  isActive={Boolean(selectedGroupKey)}
+                  isResolving={resolvingKey === selectedGroupKey}
                   streamUrl={resolvedStreamUrl}
                   channelId={activeVariant.id}
                   channelName={selectedGroup.displayName}
@@ -1301,14 +1306,14 @@ const NeahplusExperience = () => {
                 <div><p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#d6ad55]">Catalogue international</p><h1 className="mt-1 text-2xl font-black text-white">Choisir un pays</h1><p className="mt-1 text-sm text-white/45">Affichez les chaînes disponibles dans le pays sélectionné.</p></div>
                 <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
                   {catalog.countries.slice().sort((a, b) => a.name.localeCompare(b.name, 'fr')).map((item) => (
-                    <button key={item.name} type="button" onClick={() => { setCountry(item.name); setQuery(''); navigateTo('home'); }} aria-pressed={country === item.name} className={`flex items-center gap-3 rounded-2xl border p-4 text-left transition ${country === item.name ? 'border-[#20c7c7]/45 bg-[#20c7c7]/10 ring-1 ring-[#20c7c7]/20' : 'border-white/10 bg-white/[0.03] hover:border-[#20c7c7]/30 hover:bg-white/[0.05]'}`}>
+                    <button key={item.name} type="button" onClick={() => { setCountry(item.name); setQuery(''); setVisibleCount(PAGE_SIZE); setSelectedGroupKey(null); navigateTo('home'); }} aria-pressed={country === item.name} className={`flex items-center gap-3 rounded-2xl border p-4 text-left transition ${country === item.name ? 'border-[#20c7c7]/45 bg-[#20c7c7]/10 ring-1 ring-[#20c7c7]/20' : 'border-white/10 bg-white/[0.03] hover:border-[#20c7c7]/30 hover:bg-white/[0.05]'}`}>
                       <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white/[0.06] text-[#70e5e5]"><Globe2 className="h-5 w-5" /></span>
                       <span className="min-w-0 flex-1"><span className="block truncate text-sm font-bold text-white">{item.name}</span><span className="mt-0.5 block text-xs text-white/40">{item.count} chaîne{item.count > 1 ? 's' : ''}</span></span>
                       {country === item.name && <span className="rounded-full bg-[#20c7c7]/15 px-2 py-1 text-[9px] font-bold uppercase text-[#70e5e5]">Actif</span>}
                     </button>
                   ))}
                 </div>
-                <button type="button" onClick={() => { setCountry(''); setQuery(''); navigateTo('home'); }} className="rounded-xl border border-white/10 bg-white/[0.04] px-4 py-2.5 text-xs font-semibold text-white/65 transition hover:bg-white/10 hover:text-white">Afficher tous les pays</button>
+                <button type="button" onClick={() => { setCountry(''); setQuery(''); setVisibleCount(PAGE_SIZE); setSelectedGroupKey(null); navigateTo('home'); }} className="rounded-xl border border-white/10 bg-white/[0.04] px-4 py-2.5 text-xs font-semibold text-white/65 transition hover:bg-white/10 hover:text-white">Afficher tous les pays</button>
               </div>
             ) : tab === 'settings' ? (
               <div className="mx-auto w-full max-w-3xl space-y-5 pb-6">
