@@ -25,7 +25,15 @@ const ChannelCarousel = ({ groups, selectedKey, favoritedKeys, onSelectGroup, on
 
   useEffect(() => {
     if (!selectedKey) return;
-    cardRefs.current.get(selectedKey)?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+    const scroller = scrollerRef.current;
+    const card = cardRefs.current.get(selectedKey);
+    if (!scroller || !card) return;
+
+    // Ne faire défiler que le carrousel horizontal : scrollIntoView()
+    // pouvait aussi déplacer verticalement la page jusqu'aux cartes sous le lecteur.
+    const cardLeft = card.getBoundingClientRect().left - scroller.getBoundingClientRect().left + scroller.scrollLeft;
+    const targetLeft = cardLeft - (scroller.clientWidth - card.clientWidth) / 2;
+    scroller.scrollTo({ left: Math.max(0, targetLeft), behavior: 'smooth' });
   }, [selectedKey]);
 
   const handleKey = useCallback((event: KeyboardEvent) => {
