@@ -20,6 +20,8 @@ import {
   Search,
   Settings as SettingsIcon,
   Tv,
+  Volume2,
+  VolumeX,
   X,
 } from 'lucide-react';
 import NeahplusPlayer from './NeahplusPlayer';
@@ -308,6 +310,12 @@ const NeahplusExperience = () => {
   const [guideDate, setGuideDate] = useState(() => new Date());
   const [guidePeriod, setGuidePeriod] = useState<GuidePeriod>('all');
   const [showInfoPanel, setShowInfoPanel] = useState(false);
+  const [playerMuted, setPlayerMuted] = useState(false);
+  const [playerVolume, setPlayerVolume] = useState(1);
+  const handlePlayerAudioStateChange = useCallback((muted: boolean, volume: number) => {
+    setPlayerMuted(muted);
+    setPlayerVolume(volume);
+  }, []);
   const [showQuickSearch, setShowQuickSearch] = useState(false);
   const [showChannelList, setShowChannelList] = useState(false);
   const [quickListVisibleCount, setQuickListVisibleCount] = useState(80);
@@ -315,7 +323,6 @@ const NeahplusExperience = () => {
   const [selectingChannelKey, setSelectingChannelKey] = useState<string | null>(null);
   const channelListRef = useRef<HTMLDivElement>(null);
   const [showSearchSuggestions, setShowSearchSuggestions] = useState(false);
-  const [prevGroupKey, setPrevGroupKey] = useState<string | null>(null);
   const gridRef = useRef<HTMLDivElement>(null);
   const mainContentRef = useRef<HTMLDivElement>(null);
   const playerSectionRef = useRef<HTMLElement>(null);
@@ -558,7 +565,6 @@ const NeahplusExperience = () => {
   }, []);
 
   const handleSelectGroup = useCallback((group: ChannelGroup) => {
-    setPrevGroupKey(selectedGroupKey);
     setSelectedGroupKey(group.key);
     setActiveVariantIndex(0);
     window.requestAnimationFrame(() => {
@@ -590,7 +596,6 @@ const NeahplusExperience = () => {
   const handleSelectChannel = useCallback((channel: NeahplusChannel, scrollToTop = true) => {
     const group = groupByChannelId.get(channel.id);
     if (!group) return;
-    setPrevGroupKey(selectedGroupKey);
     setSelectedGroupKey(group.key);
     const vIdx = group.variants.findIndex((v) => v.id === channel.id);
     setActiveVariantIndex(vIdx >= 0 ? vIdx : 0);
@@ -662,19 +667,6 @@ const NeahplusExperience = () => {
     });
     setShowRenameDialog(false);
   }, [selectedGroup, renameValue, baseRealGroups]);
-
-  const goToPrevChannel = useCallback(() => {
-    if (prevGroupKey) {
-      const prev = groupByKey.get(prevGroupKey);
-      if (prev) {
-        const temp = prevGroupKey;
-        setPrevGroupKey(selectedGroupKey);
-        setSelectedGroupKey(temp);
-        setActiveVariantIndex(0);
-        if (prev.variants.length > 1) void resolveBestVariant(prev);
-      }
-    }
-  }, [prevGroupKey, groupByKey, selectedGroupKey, resolveBestVariant]);
 
   const scrollChannelList = useCallback((direction: 1 | -1) => {
     channelListRef.current?.scrollBy({ top: direction * 220, behavior: 'smooth' });
@@ -1038,9 +1030,9 @@ const NeahplusExperience = () => {
                   isActive={Boolean(selectedGroupKey)}
                   channelId={activeVariant.id}
                   channelName={selectedGroup.displayName}
-                  onInfo={() => setShowInfoPanel(true)}
-                  onPrevChannel={goToPrevChannel}
-                  onGuide={() => navigateTo('guide')}
+                  muted={playerMuted}
+                  volume={playerVolume}
+                  onAudioStateChange={handlePlayerAudioStateChange}
                 />
               </div>
 
@@ -1057,7 +1049,40 @@ const NeahplusExperience = () => {
                     </p>
                   )}
                 </div>
-                <div className="flex items-center gap-1.5">
+                <div className="flex flex-wrap items-center justify-end gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => setPlayerMuted((current) => !current)}
+                    aria-label={playerMuted ? 'Activer le son' : 'Couper le son'}
+                    title={playerMuted ? 'Activer le son' : 'Couper le son'}
+                    className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/5 text-white/65 transition hover:bg-white/10 hover:text-white"
+                  >
+                    {playerMuted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
+                  </button>
+                  <input
+                    type="range"
+                    min="0"
+                    max="1"
+                    step="0.05"
+                    value={playerMuted ? 0 : playerVolume}
+                    onChange={(event) => {
+                      const nextVolume = Number(event.target.value);
+                      setPlayerVolume(nextVolume);
+                      setPlayerMuted(nextVolume === 0);
+                    }}
+                    aria-label="Volume"
+                    title="Volume"
+                    className="h-1 w-16 cursor-pointer appearance-none rounded-full bg-white/25 accent-[#55dddd]"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => navigateTo('guide')}
+                    aria-label="Ouvrir le guide TV"
+                    title="Guide TV"
+                    className="flex h-9 items-center justify-center rounded-xl bg-white/5 px-2.5 text-[10px] font-bold tracking-wide text-white/65 transition hover:bg-white/10 hover:text-white"
+                  >
+                    GUIDE
+                  </button>
                   <button
                     type="button"
                     onClick={() => { setRenameValue(selectedGroup.displayName); setShowRenameDialog(true); }}
@@ -1071,6 +1096,7 @@ const NeahplusExperience = () => {
                     type="button"
                     onClick={() => setShowInfoPanel(true)}
                     aria-label="Informations programme"
+                    title="Informations programme"
                     className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/5 text-white/60 transition hover:bg-white/10 hover:text-white"
                   >
                     <Info className="h-4 w-4" />
