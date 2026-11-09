@@ -466,6 +466,11 @@ const NeahplusExperience = () => {
     });
   }, []);
 
+  const sortedCountries = useMemo(
+    () => (catalog?.countries ?? []).slice().sort((a, b) => a.name.localeCompare(b.name, 'fr')),
+    [catalog],
+  );
+
   const channelsForCountry = useMemo(() => {
     const channels = catalog?.channels ?? [];
     if (!country) return channels;
@@ -1310,7 +1315,7 @@ const NeahplusExperience = () => {
               <div className="mx-auto w-full max-w-5xl space-y-5 pb-6">
                 <div><p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#d6ad55]">Catalogue international</p><h1 className="mt-1 text-2xl font-black text-white">Choisir un pays</h1><p className="mt-1 text-sm text-white/45">Affichez les chaînes disponibles dans le pays sélectionné.</p></div>
                 <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
-                  {catalog.countries.slice().sort((a, b) => a.name.localeCompare(b.name, 'fr')).map((item) => (
+                  {sortedCountries.map((item) => (
                     <button key={item.name} type="button" onClick={() => { setCountry(item.name); setQuery(''); setVisibleCount(PAGE_SIZE); setSelectedGroupKey(null); navigateTo('home'); }} aria-pressed={country === item.name} className={`flex items-center gap-3 rounded-2xl border p-4 text-left transition ${country === item.name ? 'border-[#20c7c7]/45 bg-[#20c7c7]/10 ring-1 ring-[#20c7c7]/20' : 'border-white/10 bg-white/[0.03] hover:border-[#20c7c7]/30 hover:bg-white/[0.05]'}`}>
                       <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white/[0.06] text-[#70e5e5]"><Globe2 className="h-5 w-5" /></span>
                       <span className="min-w-0 flex-1"><span className="block truncate text-sm font-bold text-white">{item.name}</span><span className="mt-0.5 block text-xs text-white/40">{item.count} chaîne{item.count > 1 ? 's' : ''}</span></span>
