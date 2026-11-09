@@ -618,6 +618,10 @@ const NeahplusExperience = () => {
     handleSelectGroup(carouselGroups[nextIndex]);
   }, [carouselGroups, selectedGroupKey, handleSelectGroup]);
 
+  const retrySelectedStream = useCallback(() => {
+    if (selectedGroup) void resolveBestVariant(selectedGroup, activeVariantIndex);
+  }, [selectedGroup, activeVariantIndex, resolveBestVariant]);
+
   const handleSelectChannel = useCallback((channel: NeahplusChannel, scrollToTop = true) => {
     const group = groupByChannelId.get(channel.id);
     if (!group) return;
@@ -1054,6 +1058,7 @@ const NeahplusExperience = () => {
                   isActive={Boolean(selectedGroupKey)}
                   isResolving={resolvingKey === selectedGroupKey}
                   streamUrl={resolvedStreamUrl}
+                  onRetry={retrySelectedStream}
                   channelName={selectedGroup.displayName}
                   muted={playerMuted}
                   volume={playerVolume}
