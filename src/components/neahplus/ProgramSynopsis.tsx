@@ -51,7 +51,7 @@ const ProgramSynopsis = ({ channel, channelDisplayName, now }: ProgramSynopsisPr
           </div>
         </div>
       ) : (
-        <p className="text-sm text-white/40">Aucun programme en cours actuellement.</p>
+        <p className="text-sm text-white/40">Vos programmes s’afficheront ici.</p>
       )}
 
       {next && (
