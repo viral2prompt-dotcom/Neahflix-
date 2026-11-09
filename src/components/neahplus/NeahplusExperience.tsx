@@ -1054,7 +1054,6 @@ const NeahplusExperience = () => {
                   isActive={Boolean(selectedGroupKey)}
                   isResolving={resolvingKey === selectedGroupKey}
                   streamUrl={resolvedStreamUrl}
-                  channelId={activeVariant.id}
                   channelName={selectedGroup.displayName}
                   muted={playerMuted}
                   volume={playerVolume}
