@@ -868,7 +868,8 @@ const NeahplusExperience = () => {
     gridFocusIndex.current = 0;
     itemRefs.current = [];
     const timer = setTimeout(() => {
-      itemRefs.current[0]?.focus();
+      // Garder le focus clavier sans déplacer la page vers la grille sous le lecteur.
+      itemRefs.current[0]?.focus({ preventScroll: true });
     }, 50);
     return () => clearTimeout(timer);
   }, [tab]);
