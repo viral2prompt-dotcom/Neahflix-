@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { AlertTriangle, Loader2, RotateCcw } from 'lucide-react';
 import type Hls from 'hls.js';
 import { safePlay } from '@/utils/safePlay';
-import { NeahplusError, resolveNeahplusStream } from './neahplusCatalog';
+import { NeahplusError } from './neahplusCatalog';
 
 type PlayerStatus = 'resolving' | 'loading' | 'playing' | 'paused' | 'error';
 
@@ -24,16 +24,16 @@ const errorMessage = (error: unknown): string => {
 };
 
 interface NeahplusPlayerProps {
-  channelId: string;
   channelName: string;
   isActive: boolean;
+  isResolving: boolean;
   streamUrl: string | null;
   muted: boolean;
   volume: number;
   onAudioStateChange: (muted: boolean, volume: number) => void;
 }
 
-const NeahplusPlayer = ({ channelId, channelName, isActive, streamUrl: resolvedStreamUrl, muted, volume, onAudioStateChange }: NeahplusPlayerProps) => {
+const NeahplusPlayer = ({ channelName, isActive, isResolving, streamUrl: resolvedStreamUrl, muted, volume, onAudioStateChange }: NeahplusPlayerProps) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [status, setStatus] = useState<PlayerStatus>('resolving');
   const [message, setMessage] = useState<string | null>(null);
@@ -47,6 +47,11 @@ const NeahplusPlayer = ({ channelId, channelName, isActive, streamUrl: resolvedS
       video.removeAttribute('src');
       video.load();
       setStatus('paused');
+      return undefined;
+    }
+    if (!resolvedStreamUrl) {
+      setStatus(isResolving ? 'resolving' : 'error');
+      setMessage(isResolving ? null : 'Aucune source vidéo disponible pour cette chaîne. Essayez une autre chaîne.');
       return undefined;
     }
     const controller = new AbortController();
@@ -76,7 +81,7 @@ const NeahplusPlayer = ({ channelId, channelName, isActive, streamUrl: resolvedS
     setMessage(null);
 
     const start = async () => {
-      const streamUrl = resolvedStreamUrl ?? await resolveNeahplusStream(channelId, controller.signal);
+      const streamUrl = resolvedStreamUrl;
       if (controller.signal.aborted) return;
       setStatus('loading');
 
@@ -120,7 +125,7 @@ const NeahplusPlayer = ({ channelId, channelName, isActive, streamUrl: resolvedS
       video.removeAttribute('src');
       video.load();
     };
-  }, [channelId, attempt, isActive, resolvedStreamUrl]);
+  }, [attempt, isActive, resolvedStreamUrl]);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -132,7 +137,10 @@ const NeahplusPlayer = ({ channelId, channelName, isActive, streamUrl: resolvedS
     return () => video.removeEventListener('volumechange', syncAudioState);
   }, [muted, volume, onAudioStateChange]);
 
-  const overlayStatus = status === 'paused' || status === 'playing' ? null : status;
+  const overlayStatus = !resolvedStreamUrl && !isResolving
+    ? 'error'
+    : status === 'paused' || status === 'playing' ? null : status;
+  const displayedMessage = message ?? (!resolvedStreamUrl && !isResolving ? 'Aucune source vidéo disponible pour cette chaîne. Essayez une autre chaîne.' : null);
 
   return (
     <div
@@ -146,8 +154,15 @@ const NeahplusPlayer = ({ channelId, channelName, isActive, streamUrl: resolvedS
         aria-label={`Lecteur ${channelName}`}
       />
 
+      {isResolving && resolvedStreamUrl && (
+        <div className="pointer-events-none absolute inset-0 z-10 flex flex-col items-center justify-center bg-black/35 text-center" role="status" aria-live="polite">
+          <Loader2 className="h-7 w-7 animate-spin text-[#75e6e6] motion-reduce:animate-none" aria-hidden="true" />
+          <p className="mt-3 rounded-full border border-[#20c7c7]/30 bg-[#061b23]/85 px-4 py-2 text-xs font-semibold text-white shadow-lg">Bascule vers {channelName}…</p>
+        </div>
+      )}
+
       {overlayStatus && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center overflow-hidden bg-[linear-gradient(145deg,#061720_0%,#081c27_48%,#050e16_100%)] p-6 text-center" role="status" aria-live="polite">
+        <div className="absolute inset-0 z-20 flex flex-col items-center justify-center overflow-hidden bg-[linear-gradient(145deg,#061720_0%,#081c27_48%,#050e16_100%)] p-6 text-center" role="status" aria-live="polite">
           <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_50%_42%,rgba(32,199,199,.2),transparent_58%)]" />
           <div className="pointer-events-none absolute inset-3 rounded-xl border border-[#20c7c7]/15" />
           <div className="pointer-events-none absolute inset-x-10 top-1/2 h-px -translate-y-1/2 bg-gradient-to-r from-transparent via-[#20c7c7]/20 to-transparent" />
@@ -166,7 +181,7 @@ const NeahplusPlayer = ({ channelId, channelName, isActive, streamUrl: resolvedS
             <>
               <span className="relative rounded-full border border-[#20c7c7]/25 bg-[#0b2932]/80 px-3 py-1 text-[9px] font-black tracking-[0.22em] text-[#75e6e6]">NEAHPLUS</span>
               <p className="relative mt-3 text-sm font-semibold text-white">{STATUS_LABEL[overlayStatus]}</p>
-              {message && <p className="relative mt-2 max-w-md text-sm leading-6 text-white/80">{message}</p>}
+              {displayedMessage && <p className="relative mt-2 max-w-md text-sm leading-6 text-white/80">{displayedMessage}</p>}
               <button
                 type="button"
                 onClick={() => setAttempt((value) => value + 1)}
