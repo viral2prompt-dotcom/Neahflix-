@@ -9,6 +9,7 @@ import {
   Minimize,
   Play,
   RotateCcw,
+  SlidersHorizontal,
   Volume2,
   VolumeX,
 } from 'lucide-react';
@@ -54,6 +55,7 @@ const NeahplusPlayer = ({ channelId, channelName, isActive, onInfo, onPrevChanne
   const [muted, setMuted] = useState(false);
   const [volume, setVolume] = useState(1);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [optionsOpen, setOptionsOpen] = useState(false);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -261,45 +263,18 @@ const NeahplusPlayer = ({ channelId, channelName, isActive, onInfo, onPrevChanne
             <ChevronDown className="h-4 w-4" />
           </button>
         )}
+        <div className="flex-1" />
         <button
           type="button"
-          onClick={toggleMute}
-          aria-label={muted ? 'Activer le son' : 'Couper le son'}
+          onClick={() => setOptionsOpen((open) => !open)}
+          aria-label={optionsOpen ? 'Fermer les options du lecteur' : 'Ouvrir les options du lecteur'}
+          aria-expanded={optionsOpen}
+          aria-controls="neahplus-player-options"
+          title="Options du lecteur"
           className="pointer-events-auto flex h-8 w-8 items-center justify-center rounded-lg text-white/80 transition hover:bg-white/15 hover:text-white"
         >
-          {muted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
+          <SlidersHorizontal className="h-4 w-4" aria-hidden="true" />
         </button>
-        <input
-          type="range"
-          min="0"
-          max="1"
-          step="0.05"
-          value={muted ? 0 : volume}
-          onChange={handleVolume}
-          aria-label="Volume"
-          className="pointer-events-auto h-1 w-16 cursor-pointer appearance-none rounded-full bg-white/30 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white"
-        />
-        <div className="flex-1" />
-        {onGuide && (
-          <button
-            type="button"
-            onClick={onGuide}
-            aria-label="Guide TV"
-            className="pointer-events-auto rounded-lg px-2 py-1 text-[10px] font-semibold text-white/70 transition hover:bg-white/15 hover:text-white"
-          >
-            GUIDE
-          </button>
-        )}
-        {onInfo && (
-          <button
-            type="button"
-            onClick={onInfo}
-            aria-label="Informations sur le programme"
-            className="pointer-events-auto flex h-8 w-8 items-center justify-center rounded-lg text-white/80 transition hover:bg-white/15 hover:text-white"
-          >
-            <Info className="h-4 w-4" />
-          </button>
-        )}
         <button
           type="button"
           onClick={toggleFullscreen}
@@ -309,6 +284,57 @@ const NeahplusPlayer = ({ channelId, channelName, isActive, onInfo, onPrevChanne
           {isFullscreen ? <Minimize className="h-4 w-4" /> : <Maximize className="h-4 w-4" />}
         </button>
       </div>
+
+      {optionsOpen && (
+        <div
+          id="neahplus-player-options"
+          role="group"
+          aria-label="Options du lecteur"
+          className="pointer-events-auto absolute bottom-12 right-2 z-30 flex min-w-[11rem] flex-col gap-2 rounded-xl bg-black/80 p-3 text-white shadow-xl backdrop-blur-md"
+        >
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={toggleMute}
+              aria-label={muted ? 'Activer le son' : 'Couper le son'}
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-white/85 transition hover:bg-white/15 hover:text-white"
+            >
+              {muted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
+            </button>
+            <input
+              type="range"
+              min="0"
+              max="1"
+              step="0.05"
+              value={muted ? 0 : volume}
+              onChange={handleVolume}
+              aria-label="Volume"
+              className="h-1 min-w-0 flex-1 cursor-pointer appearance-none rounded-full bg-white/30 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white"
+            />
+          </div>
+          {onGuide && (
+            <button
+              type="button"
+              onClick={() => { onGuide(); setOptionsOpen(false); }}
+              aria-label="Guide TV"
+              className="rounded-lg px-2 py-2 text-left text-xs font-semibold text-white/80 transition hover:bg-white/15 hover:text-white"
+            >
+              GUIDE
+            </button>
+          )}
+          {onInfo && (
+            <button
+              type="button"
+              onClick={() => { onInfo(); setOptionsOpen(false); }}
+              aria-label="Informations sur le programme"
+              className="flex items-center gap-2 rounded-lg px-2 py-2 text-left text-xs font-semibold text-white/80 transition hover:bg-white/15 hover:text-white"
+            >
+              <Info className="h-4 w-4" />
+              INFO
+            </button>
+          )}
+        </div>
+      )}
     </div>
   );
 };
