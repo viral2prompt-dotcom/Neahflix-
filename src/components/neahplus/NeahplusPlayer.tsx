@@ -138,9 +138,11 @@ const NeahplusPlayer = ({ channelName, isActive, isResolving, streamUrl: resolve
     return () => video.removeEventListener('volumechange', syncAudioState);
   }, [muted, volume, onAudioStateChange]);
 
-  const overlayStatus = !resolvedStreamUrl && !isResolving
-    ? 'error'
-    : status === 'paused' || status === 'playing' ? null : status;
+  const overlayStatus = isResolving && resolvedStreamUrl
+    ? null
+    : !resolvedStreamUrl && !isResolving
+      ? 'error'
+      : status === 'paused' || status === 'playing' ? null : status;
   const displayedMessage = message ?? (!resolvedStreamUrl && !isResolving ? 'Aucune source vidéo disponible pour cette chaîne. Essayez une autre chaîne.' : null);
 
   return (
