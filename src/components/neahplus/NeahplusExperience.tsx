@@ -336,6 +336,7 @@ const NeahplusExperience = () => {
 
   const navigateTo = useCallback((next: Tab) => {
     setDrawerOpen(false);
+    if (next === tab) return;
     if (['home', 'favorites', 'countries', 'settings'].includes(next)) {
       setSelectedGroupKey(null);
     }
@@ -350,7 +351,6 @@ const NeahplusExperience = () => {
       setHomeNavigationPhase('idle');
     }
     homeSelectionLock.current = false;
-    if (next === tab) return;
     navigationHistory.current.push(tab);
     setTab(next);
   }, [tab]);
@@ -506,10 +506,11 @@ const NeahplusExperience = () => {
   }, [realGroups]);
 
   useEffect(() => {
-    if (catalog && country && !catalog.countries.some((item) => item.name === country)) {
+    // Ne pas invalider un pays choisi tant que le catalogue est encore partiel.
+    if (catalogComplete && catalog && country && !catalog.countries.some((item) => item.name === country)) {
       setCountry(catalog.countries.some((item) => item.name === 'France') ? 'France' : '');
     }
-  }, [catalog, country]);
+  }, [catalog, country, catalogComplete]);
 
   const filteredGroups = useMemo(() => {
     const needle = foldText(query.trim());
