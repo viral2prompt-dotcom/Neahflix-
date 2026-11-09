@@ -282,6 +282,7 @@ const NeahplusExperience = () => {
   const [catalogComplete, setCatalogComplete] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [resolvingKey, setResolvingKey] = useState<string | null>(null);
+  const [resolvedStreamUrl, setResolvedStreamUrl] = useState<string | null>(null);
   const [attempt, setAttempt] = useState(0);
   const [tab, setTab] = useState<Tab>('home');
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -295,6 +296,8 @@ const NeahplusExperience = () => {
   const [spaceRenameValue, setSpaceRenameValue] = useState('');
   const navigationHistory = useRef<Tab[]>([]);
   const pendingNavigationTimer = useRef<number | null>(null);
+  const pendingNavigationFrame = useRef<number | null>(null);
+  const homeSelectionLock = useRef(false);
   const pendingViewerScroll = useRef(false);
   const [query, setQuery] = useState('');
   const [country, setCountry] = useState(() => {
@@ -336,12 +339,17 @@ const NeahplusExperience = () => {
     if (['home', 'favorites', 'countries', 'settings'].includes(next)) {
       setSelectedGroupKey(null);
     }
+    if (pendingNavigationFrame.current !== null) {
+      window.cancelAnimationFrame(pendingNavigationFrame.current);
+      pendingNavigationFrame.current = null;
+    }
     if (pendingNavigationTimer.current !== null) {
       window.clearTimeout(pendingNavigationTimer.current);
       pendingNavigationTimer.current = null;
       setPendingChannelId(null);
       setHomeNavigationPhase('idle');
     }
+    homeSelectionLock.current = false;
     if (next === tab) return;
     navigationHistory.current.push(tab);
     setTab(next);
@@ -349,12 +357,17 @@ const NeahplusExperience = () => {
 
   const goBack = useCallback(() => {
     setDrawerOpen(false);
+    if (pendingNavigationFrame.current !== null) {
+      window.cancelAnimationFrame(pendingNavigationFrame.current);
+      pendingNavigationFrame.current = null;
+    }
     if (pendingNavigationTimer.current !== null) {
       window.clearTimeout(pendingNavigationTimer.current);
       pendingNavigationTimer.current = null;
       setPendingChannelId(null);
       setHomeNavigationPhase('idle');
     }
+    homeSelectionLock.current = false;
     const previous = navigationHistory.current.pop();
     setSelectedGroupKey(null);
     setTab(previous ?? 'home');
@@ -362,6 +375,7 @@ const NeahplusExperience = () => {
 
   useEffect(() => {
     return () => {
+      if (pendingNavigationFrame.current !== null) window.cancelAnimationFrame(pendingNavigationFrame.current);
       if (pendingNavigationTimer.current !== null) window.clearTimeout(pendingNavigationTimer.current);
     };
   }, []);
@@ -539,19 +553,25 @@ const NeahplusExperience = () => {
 
   const resolvingRef = useRef<AbortController | null>(null);
 
-  const resolveBestVariant = useCallback(async (group: ChannelGroup) => {
-    if (group.variants.length === 0) return;
+  const resolveBestVariant = useCallback(async (group: ChannelGroup, preferredIndex = 0) => {
     resolvingRef.current?.abort();
+    setResolvedStreamUrl(null);
+    if (group.variants.length === 0) {
+      setResolvingKey(null);
+      return;
+    }
     const controller = new AbortController();
     resolvingRef.current = controller;
     setResolvingKey(group.key);
 
-    for (let i = 0; i < group.variants.length; i++) {
+    for (let offset = 0; offset < group.variants.length; offset += 1) {
+      const index = (preferredIndex + offset) % group.variants.length;
       if (controller.signal.aborted) return;
       try {
-        await resolveNeahplusStream(group.variants[i].id, controller.signal);
+        const streamUrl = await resolveNeahplusStream(group.variants[index].id, controller.signal);
         if (controller.signal.aborted) return;
-        setActiveVariantIndex(i);
+        setActiveVariantIndex(index);
+        setResolvedStreamUrl(streamUrl);
         setResolvingKey(null);
         return;
       } catch {
@@ -559,7 +579,7 @@ const NeahplusExperience = () => {
     }
 
     if (!controller.signal.aborted) {
-      setActiveVariantIndex(0);
+      setActiveVariantIndex(preferredIndex);
       setResolvingKey(null);
     }
   }, []);
@@ -596,40 +616,40 @@ const NeahplusExperience = () => {
   const handleSelectChannel = useCallback((channel: NeahplusChannel, scrollToTop = true) => {
     const group = groupByChannelId.get(channel.id);
     if (!group) return;
-    setSelectedGroupKey(group.key);
     const vIdx = group.variants.findIndex((v) => v.id === channel.id);
+    setSelectedGroupKey(group.key);
     setActiveVariantIndex(vIdx >= 0 ? vIdx : 0);
+    void resolveBestVariant(group, vIdx >= 0 ? vIdx : 0);
     if (scrollToTop) {
       window.requestAnimationFrame(() => {
         mainContentRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
         playerSectionRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
       });
     }
-  }, [groupByChannelId, selectedGroupKey]);
+  }, [groupByChannelId, resolveBestVariant]);
 
   const openChannelFromHome = useCallback((channel: NeahplusChannel) => {
+    if (homeSelectionLock.current) return;
+    homeSelectionLock.current = true;
     if (pendingNavigationTimer.current !== null) window.clearTimeout(pendingNavigationTimer.current);
     setHomeNavigationPhase('entering');
     setPendingChannelId(channel.id);
     if (tab !== 'all') navigationHistory.current.push(tab);
     handleSelectChannel(channel, false);
 
-    // Lancer la détection de la source dès le toucher, sans attendre l'animation.
-    const group = groupByChannelId.get(channel.id);
-    if (group?.variants.length) void resolveBestVariant(group);
-
-    // Laisser le témoin et le spinner être peints sur la carte d'accueil
-    // avant de basculer vers l'écran de visualisation.
-    pendingNavigationTimer.current = window.setTimeout(() => {
+    // Une frame suffit pour afficher le retour tactile avant la navigation.
+    pendingNavigationFrame.current = window.requestAnimationFrame(() => {
+      pendingNavigationFrame.current = null;
       pendingViewerScroll.current = true;
       setTab('all');
       pendingNavigationTimer.current = window.setTimeout(() => {
         setHomeNavigationPhase('idle');
         setPendingChannelId(null);
         pendingNavigationTimer.current = null;
+        homeSelectionLock.current = false;
       }, 360);
-    }, 280);
-  }, [groupByChannelId, handleSelectChannel, resolveBestVariant, tab]);
+    });
+  }, [handleSelectChannel, tab]);
 
   const isFavoriteChannel = useCallback((channel: NeahplusChannel) => {
     const group = groupByChannelId.get(channel.id);
@@ -1027,7 +1047,8 @@ const NeahplusExperience = () => {
                 </div>
                 <NeahplusPlayer
                   key={activeVariant.id}
-                  isActive={Boolean(selectedGroupKey)}
+                  isActive={Boolean(selectedGroupKey) && !resolvingKey}
+                  streamUrl={resolvedStreamUrl}
                   channelId={activeVariant.id}
                   channelName={selectedGroup.displayName}
                   muted={playerMuted}
