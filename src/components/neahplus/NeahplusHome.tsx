@@ -1,7 +1,7 @@
 import { getNeahplusChannelLogo, getNeahplusChannelPriority } from './neahplusBranding';
 import NeahplusDiscoveryShelf from './NeahplusDiscoveryShelf';
 import NeahplusHero from './NeahplusHero';
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { PointerEvent as ReactPointerEvent } from 'react';
 import { ChevronLeft, ChevronRight, Heart, Loader2, Pencil, Play, Search } from 'lucide-react';
 import type { NeahplusChannel } from './neahplusCatalog';
@@ -14,6 +14,7 @@ interface NeahplusHomeProps {
   query: string;
   onQueryChange: (value: string) => void;
   onSelectChannel: (channel: NeahplusChannel) => void;
+  onPrefetchChannel: (channel: NeahplusChannel, signal: AbortSignal) => Promise<unknown>;
   displayNamesByChannelId: ReadonlyMap<string, string>;
   isFavorite: (channel: NeahplusChannel) => boolean;
   onToggleFavorite: (channel: NeahplusChannel) => void;
@@ -33,11 +34,39 @@ const categories = [
   { id: 'entertainment', title: 'Divertissement', kicker: 'SÉRIES, MUSIQUE ET CULTURE', subtitle: 'Séries, musique, humour et rendez-vous populaires.', match: (source: string) => /divertissement|comedie|humour|musique|tv5|france 2|france 3|tf1|m6|tfx|w9|pop|novelas|nollywood|trace|a\+/.test(source) },
 ];
 
-const NeahplusHome = ({ channels, now, query, onQueryChange, onSelectChannel, displayNamesByChannelId, isFavorite, onToggleFavorite, pendingChannelId, mode, spaceName, countryLabel, onRenameSpace }: NeahplusHomeProps) => {
+const NeahplusHome = ({ channels, now, query, onQueryChange, onSelectChannel, onPrefetchChannel, displayNamesByChannelId, isFavorite, onToggleFavorite, pendingChannelId, mode, spaceName, countryLabel, onRenameSpace }: NeahplusHomeProps) => {
   const rowRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const homeRootRef = useRef<HTMLDivElement>(null);
   const [searchFocused, setSearchFocused] = useState(false);
   const [pressedChannelId, setPressedChannelId] = useState<string | null>(null);
   const needle = foldText(query.trim());
+  useEffect(() => {
+    const root = homeRootRef.current;
+    if (!root || typeof IntersectionObserver === 'undefined') return undefined;
+    const controllers = new Map<string, AbortController>();
+    const observer = new IntersectionObserver((entries) => {
+      for (const entry of entries) {
+        const channelId = (entry.target as HTMLElement).dataset.neahplusChannelId;
+        const channel = channels.find((item) => item.id === channelId);
+        if (!channelId || !channel) continue;
+        if (entry.isIntersecting) {
+          if (!controllers.has(channelId)) {
+            const controller = new AbortController();
+            controllers.set(channelId, controller);
+            void onPrefetchChannel(channel, controller.signal).catch(() => undefined);
+          }
+        } else {
+          controllers.get(channelId)?.abort();
+          controllers.delete(channelId);
+        }
+      }
+    }, { root: null, rootMargin: '260px 320px', threshold: 0.01 });
+    root.querySelectorAll<HTMLElement>('[data-neahplus-channel-id]').forEach((node) => observer.observe(node));
+    return () => {
+      observer.disconnect();
+      controllers.forEach((controller) => controller.abort());
+    };
+  }, [channels, onPrefetchChannel, mode, needle]);
   const searchableChannels = useMemo(() => channels.filter((channel) => {
     if (!needle) return true;
     const displayName = displayNamesByChannelId.get(channel.id) ?? channel.name;
@@ -64,13 +93,14 @@ const NeahplusHome = ({ channels, now, query, onQueryChange, onSelectChannel, di
     const touchProps = {
       onPointerDown: () => setPressedChannelId(channel.id),
       onPointerUp: () => setPressedChannelId(null),
-      onPointerCancel: () => { if (!pending) setPressedChannelId(null); },
+      onPointerCancel: () => setPressedChannelId(null),
+      onLostPointerCapture: () => setPressedChannelId(null),
       onPointerLeave: (event: ReactPointerEvent<HTMLButtonElement>) => {
         if (event.pointerType === 'mouse' && !pending) setPressedChannelId(null);
       },
     };
     return (
-      <article key={channel.id} className={`group w-[calc(50vw-2.25rem)] max-w-[230px] shrink-0 snap-start overflow-visible rounded-xl border bg-[#102027] transition-[border-color,box-shadow,transform,outline] duration-75 sm:w-[190px] ${loading ? '!duration-0 border-[#173b5e] bg-[#173b5e]/10 ring-2 ring-[#173b5e]/80 outline outline-2 outline-[#173b5e] shadow-lg shadow-[#173b5e]/35' : 'border-white/10 hover:border-[#20c7c7]/50'}`}>
+      <article key={channel.id} data-neahplus-channel-id={channel.id} className={`group w-[calc(50vw-2.25rem)] max-w-[230px] shrink-0 snap-start overflow-visible rounded-xl border bg-[#102027] transition-[border-color,box-shadow,transform,outline] duration-75 sm:w-[190px] ${loading ? '!duration-0 border-[#173b5e] bg-[#173b5e]/10 ring-2 ring-[#173b5e]/80 outline outline-2 outline-[#173b5e] shadow-lg shadow-[#173b5e]/35' : 'border-white/10 hover:border-[#20c7c7]/50'}`}>
         <button type="button" onClick={() => onSelectChannel(channel)} disabled={pending} aria-label={loading ? `Connexion à ${displayName}` : `Regarder ${displayName}`} {...touchProps} className="block w-full text-left transition-transform duration-75 active:scale-[0.985] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#20c7c7]">
           <div className="relative flex aspect-[16/10] items-center justify-center overflow-hidden bg-gradient-to-br from-[#153b43] via-[#10252e] to-[#09151c] p-4">
             <span className="flex h-14 w-14 items-center justify-center rounded-2xl border border-[#20c7c7]/30 bg-[#20c7c7]/10 text-lg font-black text-[#67e5e5]">{displayName.slice(0, 2).toUpperCase()}</span>
@@ -92,7 +122,7 @@ const NeahplusHome = ({ channels, now, query, onQueryChange, onSelectChannel, di
   };
 
   return (
-    <div className="mx-auto flex w-full max-w-[1600px] flex-col gap-8 pb-10 sm:gap-10">
+    <div ref={homeRootRef} className="mx-auto flex w-full max-w-[1600px] flex-col gap-8 pb-10 sm:gap-10">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#20c7c7]">{mode === 'favorites' ? 'VOTRE SÉLECTION' : `TÉLÉVISION EN DIRECT · ${countryLabel.toUpperCase()}`}</p>
