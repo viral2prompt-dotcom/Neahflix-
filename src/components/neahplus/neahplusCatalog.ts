@@ -236,14 +236,11 @@ export const resolveNeahplusStream = async (channelId: string, signal: AbortSign
   }
 
   while (resolvedStreamCache.size > RESOLVED_STREAM_CACHE_MAX_ENTRIES) {
-    const oldestId = resolvedStreamCache.keys().next().value as string | undefined;
-    if (!oldestId || oldestId === channelId) break;
-    const oldest = resolvedStreamCache.get(oldestId);
-    if (oldest && !oldest.settled && oldest.consumers > 0) {
-      resolvedStreamCache.delete(oldestId);
-      continue;
-    }
-    resolvedStreamCache.delete(oldestId);
+    const evictableId = [...resolvedStreamCache].find(([id, candidate]) =>
+      id !== channelId && (candidate.settled || candidate.consumers === 0)
+    )?.[0];
+    if (!evictableId) break;
+    resolvedStreamCache.delete(evictableId);
   }
 
   return waitForStreamOrAbort(entry, signal);
