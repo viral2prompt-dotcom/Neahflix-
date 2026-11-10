@@ -75,7 +75,7 @@ const NeahplusPlayer = ({
     video.removeAttribute('src');
     video.load();
 
-    if (!currentHasStream) setStatus('resolving');
+    if (!hasActiveStream) setStatus('resolving');
     setMessage(null);
 
     const fail = (error: unknown) => {
