@@ -44,20 +44,30 @@ const NeahplusHome = ({ channels, now, query, onQueryChange, onSelectChannel, on
     const root = homeRootRef.current;
     if (!root || typeof IntersectionObserver === 'undefined') return undefined;
     const controllers = new Map<string, AbortController>();
+    const visibleCards = new Map<string, Set<Element>>();
     const observer = new IntersectionObserver((entries) => {
       for (const entry of entries) {
         const channelId = (entry.target as HTMLElement).dataset.neahplusChannelId;
         const channel = channels.find((item) => item.id === channelId);
         if (!channelId || !channel) continue;
+        const cards = visibleCards.get(channelId) ?? new Set<Element>();
         if (entry.isIntersecting) {
+          cards.add(entry.target);
+          visibleCards.set(channelId, cards);
           if (!controllers.has(channelId)) {
             const controller = new AbortController();
             controllers.set(channelId, controller);
             void onPrefetchChannel(channel, controller.signal).catch(() => undefined);
           }
         } else {
-          controllers.get(channelId)?.abort();
-          controllers.delete(channelId);
+          cards.delete(entry.target);
+          if (cards.size === 0) {
+            visibleCards.delete(channelId);
+            controllers.get(channelId)?.abort();
+            controllers.delete(channelId);
+          } else {
+            visibleCards.set(channelId, cards);
+          }
         }
       }
     }, { root: null, rootMargin: '260px 320px', threshold: 0.01 });
