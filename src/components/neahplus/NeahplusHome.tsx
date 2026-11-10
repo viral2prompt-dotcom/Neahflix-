@@ -62,7 +62,7 @@ const NeahplusHome = ({ channels, now, query, onQueryChange, onSelectChannel, di
     const loading = pending || pressedChannelId === channel.id;
     const logo = channel.logo ?? getNeahplusChannelLogo(channel.name);
     const touchProps = {
-      onPointerDown: (event: ReactPointerEvent<HTMLButtonElement>) => { if (event.pointerType !== 'mouse') setPressedChannelId(channel.id); else setPressedChannelId(channel.id); },
+      onPointerDown: () => setPressedChannelId(channel.id),
       onPointerUp: () => {},
       onPointerCancel: () => { if (!pending) setPressedChannelId(null); },
       onPointerLeave: (event: ReactPointerEvent<HTMLButtonElement>) => {
