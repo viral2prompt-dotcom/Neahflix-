@@ -56,6 +56,8 @@ const NeahplusPlayer = ({
   const [status, setStatus] = useState<PlayerStatus>('resolving');
   const [message, setMessage] = useState<string | null>(null);
   const [attempt, setAttempt] = useState(0);
+  const audioSettingsRef = useRef({ muted, volume });
+  audioSettingsRef.current = { muted, volume };
 
   useEffect(() => {
     if (!isActive) return undefined;
@@ -110,8 +112,8 @@ const NeahplusPlayer = ({
       if (aborted || failed || generation !== generationRef.current || activeSlotRef.current === targetSlot) return;
       const previousSlot = activeSlotRef.current;
       const previousVideo = videoRefs.current[previousSlot];
-      video.muted = muted;
-      video.volume = volume;
+      video.muted = audioSettingsRef.current.muted;
+      video.volume = audioSettingsRef.current.volume;
       activeSlotRef.current = targetSlot;
       setActiveSlot(targetSlot);
       setHasActiveStream(true);
@@ -131,7 +133,7 @@ const NeahplusPlayer = ({
     const startPlayback = () => {
       if (aborted || failed || generation !== generationRef.current) return;
       video.muted = true;
-      video.volume = volume;
+      video.volume = audioSettingsRef.current.volume;
       safePlay(video).catch((error: unknown) => {
         if (error instanceof DOMException && error.name === 'NotAllowedError') {
           // La lecture muette reste généralement autorisée ; conserver l'ancien flux si le navigateur refuse.
@@ -193,9 +195,10 @@ const NeahplusPlayer = ({
         video.load();
       }
     };
-  }, [channelId, attempt, isActive, resolvedStreamUrl, hasActiveStream, muted, volume, onStreamReady]);
+  }, [channelId, attempt, isActive, resolvedStreamUrl, onStreamReady]);
 
   useEffect(() => {
+    const cleanups: Array<() => void> = [];
     videoRefs.current.forEach((video, slot) => {
       if (!video) return;
       if (slot === activeSlot) {
@@ -206,9 +209,9 @@ const NeahplusPlayer = ({
         if (slot === activeSlotRef.current) onAudioStateChange(video.muted, video.volume);
       };
       video.addEventListener('volumechange', syncAudioState);
-      video.dataset.audioSync = 'attached';
-      return () => video.removeEventListener('volumechange', syncAudioState);
+      cleanups.push(() => video.removeEventListener('volumechange', syncAudioState));
     });
+    return () => cleanups.forEach((cleanup) => cleanup());
   }, [muted, volume, activeSlot, onAudioStateChange]);
 
   useEffect(() => () => {
