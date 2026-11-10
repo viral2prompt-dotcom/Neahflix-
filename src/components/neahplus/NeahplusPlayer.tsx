@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
-import { AlertTriangle, Loader2, RotateCcw } from 'lucide-react';
+import { AlertTriangle, FastForward, Loader2, Rewind, RotateCcw } from 'lucide-react';
 import type Hls from 'hls.js';
 import { safePlay } from '@/utils/safePlay';
 import { NeahplusError, resolveNeahplusStream } from './neahplusCatalog';
 
 type PlayerStatus = 'resolving' | 'loading' | 'playing' | 'paused' | 'error';
+type ZappingDirection = 'next' | 'previous' | null;
 
 const STATUS_LABEL: Record<Exclude<PlayerStatus, 'paused'>, string> = {
   resolving: 'Connexion à la chaîne',
@@ -30,121 +31,220 @@ interface NeahplusPlayerProps {
   streamUrl: string | null;
   muted: boolean;
   volume: number;
+  direction: ZappingDirection;
+  onStreamReady: () => void;
   onAudioStateChange: (muted: boolean, volume: number) => void;
 }
 
-const NeahplusPlayer = ({ channelId, channelName, isActive, streamUrl: resolvedStreamUrl, muted, volume, onAudioStateChange }: NeahplusPlayerProps) => {
-  const videoRef = useRef<HTMLVideoElement>(null);
+const NeahplusPlayer = ({
+  channelId,
+  channelName,
+  isActive,
+  streamUrl: resolvedStreamUrl,
+  muted,
+  volume,
+  direction,
+  onStreamReady,
+  onAudioStateChange,
+}: NeahplusPlayerProps) => {
+  const videoRefs = useRef<Array<HTMLVideoElement | null>>([null, null]);
+  const hlsRefs = useRef<Array<Hls | null>>([null, null]);
+  const activeSlotRef = useRef(0);
+  const generationRef = useRef(0);
+  const [activeSlot, setActiveSlot] = useState(0);
+  const [hasActiveStream, setHasActiveStream] = useState(false);
   const [status, setStatus] = useState<PlayerStatus>('resolving');
   const [message, setMessage] = useState<string | null>(null);
   const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
-    const video = videoRef.current;
+    if (!isActive) return undefined;
+    const generation = ++generationRef.current;
+    const targetSlot = 1 - activeSlotRef.current;
+    const video = videoRefs.current[targetSlot];
     if (!video) return undefined;
-    if (!isActive) {
+
+    let aborted = false;
+    let failed = false;
+    let candidateHls: Hls | null = null;
+    const currentHasStream = hasActiveStream;
+
+    hlsRefs.current[targetSlot]?.destroy();
+    hlsRefs.current[targetSlot] = null;
+    video.pause();
+    video.removeAttribute('src');
+    video.load();
+
+    if (!currentHasStream) setStatus('resolving');
+    setMessage(null);
+
+    const clearCandidate = () => {
+      candidateHls?.destroy();
+      candidateHls = null;
+      if (hlsRefs.current[targetSlot] === candidateHls) hlsRefs.current[targetSlot] = null;
+      if (activeSlotRef.current !== targetSlot) {
+        video.pause();
+        video.removeAttribute('src');
+        video.load();
+      }
+    };
+
+    const fail = (error: unknown) => {
+      if (aborted || failed || generation !== generationRef.current) return;
+      failed = true;
+      candidateHls?.destroy();
+      candidateHls = null;
+      hlsRefs.current[targetSlot] = null;
       video.pause();
       video.removeAttribute('src');
       video.load();
-      setStatus('paused');
-      return undefined;
-    }
-    const controller = new AbortController();
-    let hls: Hls | null = null;
-    let failed = false;
-
-    const fail = (error: unknown) => {
-      if (controller.signal.aborted || failed) return;
-      failed = true;
-      hls?.destroy();
-      hls = null;
-      setMessage(errorMessage(error));
-      setStatus('error');
+      if (!hasActiveStream) {
+        setMessage(errorMessage(error));
+        setStatus('error');
+      } else {
+        setStatus('playing');
+      }
     };
 
-    const play = () => {
+    const activateCandidate = () => {
+      if (aborted || failed || generation !== generationRef.current || activeSlotRef.current === targetSlot) return;
+      const previousSlot = activeSlotRef.current;
+      const previousVideo = videoRefs.current[previousSlot];
+      video.muted = muted;
+      video.volume = volume;
+      activeSlotRef.current = targetSlot;
+      setActiveSlot(targetSlot);
+      setHasActiveStream(true);
+      setStatus('playing');
+      setMessage(null);
+      onStreamReady();
+
+      if (previousVideo) {
+        previousVideo.pause();
+        hlsRefs.current[previousSlot]?.destroy();
+        hlsRefs.current[previousSlot] = null;
+        previousVideo.removeAttribute('src');
+        previousVideo.load();
+      }
+    };
+
+    const startPlayback = () => {
+      if (aborted || failed || generation !== generationRef.current) return;
+      video.muted = true;
+      video.volume = volume;
       safePlay(video).catch((error: unknown) => {
         if (error instanceof DOMException && error.name === 'NotAllowedError') {
-          setStatus('paused');
+          // La lecture muette reste généralement autorisée ; conserver l'ancien flux si le navigateur refuse.
+          fail(error);
           return;
         }
         fail(error);
       });
     };
 
-    setStatus('resolving');
-    setMessage(null);
+    const handlePlaying = () => activateCandidate();
+    const handleCandidateError = () => fail(new Error('Lecture du flux impossible'));
+    video.addEventListener('playing', handlePlaying);
+    video.addEventListener('error', handleCandidateError);
+    video.addEventListener('canplay', startPlayback, { once: true });
 
     const start = async () => {
       const streamUrl = resolvedStreamUrl ?? await resolveNeahplusStream(channelId, controller.signal);
-      if (controller.signal.aborted) return;
+      if (aborted || generation !== generationRef.current) return;
       setStatus('loading');
 
       const { default: HlsLib } = await import('hls.js');
-      if (controller.signal.aborted) return;
+      if (aborted || generation !== generationRef.current) return;
 
       if (HlsLib.isSupported()) {
-        const instance = new HlsLib({ enableWorker: true });
-        hls = instance;
+        const instance = new HlsLib({ enableWorker: true, autoStartLoad: true });
+        candidateHls = instance;
+        hlsRefs.current[targetSlot] = instance;
         instance.on(HlsLib.Events.ERROR, (_event, data) => {
           if (data.fatal) fail(new Error(data.details));
         });
-        instance.on(HlsLib.Events.MANIFEST_PARSED, play);
+        instance.on(HlsLib.Events.MANIFEST_PARSED, startPlayback);
         instance.loadSource(streamUrl);
         instance.attachMedia(video);
       } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
         video.src = streamUrl;
-        play();
+        video.load();
       } else {
         throw new Error('HLS non pris en charge');
       }
     };
 
+    const controller = new AbortController();
     start().catch((error: unknown) => {
       if (!controller.signal.aborted) fail(error);
     });
 
-    const handlePlaying = () => setStatus('playing');
-    const handlePause = () => {
-      if (!failed && !video.ended) setStatus('paused');
-    };
-    video.addEventListener('playing', handlePlaying);
-    video.addEventListener('pause', handlePause);
-
     return () => {
+      aborted = true;
       controller.abort();
-      video.pause();
       video.removeEventListener('playing', handlePlaying);
-      video.removeEventListener('pause', handlePause);
-      hls?.destroy();
-      video.removeAttribute('src');
-      video.load();
+      video.removeEventListener('error', handleCandidateError);
+      video.removeEventListener('canplay', startPlayback);
+      if (activeSlotRef.current !== targetSlot) {
+        candidateHls?.destroy();
+        if (hlsRefs.current[targetSlot] === candidateHls) hlsRefs.current[targetSlot] = null;
+        video.pause();
+        video.removeAttribute('src');
+        video.load();
+      }
     };
-  }, [channelId, attempt, isActive, resolvedStreamUrl]);
+  }, [channelId, attempt, isActive, resolvedStreamUrl, hasActiveStream, muted, volume, onStreamReady]);
 
   useEffect(() => {
-    const video = videoRef.current;
-    if (!video) return undefined;
-    video.muted = muted;
-    video.volume = volume;
-    const syncAudioState = () => onAudioStateChange(video.muted, video.volume);
-    video.addEventListener('volumechange', syncAudioState);
-    return () => video.removeEventListener('volumechange', syncAudioState);
-  }, [muted, volume, onAudioStateChange]);
+    videoRefs.current.forEach((video, slot) => {
+      if (!video) return;
+      if (slot === activeSlot) {
+        video.muted = muted;
+        video.volume = volume;
+      }
+      const syncAudioState = () => {
+        if (slot === activeSlotRef.current) onAudioStateChange(video.muted, video.volume);
+      };
+      video.addEventListener('volumechange', syncAudioState);
+      video.dataset.audioSync = 'attached';
+      return () => video.removeEventListener('volumechange', syncAudioState);
+    });
+  }, [muted, volume, activeSlot, onAudioStateChange]);
 
-  const overlayStatus = status === 'paused' || status === 'playing' ? null : status;
+  useEffect(() => () => {
+    generationRef.current += 1;
+    videoRefs.current.forEach((video, slot) => {
+      video?.pause();
+      hlsRefs.current[slot]?.destroy();
+      hlsRefs.current[slot] = null;
+      if (video) {
+        video.removeAttribute('src');
+        video.load();
+      }
+    });
+  }, []);
+
+  const overlayStatus = hasActiveStream || status === 'paused' || status === 'playing' ? null : status;
 
   return (
-    <div
-      className={`relative mx-auto aspect-video w-full max-h-[42vh] overflow-hidden rounded-xl bg-black transition-shadow duration-300 lg:max-h-[46vh] ${status === 'resolving' || status === 'loading' ? 'ring-2 ring-[#20c7c7]/55 shadow-[0_0_28px_rgba(32,199,199,.16)]' : 'ring-1 ring-[#20c7c7]/20'}`}
-    >
-      <video
-        ref={videoRef}
-        className="h-full w-full bg-black object-contain"
-        controls
-        playsInline
-        aria-label={`Lecteur ${channelName}`}
-      />
+    <div className={`relative mx-auto aspect-video w-full max-h-[42vh] overflow-hidden rounded-xl bg-black transition-shadow duration-300 lg:max-h-[46vh] ${status === 'resolving' || status === 'loading' ? 'ring-2 ring-[#20c7c7]/55 shadow-[0_0_28px_rgba(32,199,199,.16)]' : 'ring-1 ring-[#20c7c7]/20'}`}>
+      {[0, 1].map((slot) => (
+        <video
+          key={slot}
+          ref={(element) => { videoRefs.current[slot] = element; }}
+          className={`h-full w-full bg-black object-contain ${slot === activeSlot ? 'block' : 'hidden'}`}
+          controls={slot === activeSlot}
+          playsInline
+          preload="none"
+          aria-label={`Lecteur ${channelName}`}
+        />
+      ))}
+
+      {direction && hasActiveStream && (
+        <div className="pointer-events-none absolute right-3 top-3 z-20 flex h-9 w-9 items-center justify-center rounded-full border border-white/20 bg-black/65 text-white shadow-lg" role="status" aria-label={direction === 'next' ? 'Chaîne suivante' : 'Chaîne précédente'}>
+          {direction === 'next' ? <FastForward className="h-5 w-5" /> : <Rewind className="h-5 w-5" />}
+        </div>
+      )}
 
       {overlayStatus && (
         <div className="absolute inset-0 flex flex-col items-center justify-center overflow-hidden bg-[linear-gradient(145deg,#061720_0%,#081c27_48%,#050e16_100%)] p-6 text-center" role="status" aria-live="polite">
@@ -179,8 +279,6 @@ const NeahplusPlayer = ({ channelId, channelName, isActive, streamUrl: resolvedS
           )}
         </div>
       )}
-
-
     </div>
   );
 };
