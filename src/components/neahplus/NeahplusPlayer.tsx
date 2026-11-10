@@ -53,6 +53,8 @@ const NeahplusPlayer = ({
   const generationRef = useRef(0);
   const [activeSlot, setActiveSlot] = useState(0);
   const [hasActiveStream, setHasActiveStream] = useState(false);
+  const hasActiveStreamRef = useRef(false);
+  hasActiveStreamRef.current = hasActiveStream;
   const [status, setStatus] = useState<PlayerStatus>('resolving');
   const [message, setMessage] = useState<string | null>(null);
   const [attempt, setAttempt] = useState(0);
@@ -76,7 +78,7 @@ const NeahplusPlayer = ({
     video.removeAttribute('src');
     video.load();
 
-    if (!hasActiveStream) setStatus('resolving');
+    if (!hasActiveStreamRef.current) setStatus('resolving');
     setMessage(null);
 
     const fail = (error: unknown) => {
@@ -89,8 +91,11 @@ const NeahplusPlayer = ({
       video.removeAttribute('src');
       video.load();
       const candidateIsActive = activeSlotRef.current === targetSlot;
-      if (candidateIsActive || !hasActiveStream) {
-        if (candidateIsActive) setHasActiveStream(false);
+      if (candidateIsActive || !hasActiveStreamRef.current) {
+        if (candidateIsActive) {
+          hasActiveStreamRef.current = false;
+          setHasActiveStream(false);
+        }
         setMessage(errorMessage(error));
         setStatus('error');
       } else {
@@ -107,6 +112,7 @@ const NeahplusPlayer = ({
       video.volume = audioSettingsRef.current.volume;
       activeSlotRef.current = targetSlot;
       setActiveSlot(targetSlot);
+      hasActiveStreamRef.current = true;
       setHasActiveStream(true);
       setStatus('playing');
       setMessage(null);
