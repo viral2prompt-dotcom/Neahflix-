@@ -69,6 +69,7 @@ const NeahplusPlayer = ({
     let aborted = false;
     let failed = false;
     let candidateHls: Hls | null = null;
+    let playRequested = false;
     hlsRefs.current[targetSlot]?.destroy();
     hlsRefs.current[targetSlot] = null;
     video.pause();
@@ -87,11 +88,14 @@ const NeahplusPlayer = ({
       video.pause();
       video.removeAttribute('src');
       video.load();
-      if (!hasActiveStream) {
+      const candidateIsActive = activeSlotRef.current === targetSlot;
+      if (candidateIsActive || !hasActiveStream) {
+        if (candidateIsActive) setHasActiveStream(false);
         setMessage(errorMessage(error));
         setStatus('error');
       } else {
         setStatus('playing');
+        onStreamReady();
       }
     };
 
@@ -118,7 +122,8 @@ const NeahplusPlayer = ({
     };
 
     const startPlayback = () => {
-      if (aborted || failed || generation !== generationRef.current) return;
+      if (aborted || failed || playRequested || generation !== generationRef.current) return;
+      playRequested = true;
       video.muted = true;
       video.volume = audioSettingsRef.current.volume;
       safePlay(video).catch((error: unknown) => {
