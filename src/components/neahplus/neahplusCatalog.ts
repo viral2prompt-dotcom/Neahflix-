@@ -148,7 +148,9 @@ export const loadNeahplusCatalog = (signal?: AbortSignal, onFirstPage?: (catalog
 };
 
 const RESOLVED_STREAM_CACHE_TTL_MS = 30_000;
-const resolvedStreamCache = new Map<string, { expiresAt: number; promise: Promise<string> }>();
+const RESOLVED_STREAM_CACHE_MAX_ENTRIES = 48;
+type ResolvedStreamEntry = { expiresAt: number; promise: Promise<string> };
+const resolvedStreamCache = new Map<string, ResolvedStreamEntry>();
 
 const waitForStreamOrAbort = (promise: Promise<string>, signal: AbortSignal): Promise<string> => {
   if (signal.aborted) return Promise.reject(new DOMException('Aborted', 'AbortError'));
@@ -174,12 +176,16 @@ const waitForStreamOrAbort = (promise: Promise<string>, signal: AbortSignal): Pr
 export const resolveNeahplusStream = async (channelId: string, signal: AbortSignal): Promise<string> => {
   if (signal.aborted) throw new DOMException('Aborted', 'AbortError');
 
-  const cached = resolvedStreamCache.get(channelId);
-  if (cached && cached.expiresAt > Date.now()) {
-    return waitForStreamOrAbort(cached.promise, signal);
+  const now = Date.now();
+  for (const [id, entry] of resolvedStreamCache) {
+    if (entry.expiresAt <= now) resolvedStreamCache.delete(id);
   }
 
+  const cached = resolvedStreamCache.get(channelId);
+  if (cached) return waitForStreamOrAbort(cached.promise, signal);
+
   const target = `${PLAY_ORIGIN}${encodeURIComponent(channelId)}`;
+  let entry: ResolvedStreamEntry;
   const promise = fetchJson(`${RESOLVE_PATH}?url=${encodeURIComponent(target)}`, new AbortController().signal)
     .then((data) => {
       if (!isRecord(data) || typeof data.url !== 'string' || !data.url.startsWith(STREAM_PATH_PREFIX)) {
@@ -187,18 +193,28 @@ export const resolveNeahplusStream = async (channelId: string, signal: AbortSign
       }
       return data.url;
     })
+    .then((url) => {
+      if (resolvedStreamCache.get(channelId) === entry) {
+        entry.expiresAt = Date.now() + RESOLVED_STREAM_CACHE_TTL_MS;
+      }
+      return url;
+    })
     .catch((error: unknown) => {
-      resolvedStreamCache.delete(channelId);
+      if (resolvedStreamCache.get(channelId) === entry) resolvedStreamCache.delete(channelId);
       throw error;
     });
 
-  resolvedStreamCache.set(channelId, {
-    expiresAt: Date.now() + RESOLVED_STREAM_CACHE_TTL_MS,
-    promise,
-  });
+  entry = { expiresAt: Number.POSITIVE_INFINITY, promise };
+  resolvedStreamCache.set(channelId, entry);
+
+  while (resolvedStreamCache.size > RESOLVED_STREAM_CACHE_MAX_ENTRIES) {
+    const oldestId = resolvedStreamCache.keys().next().value as string | undefined;
+    if (!oldestId) break;
+    resolvedStreamCache.delete(oldestId);
+  }
+
   return waitForStreamOrAbort(promise, signal);
 };
-
 export const currentProgram = (channel: NeahplusChannel, now: number): NeahplusProgram | null =>
   channel.programs.find((program) => {
     const start = Date.parse(program.start);
