@@ -549,6 +549,35 @@ const NeahplusExperience = () => {
     return carouselGroups.filter((group) => foldText(group.displayName).includes(needle) || group.variants.some((variant) => foldText(variant.name).includes(needle)));
   }, [carouselGroups, quickListQuery]);
 
+  // Précharger progressivement les trois chaînes voisines de chaque côté.
+  // Le cache du résolveur déduplique les demandes déjà lancées par le lecteur.
+  useEffect(() => {
+    if (!selectedGroupKey || carouselGroups.length < 2) return undefined;
+    const controller = new AbortController();
+    const currentIndex = carouselGroups.findIndex((group) => group.key === selectedGroupKey);
+    if (currentIndex < 0) return undefined;
+
+    const neighbors = [1, -1, 2, -2, 3, -3]
+      .map((offset) => carouselGroups[(currentIndex + offset + carouselGroups.length) % carouselGroups.length])
+      .filter((group, index, groups) => Boolean(group?.variants[0]) && groups.findIndex((item) => item.key === group.key) === index);
+
+    const prefetchNeighbors = async () => {
+      for (const group of neighbors) {
+        if (controller.signal.aborted) break;
+        const variant = group.variants[0];
+        if (!variant) continue;
+        try {
+          await resolveNeahplusStream(variant.id, controller.signal);
+        } catch {
+          if (controller.signal.aborted) break;
+        }
+      }
+    };
+
+    void prefetchNeighbors();
+    return () => controller.abort();
+  }, [selectedGroupKey, carouselGroups]);
+
   useEffect(() => { setQuickListVisibleCount(80); }, [quickListQuery]);
 
   const resolvingRef = useRef<AbortController | null>(null);
