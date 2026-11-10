@@ -62,7 +62,7 @@ const NeahplusHome = ({ channels, now, query, onQueryChange, onSelectChannel, di
     const loading = pending || pressedChannelId === channel.id;
     const logo = channel.logo ?? getNeahplusChannelLogo(channel.name);
     const touchProps = {
-      onPointerDown: () => setPressedChannelId(channel.id),
+      onPointerDown: (event: ReactPointerEvent<HTMLButtonElement>) => { if (event.pointerType !== 'mouse') setPressedChannelId(channel.id); else setPressedChannelId(channel.id); },
       onPointerUp: () => {},
       onPointerCancel: () => { if (!pending) setPressedChannelId(null); },
       onPointerLeave: (event: ReactPointerEvent<HTMLButtonElement>) => {
@@ -70,7 +70,7 @@ const NeahplusHome = ({ channels, now, query, onQueryChange, onSelectChannel, di
       },
     };
     return (
-      <article key={channel.id} className={`group w-[calc(50vw-2.25rem)] max-w-[230px] shrink-0 snap-start overflow-visible rounded-xl border bg-[#102027] transition-[border-color,box-shadow,transform,outline] duration-75 sm:w-[190px] ${loading ? 'border-[#173b5e] bg-[#173b5e]/10 ring-1 ring-[#173b5e]/70 shadow-lg shadow-[#173b5e]/35' : 'border-white/10 hover:border-[#20c7c7]/50'}`}>
+      <article key={channel.id} className={`group w-[calc(50vw-2.25rem)] max-w-[230px] shrink-0 snap-start overflow-visible rounded-xl border bg-[#102027] transition-[border-color,box-shadow,transform,outline] duration-75 sm:w-[190px] ${loading ? '!duration-0 border-[#173b5e] bg-[#173b5e]/10 ring-2 ring-[#173b5e]/80 outline outline-2 outline-[#173b5e] shadow-lg shadow-[#173b5e]/35' : 'border-white/10 hover:border-[#20c7c7]/50'}`}>
         <button type="button" onClick={() => onSelectChannel(channel)} disabled={pending} aria-label={loading ? `Connexion à ${displayName}` : `Regarder ${displayName}`} {...touchProps} className="block w-full text-left transition-transform duration-75 active:scale-[0.985] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#20c7c7]">
           <div className="relative flex aspect-[16/10] items-center justify-center overflow-hidden bg-gradient-to-br from-[#153b43] via-[#10252e] to-[#09151c] p-4">
             <span className="flex h-14 w-14 items-center justify-center rounded-2xl border border-[#20c7c7]/30 bg-[#20c7c7]/10 text-lg font-black text-[#67e5e5]">{displayName.slice(0, 2).toUpperCase()}</span>
