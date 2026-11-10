@@ -282,7 +282,6 @@ const NeahplusExperience = () => {
   const [catalogComplete, setCatalogComplete] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [resolvingKey, setResolvingKey] = useState<string | null>(null);
-  const [resolvedStream, setResolvedStream] = useState<{ channelId: string; url: string } | null>(null);
   const [zappingDirection, setZappingDirection] = useState<'next' | 'previous' | null>(null);
   const [attempt, setAttempt] = useState(0);
   const [tab, setTab] = useState<Tab>('home');
@@ -603,7 +602,6 @@ const NeahplusExperience = () => {
         const streamUrl = await resolveNeahplusStream(group.variants[index].id, controller.signal);
         if (controller.signal.aborted) return;
         setActiveVariantIndex(index);
-        setResolvedStream({ channelId: group.variants[index].id, url: streamUrl });
         setResolvingKey(null);
         return;
       } catch {
@@ -1085,7 +1083,7 @@ const NeahplusExperience = () => {
                 </div>
                 <NeahplusPlayer
                   isActive={Boolean(selectedGroupKey)}
-                  streamUrl={resolvedStream?.channelId === activeVariant.id ? resolvedStream.url : null}
+                  streamUrl={null}
                   direction={zappingDirection}
                   onStreamReady={handlePlayerStreamReady}
                   channelId={activeVariant.id}
