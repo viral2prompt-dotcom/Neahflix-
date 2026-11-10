@@ -69,8 +69,6 @@ const NeahplusPlayer = ({
     let aborted = false;
     let failed = false;
     let candidateHls: Hls | null = null;
-    const currentHasStream = hasActiveStream;
-
     hlsRefs.current[targetSlot]?.destroy();
     hlsRefs.current[targetSlot] = null;
     video.pause();
@@ -79,17 +77,6 @@ const NeahplusPlayer = ({
 
     if (!currentHasStream) setStatus('resolving');
     setMessage(null);
-
-    const clearCandidate = () => {
-      candidateHls?.destroy();
-      candidateHls = null;
-      if (hlsRefs.current[targetSlot] === candidateHls) hlsRefs.current[targetSlot] = null;
-      if (activeSlotRef.current !== targetSlot) {
-        video.pause();
-        video.removeAttribute('src');
-        video.load();
-      }
-    };
 
     const fail = (error: unknown) => {
       if (aborted || failed || generation !== generationRef.current) return;
