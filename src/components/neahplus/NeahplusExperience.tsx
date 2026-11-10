@@ -282,7 +282,8 @@ const NeahplusExperience = () => {
   const [catalogComplete, setCatalogComplete] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [resolvingKey, setResolvingKey] = useState<string | null>(null);
-  const [resolvedStreamUrl, setResolvedStreamUrl] = useState<string | null>(null);
+  const [resolvedStream, setResolvedStream] = useState<{ channelId: string; url: string } | null>(null);
+  const [zappingDirection, setZappingDirection] = useState<'next' | 'previous' | null>(null);
   const [attempt, setAttempt] = useState(0);
   const [tab, setTab] = useState<Tab>('home');
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -319,6 +320,9 @@ const NeahplusExperience = () => {
     setPlayerMuted(muted);
     setPlayerVolume(volume);
   }, []);
+  const handlePlayerStreamReady = useCallback(() => setZappingDirection(null), []);
+  const prefetchHomeChannel = useCallback((channel: NeahplusChannel, signal: AbortSignal) =>
+    resolveNeahplusStream(channel.id, signal), []);
   const [showQuickSearch, setShowQuickSearch] = useState(false);
   const [showChannelList, setShowChannelList] = useState(false);
   const [quickListVisibleCount, setQuickListVisibleCount] = useState(80);
@@ -584,7 +588,6 @@ const NeahplusExperience = () => {
 
   const resolveBestVariant = useCallback(async (group: ChannelGroup, preferredIndex = 0) => {
     resolvingRef.current?.abort();
-    setResolvedStreamUrl(null);
     if (group.variants.length === 0) {
       setResolvingKey(null);
       return;
@@ -600,7 +603,7 @@ const NeahplusExperience = () => {
         const streamUrl = await resolveNeahplusStream(group.variants[index].id, controller.signal);
         if (controller.signal.aborted) return;
         setActiveVariantIndex(index);
-        setResolvedStreamUrl(streamUrl);
+        setResolvedStream({ channelId: group.variants[index].id, url: streamUrl });
         setResolvingKey(null);
         return;
       } catch {
@@ -613,7 +616,10 @@ const NeahplusExperience = () => {
     }
   }, []);
 
-  const handleSelectGroup = useCallback((group: ChannelGroup) => {
+  const handleSelectGroup = useCallback((group: ChannelGroup, directionOverride?: 'next' | 'previous' | null) => {
+    const currentIndex = carouselGroups.findIndex((item) => item.key === selectedGroupKey);
+    const targetIndex = carouselGroups.findIndex((item) => item.key === group.key);
+    setZappingDirection(directionOverride ?? (currentIndex >= 0 && targetIndex >= 0 && currentIndex !== targetIndex ? (targetIndex > currentIndex ? 'next' : 'previous') : null));
     setSelectedGroupKey(group.key);
     setActiveVariantIndex(0);
     window.requestAnimationFrame(() => {
@@ -622,7 +628,7 @@ const NeahplusExperience = () => {
     });
     // Déclencher la détection dès le toucher, même si la chaîne n'a qu'une seule source.
     if (group.variants.length > 0) void resolveBestVariant(group);
-  }, [resolveBestVariant, selectedGroupKey]);
+  }, [resolveBestVariant, selectedGroupKey, carouselGroups]);
 
   // À l'ouverture de « Mon espace », sélectionner une chaîne favorite par défaut.
   // Une chaîne choisie depuis « Plus » reste toutefois sélectionnée même si elle
@@ -639,13 +645,16 @@ const NeahplusExperience = () => {
     const currentIndex = carouselGroups.findIndex((group) => group.key === selectedGroupKey);
     const startIndex = currentIndex < 0 ? (direction > 0 ? -1 : 0) : currentIndex;
     const nextIndex = (startIndex + direction + carouselGroups.length) % carouselGroups.length;
-    handleSelectGroup(carouselGroups[nextIndex]);
+    handleSelectGroup(carouselGroups[nextIndex], direction > 0 ? 'next' : 'previous');
   }, [carouselGroups, selectedGroupKey, handleSelectGroup]);
 
   const handleSelectChannel = useCallback((channel: NeahplusChannel, scrollToTop = true) => {
     const group = groupByChannelId.get(channel.id);
     if (!group) return;
     const vIdx = group.variants.findIndex((v) => v.id === channel.id);
+    const currentIndex = carouselGroups.findIndex((item) => item.key === selectedGroupKey);
+    const targetIndex = carouselGroups.findIndex((item) => item.key === group.key);
+    setZappingDirection(currentIndex >= 0 && targetIndex >= 0 && currentIndex !== targetIndex ? (targetIndex > currentIndex ? 'next' : 'previous') : null);
     setSelectedGroupKey(group.key);
     setActiveVariantIndex(vIdx >= 0 ? vIdx : 0);
     void resolveBestVariant(group, vIdx >= 0 ? vIdx : 0);
@@ -655,7 +664,7 @@ const NeahplusExperience = () => {
         playerSectionRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
       });
     }
-  }, [groupByChannelId, resolveBestVariant]);
+  }, [groupByChannelId, resolveBestVariant, carouselGroups, selectedGroupKey]);
 
   const openChannelFromHome = useCallback((channel: NeahplusChannel) => {
     if (homeSelectionLock.current) return;
@@ -1067,7 +1076,7 @@ const NeahplusExperience = () => {
         {showChannelList && <button type="button" aria-label="Fermer la liste des chaînes" onClick={() => setShowChannelList(false)} className="absolute inset-0 z-30 bg-black/55 lg:hidden" />}
         
                 {/* Left: Player + info */}
-        <section key={selectedGroupKey ?? 'empty-player'} ref={playerSectionRef} className={`${homeNavigationPhase === 'entering' ? '' : 'motion-safe:animate-[neahplus-player-in_420ms_cubic-bezier(0.22,1,0.36,1)_both]'} flex min-h-max w-full flex-none touch-pan-y flex-col gap-3 overflow-visible p-3 lg:min-h-0 lg:max-h-full lg:w-[42%] lg:max-w-[720px] lg:overflow-y-auto lg:overscroll-y-contain lg:p-4 ${['home', 'countries', 'settings'].includes(tab) ? 'hidden' : ''}`} style={{ WebkitOverflowScrolling: 'touch' }}>
+        <section ref={playerSectionRef} className={`${homeNavigationPhase === 'entering' ? '' : 'motion-safe:animate-[neahplus-player-in_420ms_cubic-bezier(0.22,1,0.36,1)_both]'} flex min-h-max w-full flex-none touch-pan-y flex-col gap-3 overflow-visible p-3 lg:min-h-0 lg:max-h-full lg:w-[42%] lg:max-w-[720px] lg:overflow-y-auto lg:overscroll-y-contain lg:p-4 ${['home', 'countries', 'settings'].includes(tab) ? 'hidden' : ''}`} style={{ WebkitOverflowScrolling: 'touch' }}>
           {activeVariant && selectedGroup ? (
             <>
               <div className="group relative mx-auto w-full max-w-[720px]">
@@ -1075,9 +1084,10 @@ const NeahplusExperience = () => {
                   <button type="button" onClick={() => showChannelList ? setShowChannelList(false) : openChannelList()} aria-expanded={showChannelList} aria-controls="neahplus-quick-channel-list" className={`inline-flex items-center gap-2 rounded-lg border px-3 py-1.5 text-[11px] font-semibold transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#55dddd] ${showChannelList ? 'border-[#55dddd] bg-[#20c7c7]/20 text-[#a5ffff] shadow-[0_0_16px_rgba(32,199,199,.18)]' : 'border-[#20c7c7]/35 text-white/80 hover:border-[#55dddd] hover:bg-[#20c7c7]/15 hover:text-white active:border-[#55dddd] active:bg-[#20c7c7]/25'}`}><ListVideo className="h-3.5 w-3.5" /> Liste des chaînes</button>
                 </div>
                 <NeahplusPlayer
-                  key={activeVariant.id}
-                  isActive={Boolean(selectedGroupKey) && !resolvingKey}
-                  streamUrl={resolvedStreamUrl}
+                  isActive={Boolean(selectedGroupKey)}
+                  streamUrl={resolvedStream?.channelId === activeVariant.id ? resolvedStream.url : null}
+                  direction={zappingDirection}
+                  onStreamReady={handlePlayerStreamReady}
                   channelId={activeVariant.id}
                   channelName={selectedGroup.displayName}
                   muted={playerMuted}
@@ -1316,6 +1326,7 @@ const NeahplusExperience = () => {
                 query={query}
                 onQueryChange={setQuery}
                 onSelectChannel={openChannelFromHome}
+                onPrefetchChannel={prefetchHomeChannel}
                 displayNamesByChannelId={displayNamesByChannelId}
                 isFavorite={isFavoriteChannel}
                 onToggleFavorite={toggleFavoriteChannel}
