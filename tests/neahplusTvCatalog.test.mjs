@@ -337,3 +337,56 @@ test('la recherche du prochain programme choisit le plus proche sans dépendre d
 
   assert.equal(utils.getNextProgram(item, now)?.title, 'Prochain');
 });
+
+
+test('la résolution d’un même flux est dédupliquée entre plusieurs consommateurs', async () => {
+  const originalFetch = globalThis.fetch;
+  let calls = 0;
+  globalThis.fetch = async () => {
+    calls += 1;
+    await Promise.resolve();
+    return {
+      ok: true,
+      json: async () => ({ url: '/api/neahplus/__stream?token=dedupe-test' }),
+    };
+  };
+
+  try {
+    const first = new AbortController();
+    const second = new AbortController();
+    const [urlA, urlB] = await Promise.all([
+      catalog.resolveNeahplusStream('test-dedupe-channel', first.signal),
+      catalog.resolveNeahplusStream('test-dedupe-channel', second.signal),
+    ]);
+    assert.equal(urlA, urlB);
+    assert.equal(calls, 1);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test('une résolution réseau abandonnée est annulée seulement après le dernier consommateur', async () => {
+  const originalFetch = globalThis.fetch;
+  let networkSignal;
+  globalThis.fetch = (_url, options) => new Promise((_resolve, reject) => {
+    networkSignal = options.signal;
+    options.signal.addEventListener('abort', () => {
+      reject(new DOMException('Aborted', 'AbortError'));
+    }, { once: true });
+  });
+
+  try {
+    const first = new AbortController();
+    const second = new AbortController();
+    const pendingA = catalog.resolveNeahplusStream('test-abort-channel', first.signal).catch((error) => error);
+    const pendingB = catalog.resolveNeahplusStream('test-abort-channel', second.signal).catch((error) => error);
+    first.abort();
+    await pendingA;
+    assert.equal(networkSignal.aborted, false, 'le second consommateur utilise encore la requête');
+    second.abort();
+    await pendingB;
+    assert.equal(networkSignal.aborted, true, 'la requête réseau est annulée après le dernier abandon');
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
