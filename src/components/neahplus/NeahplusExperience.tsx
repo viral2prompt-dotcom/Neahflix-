@@ -565,16 +565,20 @@ const NeahplusExperience = () => {
       .filter((group, index, groups) => Boolean(group?.variants[0]) && groups.findIndex((item) => item.key === group.key) === index);
 
     const prefetchNeighbors = async () => {
-      for (const group of neighbors) {
-        if (controller.signal.aborted) break;
-        const variant = group.variants[0];
-        if (!variant) continue;
-        try {
-          await resolveNeahplusStream(variant.id, controller.signal);
-        } catch {
-          if (controller.signal.aborted) break;
+      const queue = [...neighbors];
+      const worker = async () => {
+        while (queue.length > 0 && !controller.signal.aborted) {
+          const group = queue.shift();
+          const variant = group?.variants[0];
+          if (!variant) continue;
+          try {
+            await resolveNeahplusStream(variant.id, controller.signal);
+          } catch {
+            if (controller.signal.aborted) return;
+          }
         }
-      }
+      };
+      await Promise.all(Array.from({ length: Math.min(3, queue.length) }, () => worker()));
     };
 
     void prefetchNeighbors();
