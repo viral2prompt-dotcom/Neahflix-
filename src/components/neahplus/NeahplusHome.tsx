@@ -70,7 +70,7 @@ const NeahplusHome = ({ channels, now, query, onQueryChange, onSelectChannel, on
           }
         }
       }
-    }, { root: null, rootMargin: '260px 320px', threshold: 0.01 });
+    }, { root: null, rootMargin: '120px 48px', threshold: 0.01 });
     root.querySelectorAll<HTMLElement>('[data-neahplus-channel-id]').forEach((node) => observer.observe(node));
     return () => {
       observer.disconnect();
