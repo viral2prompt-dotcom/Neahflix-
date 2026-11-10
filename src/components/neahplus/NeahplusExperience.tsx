@@ -599,7 +599,7 @@ const NeahplusExperience = () => {
       const index = (preferredIndex + offset) % group.variants.length;
       if (controller.signal.aborted) return;
       try {
-        const streamUrl = await resolveNeahplusStream(group.variants[index].id, controller.signal);
+        await resolveNeahplusStream(group.variants[index].id, controller.signal);
         if (controller.signal.aborted) return;
         setActiveVariantIndex(index);
         setResolvingKey(null);
