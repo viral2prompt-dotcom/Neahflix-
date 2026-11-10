@@ -149,24 +149,46 @@ export const loadNeahplusCatalog = (signal?: AbortSignal, onFirstPage?: (catalog
 
 const RESOLVED_STREAM_CACHE_TTL_MS = 30_000;
 const RESOLVED_STREAM_CACHE_MAX_ENTRIES = 48;
-type ResolvedStreamEntry = { expiresAt: number; promise: Promise<string> };
+type ResolvedStreamEntry = {
+  expiresAt: number;
+  promise: Promise<string>;
+  controller: AbortController;
+  consumers: number;
+  settled: boolean;
+};
 const resolvedStreamCache = new Map<string, ResolvedStreamEntry>();
 
-const waitForStreamOrAbort = (promise: Promise<string>, signal: AbortSignal): Promise<string> => {
+const waitForStreamOrAbort = (entry: ResolvedStreamEntry, signal: AbortSignal): Promise<string> => {
   if (signal.aborted) return Promise.reject(new DOMException('Aborted', 'AbortError'));
+  entry.consumers += 1;
   return new Promise((resolve, reject) => {
-    const onAbort = () => {
+    let finished = false;
+    const release = () => {
+      if (finished) return;
+      finished = true;
       signal.removeEventListener('abort', onAbort);
+      entry.consumers = Math.max(0, entry.consumers - 1);
+      if (!entry.settled && entry.consumers === 0) {
+        entry.controller.abort();
+        for (const [id, current] of resolvedStreamCache) {
+          if (current === entry) resolvedStreamCache.delete(id);
+        }
+      }
+    };
+    const onAbort = () => {
+      release();
       reject(new DOMException('Aborted', 'AbortError'));
     };
     signal.addEventListener('abort', onAbort, { once: true });
-    promise.then(
+    entry.promise.then(
       (url) => {
-        signal.removeEventListener('abort', onAbort);
+        if (finished) return;
+        release();
         resolve(url);
       },
       (error: unknown) => {
-        signal.removeEventListener('abort', onAbort);
+        if (finished) return;
+        release();
         reject(error);
       },
     );
@@ -178,42 +200,53 @@ export const resolveNeahplusStream = async (channelId: string, signal: AbortSign
 
   const now = Date.now();
   for (const [id, entry] of resolvedStreamCache) {
-    if (entry.expiresAt <= now) resolvedStreamCache.delete(id);
+    if (entry.expiresAt <= now && entry.settled) resolvedStreamCache.delete(id);
   }
 
-  const cached = resolvedStreamCache.get(channelId);
-  if (cached) return waitForStreamOrAbort(cached.promise, signal);
-
-  const target = `${PLAY_ORIGIN}${encodeURIComponent(channelId)}`;
-  let entry: ResolvedStreamEntry;
-  const promise = fetchJson(`${RESOLVE_PATH}?url=${encodeURIComponent(target)}`, new AbortController().signal)
-    .then((data) => {
-      if (!isRecord(data) || typeof data.url !== 'string' || !data.url.startsWith(STREAM_PATH_PREFIX)) {
-        throw new NeahplusError('Flux NEAHPLUS invalide', 502);
-      }
-      return data.url;
-    })
-    .then((url) => {
-      if (resolvedStreamCache.get(channelId) === entry) {
-        entry.expiresAt = Date.now() + RESOLVED_STREAM_CACHE_TTL_MS;
-      }
-      return url;
-    })
-    .catch((error: unknown) => {
-      if (resolvedStreamCache.get(channelId) === entry) resolvedStreamCache.delete(channelId);
-      throw error;
-    });
-
-  entry = { expiresAt: Number.POSITIVE_INFINITY, promise };
-  resolvedStreamCache.set(channelId, entry);
+  let entry = resolvedStreamCache.get(channelId);
+  if (!entry) {
+    const controller = new AbortController();
+    const target = `${PLAY_ORIGIN}${encodeURIComponent(channelId)}`;
+    const created: ResolvedStreamEntry = {
+      expiresAt: Number.POSITIVE_INFINITY,
+      controller,
+      consumers: 0,
+      settled: false,
+      promise: Promise.resolve(''),
+    };
+    created.promise = fetchJson(`${RESOLVE_PATH}?url=${encodeURIComponent(target)}`, controller.signal)
+      .then((data) => {
+        if (!isRecord(data) || typeof data.url !== 'string' || !data.url.startsWith(STREAM_PATH_PREFIX)) {
+          throw new NeahplusError('Flux NEAHPLUS invalide', 502);
+        }
+        return data.url;
+      })
+      .then((url) => {
+        created.settled = true;
+        created.expiresAt = Date.now() + RESOLVED_STREAM_CACHE_TTL_MS;
+        return url;
+      })
+      .catch((error: unknown) => {
+        created.settled = true;
+        if (resolvedStreamCache.get(channelId) === created) resolvedStreamCache.delete(channelId);
+        throw error;
+      });
+    entry = created;
+    resolvedStreamCache.set(channelId, created);
+  }
 
   while (resolvedStreamCache.size > RESOLVED_STREAM_CACHE_MAX_ENTRIES) {
     const oldestId = resolvedStreamCache.keys().next().value as string | undefined;
-    if (!oldestId) break;
+    if (!oldestId || oldestId === channelId) break;
+    const oldest = resolvedStreamCache.get(oldestId);
+    if (oldest && !oldest.settled && oldest.consumers > 0) {
+      resolvedStreamCache.delete(oldestId);
+      continue;
+    }
     resolvedStreamCache.delete(oldestId);
   }
 
-  return waitForStreamOrAbort(promise, signal);
+  return waitForStreamOrAbort(entry, signal);
 };
 export const currentProgram = (channel: NeahplusChannel, now: number): NeahplusProgram | null =>
   channel.programs.find((program) => {
