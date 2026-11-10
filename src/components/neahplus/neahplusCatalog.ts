@@ -147,13 +147,56 @@ export const loadNeahplusCatalog = (signal?: AbortSignal, onFirstPage?: (catalog
   return promise;
 };
 
+const RESOLVED_STREAM_CACHE_TTL_MS = 30_000;
+const resolvedStreamCache = new Map<string, { expiresAt: number; promise: Promise<string> }>();
+
+const waitForStreamOrAbort = (promise: Promise<string>, signal: AbortSignal): Promise<string> => {
+  if (signal.aborted) return Promise.reject(new DOMException('Aborted', 'AbortError'));
+  return new Promise((resolve, reject) => {
+    const onAbort = () => {
+      signal.removeEventListener('abort', onAbort);
+      reject(new DOMException('Aborted', 'AbortError'));
+    };
+    signal.addEventListener('abort', onAbort, { once: true });
+    promise.then(
+      (url) => {
+        signal.removeEventListener('abort', onAbort);
+        resolve(url);
+      },
+      (error: unknown) => {
+        signal.removeEventListener('abort', onAbort);
+        reject(error);
+      },
+    );
+  });
+};
+
 export const resolveNeahplusStream = async (channelId: string, signal: AbortSignal): Promise<string> => {
-  const target = `${PLAY_ORIGIN}${encodeURIComponent(channelId)}`;
-  const data = await fetchJson(`${RESOLVE_PATH}?url=${encodeURIComponent(target)}`, signal);
-  if (!isRecord(data) || typeof data.url !== 'string' || !data.url.startsWith(STREAM_PATH_PREFIX)) {
-    throw new NeahplusError('Flux NEAHPLUS invalide', 502);
+  if (signal.aborted) throw new DOMException('Aborted', 'AbortError');
+
+  const cached = resolvedStreamCache.get(channelId);
+  if (cached && cached.expiresAt > Date.now()) {
+    return waitForStreamOrAbort(cached.promise, signal);
   }
-  return data.url;
+
+  const target = `${PLAY_ORIGIN}${encodeURIComponent(channelId)}`;
+  const promise = fetchJson(`${RESOLVE_PATH}?url=${encodeURIComponent(target)}`, new AbortController().signal)
+    .then((data) => {
+      if (!isRecord(data) || typeof data.url !== 'string' || !data.url.startsWith(STREAM_PATH_PREFIX)) {
+        throw new NeahplusError('Flux NEAHPLUS invalide', 502);
+      }
+      return data.url;
+    })
+    .catch((error: unknown) => {
+      resolvedStreamCache.delete(channelId);
+      throw error;
+    });
+
+  resolvedStreamCache.set(channelId, {
+    expiresAt: Date.now() + RESOLVED_STREAM_CACHE_TTL_MS,
+    promise,
+  });
+  return waitForStreamOrAbort(promise, signal);
 };
 
 export const currentProgram = (channel: NeahplusChannel, now: number): NeahplusProgram | null =>
