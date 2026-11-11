@@ -320,8 +320,6 @@ const NeahplusExperience = () => {
     setPlayerVolume(volume);
   }, []);
   const handlePlayerStreamReady = useCallback(() => setZappingDirection(null), []);
-  const prefetchHomeChannel = useCallback((channel: NeahplusChannel, signal: AbortSignal) =>
-    resolveNeahplusStream(channel.id, signal), []);
   const [showQuickSearch, setShowQuickSearch] = useState(false);
   const [showChannelList, setShowChannelList] = useState(false);
   const [quickListVisibleCount, setQuickListVisibleCount] = useState(80);
@@ -556,7 +554,8 @@ const NeahplusExperience = () => {
   // Le cache du résolveur déduplique les demandes déjà lancées par le lecteur.
   useEffect(() => {
     // Prioriser le flux choisi depuis l'accueil avant les préchargements voisins.
-    if (homeNavigationPhase === 'entering' || !selectedGroupKey || carouselGroups.length < 2) return undefined;
+    // Ne pas concurrencer la première résolution du flux sélectionné.
+    if (homeNavigationPhase === 'entering' || !selectedGroupKey || resolvingKey === selectedGroupKey || carouselGroups.length < 2) return undefined;
     const controller = new AbortController();
     const currentIndex = carouselGroups.findIndex((group) => group.key === selectedGroupKey);
     if (currentIndex < 0) return undefined;
@@ -584,7 +583,7 @@ const NeahplusExperience = () => {
 
     void prefetchNeighbors();
     return () => controller.abort();
-  }, [selectedGroupKey, carouselGroups, homeNavigationPhase]);
+  }, [selectedGroupKey, carouselGroups, homeNavigationPhase, resolvingKey]);
 
   useEffect(() => { setQuickListVisibleCount(80); }, [quickListQuery]);
 
@@ -1345,7 +1344,6 @@ const NeahplusExperience = () => {
                 query={query}
                 onQueryChange={setQuery}
                 onSelectChannel={openChannelFromHome}
-                onPrefetchChannel={prefetchHomeChannel}
                 displayNamesByChannelId={displayNamesByChannelId}
                 isFavorite={isFavoriteChannel}
                 onToggleFavorite={toggleFavoriteChannel}
