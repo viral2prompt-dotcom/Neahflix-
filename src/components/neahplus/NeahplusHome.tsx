@@ -175,7 +175,7 @@ const NeahplusHome = ({ channels, now, query, onQueryChange, onSelectChannel, on
               : searchableChannels.filter((channel) => category.match(foldText([channel.name, ...channel.categories].join(' '))));
             if (rowChannels.length === 0) return null;
             return (
-              <section key={category.id} className="space-y-4" aria-label={`Catégorie ${category.title}`} style={{ contentVisibility: 'auto', containIntrinsicSize: 'auto 480px' }}>
+              <section key={category.id} className="space-y-4" aria-label={`Catégorie ${category.title}`} style={{ contentVisibility: 'auto', containIntrinsicSize: 'auto 360px' }}>
                 <div className="flex items-end justify-between gap-3 border-b border-white/[0.08] pb-3">
                   <div className="min-w-0">
                     <p className="inline-flex max-w-full rounded-full border border-white/35 px-2.5 py-1 text-[9px] font-bold uppercase tracking-[0.14em] text-white/80">{category.kicker}</p>
