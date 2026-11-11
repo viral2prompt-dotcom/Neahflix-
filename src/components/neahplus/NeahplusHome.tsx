@@ -51,6 +51,13 @@ const NeahplusHome = ({ channels, now, query, onQueryChange, onSelectChannel, on
     a.name.localeCompare(b.name, 'fr')
   ), [channels, needle, now, displayNamesByChannelId]);
 
+  const categoryRows = useMemo(() => categories.map((category) => ({
+    category,
+    channels: category.id === 'all'
+      ? searchableChannels
+      : searchableChannels.filter((channel) => category.match(foldText([channel.name, ...channel.categories].join(' ')))),
+  })), [searchableChannels]);
+
   const scrollRow = (id: string, direction: 1 | -1) => {
     const row = rowRefs.current[id];
     if (row) row.scrollBy({ left: row.clientWidth * direction * 0.85, behavior: 'smooth' });
@@ -170,10 +177,7 @@ const NeahplusHome = ({ channels, now, query, onQueryChange, onSelectChannel, on
           <NeahplusHero />
           <NeahplusDiscoveryShelf />
           <div id="neahplus-categories" className="scroll-mt-6 space-y-10 sm:space-y-12">
-          {categories.map((category) => {
-            const rowChannels = category.id === 'all'
-              ? searchableChannels
-              : searchableChannels.filter((channel) => category.match(foldText([channel.name, ...channel.categories].join(' '))));
+          {categoryRows.map(({ category, channels: rowChannels }) => {
             if (rowChannels.length === 0) return null;
             return (
               <section key={category.id} className="space-y-4" aria-label={`Catégorie ${category.title}`} style={{ contentVisibility: 'auto', containIntrinsicSize: 'auto 360px' }}>
