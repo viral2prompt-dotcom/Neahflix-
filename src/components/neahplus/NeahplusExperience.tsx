@@ -288,6 +288,7 @@ const NeahplusExperience = () => {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [drawerMounted, setDrawerMounted] = useState(false);
   const [homeNavigationPhase, setHomeNavigationPhase] = useState<'idle' | 'entering'>('idle');
+  const [homePlayerStartDeferred, setHomePlayerStartDeferred] = useState(false);
   const [spaceName, setSpaceName] = useState(() => {
     try { return localStorage.getItem('neahplus:space-name') || 'Mon espace NEAHPLUS'; } catch { return 'Mon espace NEAHPLUS'; }
   });
@@ -338,6 +339,7 @@ const NeahplusExperience = () => {
 
   const navigateTo = useCallback((next: Tab) => {
     setDrawerOpen(false);
+    setHomePlayerStartDeferred(false);
     if (['home', 'favorites', 'countries', 'settings'].includes(next)) {
       setSelectedGroupKey(null);
     }
@@ -358,6 +360,7 @@ const NeahplusExperience = () => {
 
   const goBack = useCallback(() => {
     setDrawerOpen(false);
+    setHomePlayerStartDeferred(false);
     if (pendingNavigationFrame.current !== null) {
       window.cancelAnimationFrame(pendingNavigationFrame.current);
       pendingNavigationFrame.current = null;
@@ -684,6 +687,7 @@ const NeahplusExperience = () => {
 
     // Sélectionner et afficher le lecteur immédiatement, sans lancer le réseau.
     handleSelectChannel(channel, false, false);
+    setHomePlayerStartDeferred(true);
     pendingViewerScroll.current = true;
     setTab('all');
 
@@ -691,6 +695,7 @@ const NeahplusExperience = () => {
     pendingNavigationFrame.current = window.requestAnimationFrame(() => {
       pendingNavigationFrame.current = window.requestAnimationFrame(() => {
         pendingNavigationFrame.current = null;
+        setHomePlayerStartDeferred(false);
         const preferredIndex = group.variants.findIndex((variant) => variant.id === channel.id);
         void resolveBestVariant(group, preferredIndex >= 0 ? preferredIndex : 0);
       });
@@ -1098,7 +1103,7 @@ const NeahplusExperience = () => {
                   <button type="button" onClick={() => showChannelList ? setShowChannelList(false) : openChannelList()} aria-expanded={showChannelList} aria-controls="neahplus-quick-channel-list" className={`inline-flex items-center gap-2 rounded-lg border px-3 py-1.5 text-[11px] font-semibold transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#55dddd] ${showChannelList ? 'border-[#55dddd] bg-[#20c7c7]/20 text-[#a5ffff] shadow-[0_0_16px_rgba(32,199,199,.18)]' : 'border-[#20c7c7]/35 text-white/80 hover:border-[#55dddd] hover:bg-[#20c7c7]/15 hover:text-white active:border-[#55dddd] active:bg-[#20c7c7]/25'}`}><ListVideo className="h-3.5 w-3.5" /> Liste des chaînes</button>
                 </div>
                 <NeahplusPlayer
-                  isActive={Boolean(selectedGroupKey)}
+                  isActive={Boolean(selectedGroupKey) && !homePlayerStartDeferred}
                   streamUrl={null}
                   direction={zappingDirection}
                   onStreamReady={handlePlayerStreamReady}
