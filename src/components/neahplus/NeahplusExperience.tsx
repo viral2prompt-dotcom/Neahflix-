@@ -289,6 +289,7 @@ const NeahplusExperience = () => {
   const [drawerMounted, setDrawerMounted] = useState(false);
   const [homeNavigationPhase, setHomeNavigationPhase] = useState<'idle' | 'entering'>('idle');
   const [homePlayerStartDeferred, setHomePlayerStartDeferred] = useState(false);
+  const [streamReadyGroupKey, setStreamReadyGroupKey] = useState<string | null>(null);
   const [spaceName, setSpaceName] = useState(() => {
     try { return localStorage.getItem('neahplus:space-name') || 'Mon espace NEAHPLUS'; } catch { return 'Mon espace NEAHPLUS'; }
   });
@@ -319,7 +320,10 @@ const NeahplusExperience = () => {
     setPlayerMuted(muted);
     setPlayerVolume(volume);
   }, []);
-  const handlePlayerStreamReady = useCallback(() => setZappingDirection(null), []);
+  const handlePlayerStreamReady = useCallback(() => {
+    setZappingDirection(null);
+    setStreamReadyGroupKey(selectedGroupKey);
+  }, [selectedGroupKey]);
   const [showQuickSearch, setShowQuickSearch] = useState(false);
   const [showChannelList, setShowChannelList] = useState(false);
   const [quickListVisibleCount, setQuickListVisibleCount] = useState(80);
@@ -555,7 +559,7 @@ const NeahplusExperience = () => {
   useEffect(() => {
     // Prioriser le flux choisi depuis l'accueil avant les préchargements voisins.
     // Ne pas concurrencer la première résolution du flux sélectionné.
-    if (homeNavigationPhase === 'entering' || !selectedGroupKey || resolvingKey === selectedGroupKey || carouselGroups.length < 2) return undefined;
+    if (homeNavigationPhase === 'entering' || !selectedGroupKey || resolvingKey === selectedGroupKey || streamReadyGroupKey !== selectedGroupKey || carouselGroups.length < 2) return undefined;
     const controller = new AbortController();
     const currentIndex = carouselGroups.findIndex((group) => group.key === selectedGroupKey);
     if (currentIndex < 0) return undefined;
@@ -583,7 +587,7 @@ const NeahplusExperience = () => {
 
     void prefetchNeighbors();
     return () => controller.abort();
-  }, [selectedGroupKey, carouselGroups, homeNavigationPhase, resolvingKey]);
+  }, [selectedGroupKey, carouselGroups, homeNavigationPhase, resolvingKey, streamReadyGroupKey]);
 
   useEffect(() => { setQuickListVisibleCount(80); }, [quickListQuery]);
 
