@@ -24,7 +24,8 @@ import {
   VolumeX,
   X,
 } from 'lucide-react';
-import NeahplusPlayer, { preloadNeahplusPlayer } from './NeahplusPlayer';
+import NeahplusPlayer from './NeahplusPlayer';
+import { preloadNeahplusPlayer } from './neahplusPlayerLoader';
 import ChannelCarousel from './ChannelCarousel';
 import ProgramSynopsis from './ProgramSynopsis';
 import InfoPanel from './InfoPanel';
@@ -52,7 +53,6 @@ import {
   migrateLegacyFavorites,
   loadChannelDisplayNames,
   saveChannelDisplayNames,
-  getNextProgram,
   saveFavorites,
   shortChannelName,
 } from './neahplusTvUtils';
@@ -616,6 +616,7 @@ const NeahplusExperience = () => {
         setResolvingKey(null);
         return;
       } catch {
+        // Cette variante est indisponible ; essayer la suivante.
       }
     }
 
