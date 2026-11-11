@@ -4,22 +4,7 @@ import type Hls from 'hls.js';
 import { safePlay } from '@/utils/safePlay';
 import { NeahplusError, resolveNeahplusStream } from './neahplusCatalog';
 
-let hlsModulePromise: Promise<typeof import('hls.js')> | null = null;
-
-const loadHlsModule = (): Promise<typeof import('hls.js')> => {
-  if (!hlsModulePromise) {
-    hlsModulePromise = import('hls.js').catch((error: unknown) => {
-      hlsModulePromise = null;
-      throw error;
-    });
-  }
-  return hlsModulePromise;
-};
-
-// Charge uniquement le code du lecteur pendant le toucher, sans demander de flux vidéo.
-export const preloadNeahplusPlayer = (): void => {
-  void loadHlsModule().catch(() => undefined);
-};
+import { loadHlsModule } from './neahplusPlayerLoader';
 
 type PlayerStatus = 'resolving' | 'loading' | 'playing' | 'paused' | 'error';
 type ZappingDirection = 'next' | 'previous' | null;
@@ -80,6 +65,7 @@ const NeahplusPlayer = ({
 
   useEffect(() => {
     if (!isActive) return undefined;
+    const hlsInstances = hlsInstances;
     const generation = ++generationRef.current;
     const targetSlot = 1 - activeSlotRef.current;
     const video = videoRefs.current[targetSlot];
@@ -89,8 +75,8 @@ const NeahplusPlayer = ({
     let failed = false;
     let candidateHls: Hls | null = null;
     let playRequested = false;
-    hlsRefs.current[targetSlot]?.destroy();
-    hlsRefs.current[targetSlot] = null;
+    hlsInstances[targetSlot]?.destroy();
+    hlsInstances[targetSlot] = null;
     video.pause();
     video.removeAttribute('src');
     video.load();
@@ -103,7 +89,7 @@ const NeahplusPlayer = ({
       failed = true;
       candidateHls?.destroy();
       candidateHls = null;
-      hlsRefs.current[targetSlot] = null;
+      hlsInstances[targetSlot] = null;
       video.pause();
       video.removeAttribute('src');
       video.load();
@@ -137,8 +123,8 @@ const NeahplusPlayer = ({
 
       if (previousVideo) {
         previousVideo.pause();
-        hlsRefs.current[previousSlot]?.destroy();
-        hlsRefs.current[previousSlot] = null;
+        hlsInstances[previousSlot]?.destroy();
+        hlsInstances[previousSlot] = null;
         previousVideo.removeAttribute('src');
         previousVideo.load();
       }
@@ -176,7 +162,7 @@ const NeahplusPlayer = ({
       if (HlsLib.isSupported()) {
         const instance = new HlsLib({ enableWorker: true, autoStartLoad: true });
         candidateHls = instance;
-        hlsRefs.current[targetSlot] = instance;
+        hlsInstances[targetSlot] = instance;
         instance.on(HlsLib.Events.ERROR, (_event, data) => {
           if (data.fatal) fail(new Error(data.details));
         });
@@ -204,7 +190,7 @@ const NeahplusPlayer = ({
       video.removeEventListener('canplay', startPlayback);
       if (activeSlotRef.current !== targetSlot) {
         candidateHls?.destroy();
-        if (hlsRefs.current[targetSlot] === candidateHls) hlsRefs.current[targetSlot] = null;
+        if (hlsInstances[targetSlot] === candidateHls) hlsInstances[targetSlot] = null;
         video.pause();
         video.removeAttribute('src');
         video.load();
