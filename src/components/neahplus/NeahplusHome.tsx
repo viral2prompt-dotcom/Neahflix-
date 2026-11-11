@@ -1,6 +1,7 @@
 import { getNeahplusChannelLogo, getNeahplusChannelPriority } from './neahplusBranding';
 import NeahplusDiscoveryShelf from './NeahplusDiscoveryShelf';
 import NeahplusHero from './NeahplusHero';
+import NeahplusVirtualizedRow from './NeahplusVirtualizedRow';
 import { useMemo, useRef, useState } from 'react';
 import type { MouseEvent as ReactMouseEvent, PointerEvent as ReactPointerEvent } from 'react';
 import { ChevronLeft, ChevronRight, Heart, Loader2, Pencil, Play, Search } from 'lucide-react';
@@ -188,9 +189,13 @@ const NeahplusHome = ({ channels, now, query, onQueryChange, onSelectChannel, on
                     <button type="button" onClick={() => scrollRow(category.id, 1)} aria-label={`Chaînes suivantes : ${category.title}`} className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/10 bg-white/[0.05] text-white/65 transition hover:border-[#20c7c7]/50 hover:text-white"><ChevronRight className="h-4 w-4" /></button>
                   </div>
                 </div>
-                <div ref={(element) => { rowRefs.current[category.id] = element; }} className="flex gap-3 overflow-x-auto overscroll-x-contain pb-3 [scrollbar-width:thin] [scrollbar-color:rgba(32,199,199,.35)_transparent] snap-x snap-mandatory [touch-action:pan-x_pan-y] sm:gap-4" aria-label={`Chaînes de la catégorie ${category.title}, défilement horizontal`}>
-                  {rowChannels.map(renderChannelCard)}
-                </div>
+                <NeahplusVirtualizedRow
+                  channels={rowChannels}
+                  renderCard={renderChannelCard}
+                  label={`Chaînes de la catégorie ${category.title}, défilement horizontal`}
+                  setRowElement={(element) => { rowRefs.current[category.id] = element; }}
+                  className="flex gap-3 overflow-x-auto overscroll-x-contain pb-3 [scrollbar-width:thin] [scrollbar-color:rgba(32,199,199,.35)_transparent] snap-x snap-mandatory [touch-action:pan-x_pan-y] sm:gap-4"
+                />
               </section>
             );
           })}
