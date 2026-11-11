@@ -365,6 +365,7 @@ const NeahplusExperience = () => {
   const goBack = useCallback(() => {
     setDrawerOpen(false);
     setHomePlayerStartDeferred(false);
+    setSuppressPlayerEntranceAnimation(false);
     if (pendingNavigationFrame.current !== null) {
       window.cancelAnimationFrame(pendingNavigationFrame.current);
       pendingNavigationFrame.current = null;
