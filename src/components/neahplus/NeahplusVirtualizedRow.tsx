@@ -21,7 +21,9 @@ const NeahplusVirtualizedRow = ({
   setRowElement,
 }: NeahplusVirtualizedRowProps) => {
   const rowRef = useRef<HTMLDivElement | null>(null);
-  const [isNearViewport, setIsNearViewport] = useState(false);
+  const [isNearViewport, setIsNearViewport] = useState(
+    () => typeof IntersectionObserver === 'undefined'
+  );
   const [windowRange, setWindowRange] = useState(() => ({
     start: 0,
     end: Math.min(channels.length, INITIAL_CARD_WINDOW),
@@ -79,7 +81,6 @@ const NeahplusVirtualizedRow = ({
       }, { rootMargin: '300px 0px' })
       : null;
     intersectionObserver?.observe(row);
-    if (!intersectionObserver) setIsNearViewport(true);
     window.addEventListener('resize', scheduleUpdate, { passive: true });
 
     scheduleUpdate();
