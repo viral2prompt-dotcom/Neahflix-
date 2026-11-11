@@ -45,6 +45,7 @@ const NeahplusVirtualizedRow = ({
 
       const cardWidth = firstCard.getBoundingClientRect().width;
       const gap = Number.parseFloat(window.getComputedStyle(row).columnGap) || 0;
+      if (cardWidth <= 0) return;
       const pitch = cardWidth + gap;
       if (pitch <= 0) return;
 
