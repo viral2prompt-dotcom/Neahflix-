@@ -24,6 +24,8 @@ const NeahplusVirtualizedRow = ({
   const [windowRange, setWindowRange] = useState(() => ({
     start: 0,
     end: Math.min(channels.length, INITIAL_CARD_WINDOW),
+    pitch: 0,
+    gap: 0,
   }));
 
   useEffect(() => {
