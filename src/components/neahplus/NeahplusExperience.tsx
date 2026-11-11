@@ -287,7 +287,6 @@ const NeahplusExperience = () => {
   const [tab, setTab] = useState<Tab>('home');
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [drawerMounted, setDrawerMounted] = useState(false);
-  const [pendingChannelId, setPendingChannelId] = useState<string | null>(null);
   const [homeNavigationPhase, setHomeNavigationPhase] = useState<'idle' | 'entering'>('idle');
   const [spaceName, setSpaceName] = useState(() => {
     try { return localStorage.getItem('neahplus:space-name') || 'Mon espace NEAHPLUS'; } catch { return 'Mon espace NEAHPLUS'; }
@@ -349,7 +348,6 @@ const NeahplusExperience = () => {
     if (pendingNavigationTimer.current !== null) {
       window.clearTimeout(pendingNavigationTimer.current);
       pendingNavigationTimer.current = null;
-      setPendingChannelId(null);
       setHomeNavigationPhase('idle');
     }
     homeSelectionLock.current = false;
@@ -367,7 +365,6 @@ const NeahplusExperience = () => {
     if (pendingNavigationTimer.current !== null) {
       window.clearTimeout(pendingNavigationTimer.current);
       pendingNavigationTimer.current = null;
-      setPendingChannelId(null);
       setHomeNavigationPhase('idle');
     }
     homeSelectionLock.current = false;
@@ -650,7 +647,7 @@ const NeahplusExperience = () => {
     handleSelectGroup(carouselGroups[nextIndex], direction > 0 ? 'next' : 'previous');
   }, [carouselGroups, selectedGroupKey, handleSelectGroup]);
 
-  const handleSelectChannel = useCallback((channel: NeahplusChannel, scrollToTop = true) => {
+  const handleSelectChannel = useCallback((channel: NeahplusChannel, scrollToTop = true, resolveStream = true) => {
     const group = groupByChannelId.get(channel.id);
     if (!group) return;
     const vIdx = group.variants.findIndex((v) => v.id === channel.id);
@@ -659,7 +656,13 @@ const NeahplusExperience = () => {
     setZappingDirection(currentIndex >= 0 && targetIndex >= 0 && currentIndex !== targetIndex ? (targetIndex > currentIndex ? 'next' : 'previous') : null);
     setSelectedGroupKey(group.key);
     setActiveVariantIndex(vIdx >= 0 ? vIdx : 0);
-    void resolveBestVariant(group, vIdx >= 0 ? vIdx : 0);
+    if (resolveStream) {
+      void resolveBestVariant(group, vIdx >= 0 ? vIdx : 0);
+    } else {
+      resolvingRef.current?.abort();
+      resolvingRef.current = null;
+      setResolvingKey(null);
+    }
     if (scrollToTop) {
       window.requestAnimationFrame(() => {
         mainContentRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
@@ -670,26 +673,34 @@ const NeahplusExperience = () => {
 
   const openChannelFromHome = useCallback((channel: NeahplusChannel) => {
     if (homeSelectionLock.current) return;
+    const group = groupByChannelId.get(channel.id);
+    if (!group) return;
     homeSelectionLock.current = true;
     if (pendingNavigationTimer.current !== null) window.clearTimeout(pendingNavigationTimer.current);
+    if (pendingNavigationFrame.current !== null) window.cancelAnimationFrame(pendingNavigationFrame.current);
     setHomeNavigationPhase('entering');
-    setPendingChannelId(channel.id);
     if (tab !== 'all') navigationHistory.current.push(tab);
-    handleSelectChannel(channel, false);
 
-    // Une frame suffit pour afficher le retour tactile avant la navigation.
+    // Sélectionner et afficher le lecteur immédiatement, sans lancer le réseau.
+    handleSelectChannel(channel, false, false);
+    pendingViewerScroll.current = true;
+    setTab('all');
+
+    // Laisser une image complète à l'écran avant de démarrer la résolution du flux.
     pendingNavigationFrame.current = window.requestAnimationFrame(() => {
-      pendingNavigationFrame.current = null;
-      pendingViewerScroll.current = true;
-      setTab('all');
-      pendingNavigationTimer.current = window.setTimeout(() => {
-        setHomeNavigationPhase('idle');
-        setPendingChannelId(null);
-        pendingNavigationTimer.current = null;
-        homeSelectionLock.current = false;
-      }, 360);
+      pendingNavigationFrame.current = window.requestAnimationFrame(() => {
+        pendingNavigationFrame.current = null;
+        const preferredIndex = group.variants.findIndex((variant) => variant.id === channel.id);
+        void resolveBestVariant(group, preferredIndex >= 0 ? preferredIndex : 0);
+      });
     });
-  }, [handleSelectChannel, tab]);
+
+    pendingNavigationTimer.current = window.setTimeout(() => {
+      setHomeNavigationPhase('idle');
+      pendingNavigationTimer.current = null;
+      homeSelectionLock.current = false;
+    }, 160);
+  }, [groupByChannelId, handleSelectChannel, resolveBestVariant, tab]);
 
   const isFavoriteChannel = useCallback((channel: NeahplusChannel) => {
     const group = groupByChannelId.get(channel.id);
@@ -1332,7 +1343,6 @@ const NeahplusExperience = () => {
                 displayNamesByChannelId={displayNamesByChannelId}
                 isFavorite={isFavoriteChannel}
                 onToggleFavorite={toggleFavoriteChannel}
-                pendingChannelId={pendingChannelId}
                 mode={tab === 'favorites' ? 'favorites' : 'home'}
                 spaceName={spaceName}
                 countryLabel={country || 'Tous les pays'}
