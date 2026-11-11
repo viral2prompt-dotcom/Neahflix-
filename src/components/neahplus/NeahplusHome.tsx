@@ -1,7 +1,7 @@
 import { getNeahplusChannelLogo, getNeahplusChannelPriority } from './neahplusBranding';
 import NeahplusDiscoveryShelf from './NeahplusDiscoveryShelf';
 import NeahplusHero from './NeahplusHero';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import type { MouseEvent as ReactMouseEvent, PointerEvent as ReactPointerEvent } from 'react';
 import { ChevronLeft, ChevronRight, Heart, Loader2, Pencil, Play, Search } from 'lucide-react';
 import type { NeahplusChannel } from './neahplusCatalog';
@@ -14,7 +14,6 @@ interface NeahplusHomeProps {
   query: string;
   onQueryChange: (value: string) => void;
   onSelectChannel: (channel: NeahplusChannel) => void;
-  onPrefetchChannel: (channel: NeahplusChannel, signal: AbortSignal) => Promise<unknown>;
   displayNamesByChannelId: ReadonlyMap<string, string>;
   isFavorite: (channel: NeahplusChannel) => boolean;
   onToggleFavorite: (channel: NeahplusChannel) => void;
@@ -33,48 +32,13 @@ const categories = [
   { id: 'entertainment', title: 'Divertissement', kicker: 'SÉRIES, MUSIQUE ET CULTURE', subtitle: 'Séries, musique, humour et rendez-vous populaires.', match: (source: string) => /divertissement|comedie|humour|musique|tv5|france 2|france 3|tf1|m6|tfx|w9|pop|novelas|nollywood|trace|a\+/.test(source) },
 ];
 
-const NeahplusHome = ({ channels, now, query, onQueryChange, onSelectChannel, onPrefetchChannel, displayNamesByChannelId, isFavorite, onToggleFavorite, mode, spaceName, countryLabel, onRenameSpace }: NeahplusHomeProps) => {
+const NeahplusHome = ({ channels, now, query, onQueryChange, onSelectChannel, displayNamesByChannelId, isFavorite, onToggleFavorite, mode, spaceName, countryLabel, onRenameSpace }: NeahplusHomeProps) => {
   const rowRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const homeRootRef = useRef<HTMLDivElement>(null);
   const [searchFocused, setSearchFocused] = useState(false);
   const needle = foldText(query.trim());
-  useEffect(() => {
-    const root = homeRootRef.current;
-    if (!root || typeof IntersectionObserver === 'undefined') return undefined;
-    const controllers = new Map<string, AbortController>();
-    const visibleCards = new Map<string, Set<Element>>();
-    const observer = new IntersectionObserver((entries) => {
-      for (const entry of entries) {
-        const channelId = (entry.target as HTMLElement).dataset.neahplusChannelId;
-        const channel = channels.find((item) => item.id === channelId);
-        if (!channelId || !channel) continue;
-        const cards = visibleCards.get(channelId) ?? new Set<Element>();
-        if (entry.isIntersecting) {
-          cards.add(entry.target);
-          visibleCards.set(channelId, cards);
-          if (!controllers.has(channelId)) {
-            const controller = new AbortController();
-            controllers.set(channelId, controller);
-            void onPrefetchChannel(channel, controller.signal).catch(() => undefined);
-          }
-        } else {
-          cards.delete(entry.target);
-          if (cards.size === 0) {
-            visibleCards.delete(channelId);
-            controllers.get(channelId)?.abort();
-            controllers.delete(channelId);
-          } else {
-            visibleCards.set(channelId, cards);
-          }
-        }
-      }
-    }, { root: null, rootMargin: '120px 48px', threshold: 0.01 });
-    root.querySelectorAll<HTMLElement>('[data-neahplus-channel-id]').forEach((node) => observer.observe(node));
-    return () => {
-      observer.disconnect();
-      controllers.forEach((controller) => controller.abort());
-    };
-  }, [channels, onPrefetchChannel, mode, needle]);
+  // Les cartes d'accueil chargent uniquement leurs éléments visuels. La résolution
+  // des flux est réservée à la page de visualisation après son premier affichage.
   const searchableChannels = useMemo(() => channels.filter((channel) => {
     if (!needle) return true;
     const displayName = displayNamesByChannelId.get(channel.id) ?? channel.name;
