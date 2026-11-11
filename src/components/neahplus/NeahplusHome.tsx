@@ -18,7 +18,6 @@ interface NeahplusHomeProps {
   displayNamesByChannelId: ReadonlyMap<string, string>;
   isFavorite: (channel: NeahplusChannel) => boolean;
   onToggleFavorite: (channel: NeahplusChannel) => void;
-  pendingChannelId: string | null;
   mode: 'home' | 'favorites';
   spaceName: string;
   countryLabel: string;
@@ -34,11 +33,10 @@ const categories = [
   { id: 'entertainment', title: 'Divertissement', kicker: 'SÉRIES, MUSIQUE ET CULTURE', subtitle: 'Séries, musique, humour et rendez-vous populaires.', match: (source: string) => /divertissement|comedie|humour|musique|tv5|france 2|france 3|tf1|m6|tfx|w9|pop|novelas|nollywood|trace|a\+/.test(source) },
 ];
 
-const NeahplusHome = ({ channels, now, query, onQueryChange, onSelectChannel, onPrefetchChannel, displayNamesByChannelId, isFavorite, onToggleFavorite, pendingChannelId, mode, spaceName, countryLabel, onRenameSpace }: NeahplusHomeProps) => {
+const NeahplusHome = ({ channels, now, query, onQueryChange, onSelectChannel, onPrefetchChannel, displayNamesByChannelId, isFavorite, onToggleFavorite, mode, spaceName, countryLabel, onRenameSpace }: NeahplusHomeProps) => {
   const rowRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const homeRootRef = useRef<HTMLDivElement>(null);
   const [searchFocused, setSearchFocused] = useState(false);
-  const [pressedChannelId, setPressedChannelId] = useState<string | null>(null);
   const needle = foldText(query.trim());
   useEffect(() => {
     const root = homeRootRef.current;
@@ -97,26 +95,71 @@ const NeahplusHome = ({ channels, now, query, onQueryChange, onSelectChannel, on
     const program = currentProgram(channel, now);
     const displayName = displayNamesByChannelId.get(channel.id) ?? channel.name;
     const favorited = isFavorite(channel);
-    const pending = pendingChannelId === channel.id;
-    const loading = pending || pressedChannelId === channel.id;
     const logo = channel.logo ?? getNeahplusChannelLogo(channel.name);
+    const clearPressed = (button: HTMLButtonElement) => {
+      button.closest('article')?.classList.remove('neahplus-card-pressed');
+    };
     const touchProps = {
-      onPointerDown: () => setPressedChannelId(channel.id),
-      onPointerUp: () => setPressedChannelId(null),
-      onPointerCancel: () => setPressedChannelId(null),
-      onLostPointerCapture: () => setPressedChannelId(null),
+      onPointerDown: (event: ReactPointerEvent<HTMLButtonElement>) => {
+        if (event.pointerType === 'mouse' && event.button !== 0) return;
+        const button = event.currentTarget;
+        button.dataset.neahplusStartX = String(event.clientX);
+        button.dataset.neahplusStartY = String(event.clientY);
+        button.dataset.neahplusMoved = 'false';
+        button.closest('article')?.classList.add('neahplus-card-pressed');
+      },
+      onPointerMove: (event: ReactPointerEvent<HTMLButtonElement>) => {
+        const button = event.currentTarget;
+        if (button.dataset.neahplusStartX === undefined) return;
+        const dx = event.clientX - Number(button.dataset.neahplusStartX);
+        const dy = event.clientY - Number(button.dataset.neahplusStartY);
+        if (Math.hypot(dx, dy) > 10) {
+          button.dataset.neahplusMoved = 'true';
+          clearPressed(button);
+        }
+      },
+      onPointerUp: (event: ReactPointerEvent<HTMLButtonElement>) => {
+        const button = event.currentTarget;
+        const moved = button.dataset.neahplusMoved === 'true';
+        delete button.dataset.neahplusStartX;
+        delete button.dataset.neahplusStartY;
+        delete button.dataset.neahplusMoved;
+        if (!moved) {
+          button.dataset.neahplusPointerHandled = 'true';
+          onSelectChannel(channel);
+        } else {
+          clearPressed(button);
+        }
+      },
+      onPointerCancel: (event: ReactPointerEvent<HTMLButtonElement>) => {
+        delete event.currentTarget.dataset.neahplusStartX;
+        delete event.currentTarget.dataset.neahplusStartY;
+        delete event.currentTarget.dataset.neahplusMoved;
+        clearPressed(event.currentTarget);
+      },
+      onLostPointerCapture: (event: ReactPointerEvent<HTMLButtonElement>) => {
+        if (event.currentTarget.dataset.neahplusPointerHandled !== 'true') clearPressed(event.currentTarget);
+      },
       onPointerLeave: (event: ReactPointerEvent<HTMLButtonElement>) => {
-        if (event.pointerType === 'mouse' && !pending) setPressedChannelId(null);
+        if (event.pointerType === 'mouse' && event.currentTarget.dataset.neahplusPointerHandled !== 'true') clearPressed(event.currentTarget);
       },
     };
+    const handleChannelClick = (event: React.MouseEvent<HTMLButtonElement>) => {
+      if (event.currentTarget.dataset.neahplusPointerHandled === 'true') {
+        delete event.currentTarget.dataset.neahplusPointerHandled;
+        event.preventDefault();
+        return;
+      }
+      onSelectChannel(channel);
+    };
     return (
-      <article key={channel.id} data-neahplus-channel-id={channel.id} className={`group w-[calc(50vw-2.25rem)] max-w-[230px] shrink-0 snap-start overflow-visible rounded-xl border bg-[#102027] transition-[border-color,box-shadow,transform,outline] duration-75 sm:w-[190px] ${loading ? '!duration-0 border-[#173b5e] bg-[#173b5e]/10 ring-2 ring-[#173b5e]/80 outline outline-2 outline-[#173b5e] shadow-lg shadow-[#173b5e]/35' : 'border-white/10 hover:border-[#20c7c7]/50'}`}>
-        <button type="button" onClick={() => onSelectChannel(channel)} disabled={pending} aria-label={loading ? `Connexion à ${displayName}` : `Regarder ${displayName}`} {...touchProps} className="block w-full text-left transition-transform duration-75 active:scale-[0.985] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#20c7c7]">
+      <article key={channel.id} data-neahplus-channel-id={channel.id} className="group w-[calc(50vw-2.25rem)] max-w-[230px] shrink-0 snap-start overflow-visible rounded-xl border border-white/10 bg-[#102027] transition-[border-color,box-shadow,transform,outline] duration-75 hover:border-[#20c7c7]/50 sm:w-[190px]">
+        <button type="button" onClick={handleChannelClick} aria-label={`Regarder ${displayName}`} {...touchProps} className="block w-full text-left transition-transform duration-75 active:scale-[0.985] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#20c7c7]">
           <div className="relative flex aspect-[16/10] items-center justify-center overflow-hidden bg-gradient-to-br from-[#153b43] via-[#10252e] to-[#09151c] p-4">
             <span className="flex h-14 w-14 items-center justify-center rounded-2xl border border-[#20c7c7]/30 bg-[#20c7c7]/10 text-lg font-black text-[#67e5e5]">{displayName.slice(0, 2).toUpperCase()}</span>
             {logo && <img src={logo} alt={`Logo ${displayName}`} loading="lazy" onError={(event) => { event.currentTarget.style.display = 'none'; }} className="absolute inset-0 m-auto max-h-[75%] max-w-[78%] object-contain drop-shadow-xl transition group-hover:scale-105" />}
             <span className={`absolute left-2 top-2 rounded-md px-2 py-1 text-[9px] font-black uppercase ${program ? 'bg-emerald-500 text-[#041a16]' : 'bg-black/50 text-white/70'}`}>{program ? 'En direct' : 'TV'}</span>
-            {loading && <span className="absolute inset-0 flex items-center justify-center gap-2 bg-[#061519]/75 text-xs font-bold text-[#8af0f0]"><Loader2 className="h-4 w-4 animate-spin" /> Connexion…</span>}
+            <span className="neahplus-card-loading pointer-events-none absolute inset-0 flex items-center justify-center gap-2 bg-[#061519]/75 text-xs font-bold text-[#8af0f0] opacity-0"><Loader2 className="h-4 w-4 animate-spin" /> Connexion…</span>
           </div>
           <div className="px-3 pb-2 pt-3">
             <p className="truncate text-xs font-bold text-white sm:text-sm">{displayName}</p>
@@ -124,7 +167,7 @@ const NeahplusHome = ({ channels, now, query, onQueryChange, onSelectChannel, on
           </div>
         </button>
         <div className="flex items-center gap-1.5 px-3 pb-3">
-          <button type="button" onClick={() => onSelectChannel(channel)} disabled={pending} {...touchProps} className="inline-flex min-w-0 flex-1 items-center justify-center gap-1.5 rounded-lg bg-[#20c7c7] px-2 py-2 text-[10px] font-bold text-[#061519] transition hover:bg-[#55dddd] active:scale-[0.97] active:ring-2 active:ring-[#55dddd] disabled:opacity-70"><Play className="h-3 w-3 fill-current" /> {loading ? 'Connexion…' : 'Regarder'}</button>
+          <button type="button" onClick={handleChannelClick} {...touchProps} className="inline-flex min-w-0 flex-1 items-center justify-center gap-1.5 rounded-lg bg-[#20c7c7] px-2 py-2 text-[10px] font-bold text-[#061519] transition hover:bg-[#55dddd] active:scale-[0.97] active:ring-2 active:ring-[#55dddd]"><Play className="h-3 w-3 fill-current" /> Regarder</button>
           <button type="button" onClick={() => onToggleFavorite(channel)} aria-label={favorited ? `Retirer ${displayName} de mon espace NEAHPLUS` : `Ajouter ${displayName} à mon espace NEAHPLUS`} aria-pressed={favorited} title={favorited ? 'Dans mon espace NEAHPLUS' : 'Ajouter à mon espace NEAHPLUS'} className={`inline-flex shrink-0 items-center justify-center gap-1 rounded-lg border px-2 py-2 text-[10px] font-semibold transition ${favorited ? 'border-[#d6ad55]/85 bg-[#d6ad55]/10 text-red-500 shadow-[0_0_10px_rgba(214,173,85,.12)]' : 'border-[#d6ad55]/55 bg-[#d6ad55]/[0.04] text-white/65 hover:border-[#e7c878] hover:bg-[#d6ad55]/10 hover:text-[#f0d58a]'}`}><Heart className="h-3.5 w-3.5" fill={favorited ? 'currentColor' : 'none'} /><span>{favorited ? 'Ajoutée' : 'Ajouter'}</span></button>
         </div>
       </article>
@@ -132,6 +175,8 @@ const NeahplusHome = ({ channels, now, query, onQueryChange, onSelectChannel, on
   };
 
   return (
+    <>
+    <style>{'.neahplus-card-pressed { border-color: #173b5e !important; background: rgba(23,59,94,.10) !important; outline: 2px solid #173b5e; outline-offset: 0; box-shadow: 0 8px 24px rgba(23,59,94,.35); transition-duration: 0ms !important; } .neahplus-card-pressed .neahplus-card-loading { opacity: 1; }'}</style>
     <div ref={homeRootRef} className="mx-auto flex w-full max-w-[1600px] flex-col gap-8 pb-10 sm:gap-10">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
@@ -199,6 +244,7 @@ const NeahplusHome = ({ channels, now, query, onQueryChange, onSelectChannel, on
         </section>
       )}
     </div>
+    </>
   );
 };
 
