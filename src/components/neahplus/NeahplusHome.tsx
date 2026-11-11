@@ -34,7 +34,6 @@ const categories = [
 
 const NeahplusHome = ({ channels, now, query, onQueryChange, onSelectChannel, displayNamesByChannelId, isFavorite, onToggleFavorite, mode, spaceName, countryLabel, onRenameSpace }: NeahplusHomeProps) => {
   const rowRefs = useRef<Record<string, HTMLDivElement | null>>({});
-  const homeRootRef = useRef<HTMLDivElement>(null);
   const [searchFocused, setSearchFocused] = useState(false);
   const needle = foldText(query.trim());
   // Les cartes d'accueil chargent uniquement leurs éléments visuels. La résolution
@@ -142,7 +141,7 @@ const NeahplusHome = ({ channels, now, query, onQueryChange, onSelectChannel, di
   return (
     <>
     <style>{'.neahplus-card-pressed { border-color: #173b5e !important; background: rgba(23,59,94,.10) !important; outline: 2px solid #173b5e; outline-offset: 0; box-shadow: 0 8px 24px rgba(23,59,94,.35); transition-duration: 0ms !important; } .neahplus-card-pressed .neahplus-card-loading { opacity: 1; }'}</style>
-    <div ref={homeRootRef} className="mx-auto flex w-full max-w-[1600px] flex-col gap-8 pb-10 sm:gap-10">
+    <div className="mx-auto flex w-full max-w-[1600px] flex-col gap-8 pb-10 sm:gap-10">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#20c7c7]">{mode === 'favorites' ? 'VOTRE SÉLECTION' : `TÉLÉVISION EN DIRECT · ${countryLabel.toUpperCase()}`}</p>
