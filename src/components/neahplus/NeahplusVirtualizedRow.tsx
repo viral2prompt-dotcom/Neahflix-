@@ -49,9 +49,12 @@ const NeahplusVirtualizedRow = ({
       const end = Math.min(channels.length, visibleEnd + OVERSCAN_CARDS);
 
       setWindowRange((current) => (
-        current.start === start && current.end === end
+        current.start === start
+        && current.end === end
+        && current.pitch === pitch
+        && current.gap === gap
           ? current
-          : { start, end }
+          : { start, end, pitch, gap }
       ));
     };
 
@@ -74,19 +77,15 @@ const NeahplusVirtualizedRow = ({
       window.removeEventListener('resize', scheduleUpdate);
       if (frame !== 0) window.cancelAnimationFrame(frame);
     };
-  }, [channels.length]);
+  }, [channels]);
 
   const start = Math.min(windowRange.start, channels.length);
   const end = Math.max(start, Math.min(windowRange.end, channels.length));
-  const firstCard = rowRef.current?.querySelector<HTMLElement>('[data-neahplus-channel-id]');
-  const cardWidth = firstCard?.getBoundingClientRect().width ?? 0;
-  const rowGap = rowRef.current
-    ? Number.parseFloat(window.getComputedStyle(rowRef.current).columnGap) || 0
+  const leadingSpace = start > 0 && windowRange.pitch > 0
+    ? Math.max(0, start * windowRange.pitch - windowRange.gap)
     : 0;
-  const pitch = cardWidth + rowGap;
-  const leadingSpace = start > 0 && pitch > 0 ? Math.max(0, start * pitch - rowGap) : 0;
-  const trailingSpace = end < channels.length && pitch > 0
-    ? Math.max(0, (channels.length - end) * pitch - rowGap)
+  const trailingSpace = end < channels.length && windowRange.pitch > 0
+    ? Math.max(0, (channels.length - end) * windowRange.pitch - windowRange.gap)
     : 0;
 
   return (
