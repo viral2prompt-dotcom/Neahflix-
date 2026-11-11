@@ -65,7 +65,7 @@ const NeahplusPlayer = ({
 
   useEffect(() => {
     if (!isActive) return undefined;
-    const hlsInstances = hlsInstances;
+    const hlsInstances = hlsRefs.current;
     const generation = ++generationRef.current;
     const targetSlot = 1 - activeSlotRef.current;
     const video = videoRefs.current[targetSlot];
