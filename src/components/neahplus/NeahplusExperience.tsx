@@ -24,7 +24,7 @@ import {
   VolumeX,
   X,
 } from 'lucide-react';
-import NeahplusPlayer from './NeahplusPlayer';
+import NeahplusPlayer, { preloadNeahplusPlayer } from './NeahplusPlayer';
 import ChannelCarousel from './ChannelCarousel';
 import ProgramSynopsis from './ProgramSynopsis';
 import InfoPanel from './InfoPanel';
@@ -289,6 +289,7 @@ const NeahplusExperience = () => {
   const [drawerMounted, setDrawerMounted] = useState(false);
   const [homeNavigationPhase, setHomeNavigationPhase] = useState<'idle' | 'entering'>('idle');
   const [homePlayerStartDeferred, setHomePlayerStartDeferred] = useState(false);
+  const [suppressPlayerEntranceAnimation, setSuppressPlayerEntranceAnimation] = useState(false);
   const [streamReadyGroupKey, setStreamReadyGroupKey] = useState<string | null>(null);
   const [spaceName, setSpaceName] = useState(() => {
     try { return localStorage.getItem('neahplus:space-name') || 'Mon espace NEAHPLUS'; } catch { return 'Mon espace NEAHPLUS'; }
@@ -342,6 +343,7 @@ const NeahplusExperience = () => {
   const navigateTo = useCallback((next: Tab) => {
     setDrawerOpen(false);
     setHomePlayerStartDeferred(false);
+    setSuppressPlayerEntranceAnimation(false);
     if (['home', 'favorites', 'countries', 'settings'].includes(next)) {
       setSelectedGroupKey(null);
     }
@@ -623,6 +625,7 @@ const NeahplusExperience = () => {
   }, []);
 
   const handleSelectGroup = useCallback((group: ChannelGroup, directionOverride?: 'next' | 'previous' | null) => {
+    setSuppressPlayerEntranceAnimation(false);
     const currentIndex = carouselGroups.findIndex((item) => item.key === selectedGroupKey);
     const targetIndex = carouselGroups.findIndex((item) => item.key === group.key);
     setZappingDirection(directionOverride ?? (currentIndex >= 0 && targetIndex >= 0 && currentIndex !== targetIndex ? (targetIndex > currentIndex ? 'next' : 'previous') : null));
@@ -655,6 +658,7 @@ const NeahplusExperience = () => {
   }, [carouselGroups, selectedGroupKey, handleSelectGroup]);
 
   const handleSelectChannel = useCallback((channel: NeahplusChannel, scrollToTop = true, resolveStream = true) => {
+    setSuppressPlayerEntranceAnimation(false);
     const group = groupByChannelId.get(channel.id);
     if (!group) return;
     const vIdx = group.variants.findIndex((v) => v.id === channel.id);
@@ -683,6 +687,7 @@ const NeahplusExperience = () => {
     const group = groupByChannelId.get(channel.id);
     if (!group) return;
     homeSelectionLock.current = true;
+    preloadNeahplusPlayer();
     if (pendingNavigationTimer.current !== null) window.clearTimeout(pendingNavigationTimer.current);
     if (pendingNavigationFrame.current !== null) window.cancelAnimationFrame(pendingNavigationFrame.current);
     setHomeNavigationPhase('entering');
@@ -690,6 +695,7 @@ const NeahplusExperience = () => {
 
     // Sélectionner et afficher le lecteur immédiatement, sans lancer le réseau.
     handleSelectChannel(channel, false, false);
+    setSuppressPlayerEntranceAnimation(true);
     setHomePlayerStartDeferred(true);
     pendingViewerScroll.current = true;
     setTab('all');
@@ -1098,7 +1104,7 @@ const NeahplusExperience = () => {
         {showChannelList && <button type="button" aria-label="Fermer la liste des chaînes" onClick={() => setShowChannelList(false)} className="absolute inset-0 z-30 bg-black/55 lg:hidden" />}
         
                 {/* Left: Player + info */}
-        <section ref={playerSectionRef} className={`${homeNavigationPhase === 'entering' ? '' : 'motion-safe:animate-[neahplus-player-in_420ms_cubic-bezier(0.22,1,0.36,1)_both]'} flex min-h-max w-full flex-none touch-pan-y flex-col gap-3 overflow-visible p-3 lg:min-h-0 lg:max-h-full lg:w-[42%] lg:max-w-[720px] lg:overflow-y-auto lg:overscroll-y-contain lg:p-4 ${['home', 'countries', 'settings'].includes(tab) ? 'hidden' : ''}`} style={{ WebkitOverflowScrolling: 'touch' }}>
+        <section ref={playerSectionRef} className={`${homeNavigationPhase === 'entering' || suppressPlayerEntranceAnimation ? '' : 'motion-safe:animate-[neahplus-player-in_420ms_cubic-bezier(0.22,1,0.36,1)_both]'} flex min-h-max w-full flex-none touch-pan-y flex-col gap-3 overflow-visible p-3 lg:min-h-0 lg:max-h-full lg:w-[42%] lg:max-w-[720px] lg:overflow-y-auto lg:overscroll-y-contain lg:p-4 ${['home', 'countries', 'settings'].includes(tab) ? 'hidden' : ''}`} style={{ WebkitOverflowScrolling: 'touch' }}>
           {activeVariant && selectedGroup ? (
             <>
               <div className="group relative mx-auto w-full max-w-[720px]">
@@ -1348,6 +1354,7 @@ const NeahplusExperience = () => {
                 query={query}
                 onQueryChange={setQuery}
                 onSelectChannel={openChannelFromHome}
+                onPreparePlayback={preloadNeahplusPlayer}
                 displayNamesByChannelId={displayNamesByChannelId}
                 isFavorite={isFavoriteChannel}
                 onToggleFavorite={toggleFavoriteChannel}
