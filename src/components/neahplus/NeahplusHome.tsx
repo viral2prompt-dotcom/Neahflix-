@@ -2,7 +2,7 @@ import { getNeahplusChannelLogo, getNeahplusChannelPriority } from './neahplusBr
 import NeahplusDiscoveryShelf from './NeahplusDiscoveryShelf';
 import NeahplusHero from './NeahplusHero';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import type { PointerEvent as ReactPointerEvent } from 'react';
+import type { MouseEvent as ReactMouseEvent, PointerEvent as ReactPointerEvent } from 'react';
 import { ChevronLeft, ChevronRight, Heart, Loader2, Pencil, Play, Search } from 'lucide-react';
 import type { NeahplusChannel } from './neahplusCatalog';
 import { currentProgram } from './neahplusCatalog';
@@ -120,6 +120,7 @@ const NeahplusHome = ({ channels, now, query, onQueryChange, onSelectChannel, on
       },
       onPointerUp: (event: ReactPointerEvent<HTMLButtonElement>) => {
         const button = event.currentTarget;
+        if (button.dataset.neahplusStartX === undefined) return;
         const moved = button.dataset.neahplusMoved === 'true';
         delete button.dataset.neahplusStartX;
         delete button.dataset.neahplusStartY;
@@ -144,7 +145,7 @@ const NeahplusHome = ({ channels, now, query, onQueryChange, onSelectChannel, on
         if (event.pointerType === 'mouse' && event.currentTarget.dataset.neahplusPointerHandled !== 'true') clearPressed(event.currentTarget);
       },
     };
-    const handleChannelClick = (event: React.MouseEvent<HTMLButtonElement>) => {
+    const handleChannelClick = (event: ReactMouseEvent<HTMLButtonElement>) => {
       if (event.currentTarget.dataset.neahplusPointerHandled === 'true') {
         delete event.currentTarget.dataset.neahplusPointerHandled;
         event.preventDefault();
