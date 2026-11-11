@@ -552,7 +552,8 @@ const NeahplusExperience = () => {
   // Précharger progressivement les trois chaînes voisines de chaque côté.
   // Le cache du résolveur déduplique les demandes déjà lancées par le lecteur.
   useEffect(() => {
-    if (!selectedGroupKey || carouselGroups.length < 2) return undefined;
+    // Prioriser le flux choisi depuis l'accueil avant les préchargements voisins.
+    if (homeNavigationPhase === 'entering' || !selectedGroupKey || carouselGroups.length < 2) return undefined;
     const controller = new AbortController();
     const currentIndex = carouselGroups.findIndex((group) => group.key === selectedGroupKey);
     if (currentIndex < 0) return undefined;
@@ -580,7 +581,7 @@ const NeahplusExperience = () => {
 
     void prefetchNeighbors();
     return () => controller.abort();
-  }, [selectedGroupKey, carouselGroups]);
+  }, [selectedGroupKey, carouselGroups, homeNavigationPhase]);
 
   useEffect(() => { setQuickListVisibleCount(80); }, [quickListQuery]);
 
@@ -699,7 +700,7 @@ const NeahplusExperience = () => {
       setHomeNavigationPhase('idle');
       pendingNavigationTimer.current = null;
       homeSelectionLock.current = false;
-    }, 160);
+    }, 360);
   }, [groupByChannelId, handleSelectChannel, resolveBestVariant, tab]);
 
   const isFavoriteChannel = useCallback((channel: NeahplusChannel) => {
