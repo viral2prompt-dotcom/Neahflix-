@@ -4,6 +4,23 @@ import type Hls from 'hls.js';
 import { safePlay } from '@/utils/safePlay';
 import { NeahplusError, resolveNeahplusStream } from './neahplusCatalog';
 
+let hlsModulePromise: Promise<typeof import('hls.js')> | null = null;
+
+const loadHlsModule = (): Promise<typeof import('hls.js')> => {
+  if (!hlsModulePromise) {
+    hlsModulePromise = import('hls.js').catch((error: unknown) => {
+      hlsModulePromise = null;
+      throw error;
+    });
+  }
+  return hlsModulePromise;
+};
+
+// Charge uniquement le code du lecteur pendant le toucher, sans demander de flux vidéo.
+export const preloadNeahplusPlayer = (): void => {
+  void loadHlsModule().catch(() => undefined);
+};
+
 type PlayerStatus = 'resolving' | 'loading' | 'playing' | 'paused' | 'error';
 type ZappingDirection = 'next' | 'previous' | null;
 
@@ -153,7 +170,7 @@ const NeahplusPlayer = ({
       if (aborted || generation !== generationRef.current) return;
       setStatus('loading');
 
-      const { default: HlsLib } = await import('hls.js');
+      const { default: HlsLib } = await loadHlsModule();
       if (aborted || generation !== generationRef.current) return;
 
       if (HlsLib.isSupported()) {
