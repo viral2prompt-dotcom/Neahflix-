@@ -14,6 +14,7 @@ interface NeahplusHomeProps {
   query: string;
   onQueryChange: (value: string) => void;
   onSelectChannel: (channel: NeahplusChannel) => void;
+  onPreparePlayback: () => void;
   displayNamesByChannelId: ReadonlyMap<string, string>;
   isFavorite: (channel: NeahplusChannel) => boolean;
   onToggleFavorite: (channel: NeahplusChannel) => void;
@@ -32,7 +33,7 @@ const categories = [
   { id: 'entertainment', title: 'Divertissement', kicker: 'SÉRIES, MUSIQUE ET CULTURE', subtitle: 'Séries, musique, humour et rendez-vous populaires.', match: (source: string) => /divertissement|comedie|humour|musique|tv5|france 2|france 3|tf1|m6|tfx|w9|pop|novelas|nollywood|trace|a\+/.test(source) },
 ];
 
-const NeahplusHome = ({ channels, now, query, onQueryChange, onSelectChannel, displayNamesByChannelId, isFavorite, onToggleFavorite, mode, spaceName, countryLabel, onRenameSpace }: NeahplusHomeProps) => {
+const NeahplusHome = ({ channels, now, query, onQueryChange, onSelectChannel, onPreparePlayback, displayNamesByChannelId, isFavorite, onToggleFavorite, mode, spaceName, countryLabel, onRenameSpace }: NeahplusHomeProps) => {
   const rowRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const [searchFocused, setSearchFocused] = useState(false);
   const needle = foldText(query.trim());
@@ -70,6 +71,7 @@ const NeahplusHome = ({ channels, now, query, onQueryChange, onSelectChannel, di
         button.dataset.neahplusStartY = String(event.clientY);
         button.dataset.neahplusMoved = 'false';
         button.closest('article')?.classList.add('neahplus-card-pressed');
+        onPreparePlayback();
       },
       onPointerMove: (event: ReactPointerEvent<HTMLButtonElement>) => {
         const button = event.currentTarget;
@@ -121,7 +123,7 @@ const NeahplusHome = ({ channels, now, query, onQueryChange, onSelectChannel, di
         <button type="button" onClick={handleChannelClick} aria-label={`Regarder ${displayName}`} {...touchProps} className="block w-full text-left transition-transform duration-75 active:scale-[0.985] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#20c7c7]">
           <div className="relative flex aspect-[16/10] items-center justify-center overflow-hidden bg-gradient-to-br from-[#153b43] via-[#10252e] to-[#09151c] p-4">
             <span className="flex h-14 w-14 items-center justify-center rounded-2xl border border-[#20c7c7]/30 bg-[#20c7c7]/10 text-lg font-black text-[#67e5e5]">{displayName.slice(0, 2).toUpperCase()}</span>
-            {logo && <img src={logo} alt={`Logo ${displayName}`} loading="lazy" onError={(event) => { event.currentTarget.style.display = 'none'; }} className="absolute inset-0 m-auto max-h-[75%] max-w-[78%] object-contain drop-shadow-xl transition group-hover:scale-105" />}
+            {logo && <img src={logo} alt={`Logo ${displayName}`} loading="lazy" decoding="async" onError={(event) => { event.currentTarget.style.display = 'none'; }} className="absolute inset-0 m-auto max-h-[75%] max-w-[78%] object-contain drop-shadow-xl transition group-hover:scale-105" />}
             <span className={`absolute left-2 top-2 rounded-md px-2 py-1 text-[9px] font-black uppercase ${program ? 'bg-emerald-500 text-[#041a16]' : 'bg-black/50 text-white/70'}`}>{program ? 'En direct' : 'TV'}</span>
             <span className="neahplus-card-loading pointer-events-none absolute inset-0 flex items-center justify-center gap-2 bg-[#061519]/75 text-xs font-bold text-[#8af0f0] opacity-0"><Loader2 className="h-4 w-4 animate-spin" /> Connexion…</span>
           </div>
@@ -173,7 +175,7 @@ const NeahplusHome = ({ channels, now, query, onQueryChange, onSelectChannel, di
               : searchableChannels.filter((channel) => category.match(foldText([channel.name, ...channel.categories].join(' '))));
             if (rowChannels.length === 0) return null;
             return (
-              <section key={category.id} className="space-y-4" aria-label={`Catégorie ${category.title}`}>
+              <section key={category.id} className="space-y-4" aria-label={`Catégorie ${category.title}`} style={{ contentVisibility: 'auto', containIntrinsicSize: 'auto 480px' }}>
                 <div className="flex items-end justify-between gap-3 border-b border-white/[0.08] pb-3">
                   <div className="min-w-0">
                     <p className="inline-flex max-w-full rounded-full border border-white/35 px-2.5 py-1 text-[9px] font-bold uppercase tracking-[0.14em] text-white/80">{category.kicker}</p>
