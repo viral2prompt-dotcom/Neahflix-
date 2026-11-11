@@ -11,7 +11,7 @@ interface NeahplusVirtualizedRowProps {
 }
 
 const OVERSCAN_CARDS = 3;
-const INITIAL_CARD_WINDOW = 12;
+const INITIAL_CARD_WINDOW = 1;
 
 const NeahplusVirtualizedRow = ({
   channels,
@@ -21,6 +21,7 @@ const NeahplusVirtualizedRow = ({
   setRowElement,
 }: NeahplusVirtualizedRowProps) => {
   const rowRef = useRef<HTMLDivElement | null>(null);
+  const [isNearViewport, setIsNearViewport] = useState(false);
   const [windowRange, setWindowRange] = useState(() => ({
     start: 0,
     end: Math.min(channels.length, INITIAL_CARD_WINDOW),
@@ -47,8 +48,10 @@ const NeahplusVirtualizedRow = ({
 
       const visibleStart = Math.floor(row.scrollLeft / pitch);
       const visibleEnd = Math.ceil((row.scrollLeft + viewportWidth) / pitch);
-      const start = Math.max(0, visibleStart - OVERSCAN_CARDS);
-      const end = Math.min(channels.length, visibleEnd + OVERSCAN_CARDS);
+      const start = Math.max(0, visibleStart - (isNearViewport ? OVERSCAN_CARDS : 0));
+      const end = isNearViewport
+        ? Math.min(channels.length, visibleEnd + OVERSCAN_CARDS)
+        : Math.min(channels.length, start + 1);
 
       setWindowRange((current) => (
         current.start === start
@@ -69,6 +72,14 @@ const NeahplusVirtualizedRow = ({
       ? new ResizeObserver(scheduleUpdate)
       : null;
     resizeObserver?.observe(row);
+    const intersectionObserver = typeof IntersectionObserver !== 'undefined'
+      ? new IntersectionObserver((entries) => {
+        const isIntersecting = entries.some((entry) => entry.isIntersecting);
+        setIsNearViewport(isIntersecting);
+      }, { rootMargin: '300px 0px' })
+      : null;
+    intersectionObserver?.observe(row);
+    if (!intersectionObserver) setIsNearViewport(true);
     window.addEventListener('resize', scheduleUpdate, { passive: true });
 
     scheduleUpdate();
@@ -76,10 +87,11 @@ const NeahplusVirtualizedRow = ({
     return () => {
       row.removeEventListener('scroll', scheduleUpdate);
       resizeObserver?.disconnect();
+      intersectionObserver?.disconnect();
       window.removeEventListener('resize', scheduleUpdate);
       if (frame !== 0) window.cancelAnimationFrame(frame);
     };
-  }, [channels]);
+  }, [channels, isNearViewport]);
 
   const start = Math.min(windowRange.start, channels.length);
   const end = Math.max(start, Math.min(windowRange.end, channels.length));
