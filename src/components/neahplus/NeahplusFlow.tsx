@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import type { ReactNode, TouchEvent } from 'react';
+import type { MouseEvent } from 'react';
 import { Heart, Search, X } from 'lucide-react';
 import type { ChannelGroup } from './neahplusTvUtils';
 import { foldText, groupMatchesCountry } from './neahplusTvUtils';
@@ -36,7 +36,6 @@ export const filterNeahplusFlowGroups = (
 });
 
 interface NeahplusFlowProps {
-  children: ReactNode;
   groups: ChannelGroup[];
   selectedGroup: ChannelGroup;
   categoryId: string;
@@ -53,7 +52,6 @@ interface NeahplusFlowProps {
 }
 
 const NeahplusFlow = ({
-  children,
   groups,
   selectedGroup,
   categoryId,
@@ -71,8 +69,6 @@ const NeahplusFlow = ({
   const [controlsVisible, setControlsVisible] = useState(true);
   const [search, setSearch] = useState('');
   const [searchFocused, setSearchFocused] = useState(false);
-  const touchStart = useRef<{ x: number; y: number } | null>(null);
-  const ignoreClickUntil = useRef(0);
 
   const matchingGroups = groups.filter((group) => {
     const needle = foldText(search.trim());
@@ -86,53 +82,14 @@ const NeahplusFlow = ({
     return () => window.clearTimeout(timer);
   }, [controlsVisible, searchFocused, selectedGroup.key, categoryId]);
 
-  const handleTouchStart = (event: TouchEvent<HTMLDivElement>) => {
-    if (event.touches.length !== 1) {
-      touchStart.current = null;
-      return;
-    }
-    const target = event.target as HTMLElement;
-    if (target.closest('button, input, textarea, select')) {
-      touchStart.current = null;
-      return;
-    }
-    const touch = event.touches[0];
-    touchStart.current = { x: touch.clientX, y: touch.clientY };
-  };
-
-  const handleTouchEnd = (event: TouchEvent<HTMLDivElement>) => {
-    const start = touchStart.current;
-    touchStart.current = null;
-    if (!start || event.changedTouches.length !== 1) return;
-    const touch = event.changedTouches[0];
-    const deltaX = touch.clientX - start.x;
-    const deltaY = touch.clientY - start.y;
-    if (Math.abs(deltaY) < 48 || Math.abs(deltaY) < Math.abs(deltaX) * 1.2) return;
-    ignoreClickUntil.current = Date.now() + 450;
-    setControlsVisible(true);
-    onSwipe(deltaY < 0 ? 1 : -1);
-  };
-
-  const handleSurfaceClick = (event: React.MouseEvent<HTMLDivElement>) => {
-    if (Date.now() < ignoreClickUntil.current) return;
-    const target = event.target as HTMLElement;
-    if (target.closest('button, input, textarea, select')) return;
-    setControlsVisible((visible) => !visible);
-  };
-
-  const stopSurfaceClick = (event: React.MouseEvent) => event.stopPropagation();
+  const stopSurfaceClick = (event: MouseEvent) => event.stopPropagation();
 
   return (
     <div
-      className="fixed inset-0 z-[1000] h-dvh w-full overflow-hidden bg-black text-white"
-      onTouchStart={handleTouchStart}
-      onTouchEnd={handleTouchEnd}
-      onClick={handleSurfaceClick}
+      className="pointer-events-none fixed inset-0 z-[1001] h-dvh w-full overflow-hidden text-white"
       role="region"
       aria-label="NEAHPLUS Flow, navigation verticale des chaînes"
     >
-      <div className="absolute inset-0">{children}</div>
-
       <div className={`pointer-events-none absolute inset-x-0 top-0 z-20 bg-gradient-to-b from-black/90 via-black/55 to-transparent px-3 pb-12 pt-[max(env(safe-area-inset-top),12px)] transition-opacity duration-300 ${controlsVisible ? 'opacity-100' : 'opacity-0'}`}>
         <div className="pointer-events-auto flex items-center justify-between gap-2" onClick={stopSurfaceClick}>
           <div className="flex min-w-0 items-center gap-2">
