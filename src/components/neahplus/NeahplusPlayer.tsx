@@ -3,7 +3,7 @@ import type { TouchEventHandler } from 'react';
 import { AlertTriangle, FastForward, Loader2, Rewind, RotateCcw } from 'lucide-react';
 import type Hls from 'hls.js';
 import { safePlay } from '@/utils/safePlay';
-import { NeahplusError, resolveNeahplusStream } from './neahplusCatalog';
+import { invalidateNeahplusStream, NeahplusError, resolveNeahplusStream } from './neahplusCatalog';
 
 import { loadHlsModule } from './neahplusPlayerLoader';
 
@@ -288,7 +288,7 @@ const NeahplusPlayer = ({
               {message && <p className="relative mt-2 max-w-md text-sm leading-6 text-white/80">{message}</p>}
               <button
                 type="button"
-                onClick={() => setAttempt((value) => value + 1)}
+                onClick={() => { invalidateNeahplusStream(channelId); setAttempt((value) => value + 1); }}
                 className="relative mt-4 inline-flex items-center gap-2 rounded-lg border border-amber-300/30 bg-amber-500 px-4 py-2 text-sm font-semibold text-[#1b1305] transition hover:bg-amber-400"
               >
                 <RotateCcw className="h-4 w-4" aria-hidden="true" />
