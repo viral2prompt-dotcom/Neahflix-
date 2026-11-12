@@ -209,6 +209,8 @@ const NeahplusPlayer = ({
       const streamUrl = resolvedStreamUrl ?? await resolveNeahplusStream(channelId, controller.signal);
       if (aborted || generation !== generationRef.current) return;
       setStatus('loading');
+      const { default: HlsLib } = await loadHlsModule();
+      if (aborted || generation !== generationRef.current) return;
 
       // Si le lecteur d'attente a déjà amorcé cette chaîne, transférer son
       // MediaSource et ses SourceBuffers au lecteur visible : aucun redémarrage
@@ -224,6 +226,9 @@ const NeahplusPlayer = ({
         if (warmedHls && transferData) {
           candidateHls = warmedHls;
           hlsInstances[targetSlot] = warmedHls;
+          warmedHls.on(HlsLib.Events.ERROR, (_event, data) => {
+            if (data.fatal) fail(new Error(data.details));
+          });
           warmedHls.config.maxBufferLength = 8;
           warmedHls.config.maxMaxBufferLength = 16;
           warmedHls.config.backBufferLength = 5;
@@ -234,9 +239,6 @@ const NeahplusPlayer = ({
         }
         warmedHls?.destroy();
       }
-
-      const { default: HlsLib } = await loadHlsModule();
-      if (aborted || generation !== generationRef.current) return;
 
       if (HlsLib.isSupported()) {
         const instance = new HlsLib({
