@@ -147,8 +147,22 @@ export const loadNeahplusCatalog = (signal?: AbortSignal, onFirstPage?: (catalog
   return promise;
 };
 
-const RESOLVED_STREAM_CACHE_TTL_MS = 30_000;
-const RESOLVED_STREAM_CACHE_MAX_ENTRIES = 48;
+const RESOLVED_STREAM_CACHE_TTL_MS = 6 * 60 * 60 * 1000;
+const RESOLVED_STREAM_CACHE_MAX_ENTRIES = 500;
+const STREAM_CACHE_EXPIRY_SAFETY_MS = 30_000;
+
+const resolvedStreamExpiry = (url: string, now: number): number => {
+  try {
+    const params = new URL(url, 'https://neahplus.local').searchParams;
+    const expiresAt = Number(params.get('exp')) * 1000;
+    if (Number.isFinite(expiresAt) && expiresAt > 0) {
+      return Math.min(now + RESOLVED_STREAM_CACHE_TTL_MS, expiresAt - STREAM_CACHE_EXPIRY_SAFETY_MS);
+    }
+  } catch {
+    // Les URL non signées restent soumises au cache court de secours.
+  }
+  return now + 30_000;
+};
 type ResolvedStreamEntry = {
   expiresAt: number;
   promise: Promise<string>;
@@ -204,6 +218,15 @@ export const resolveNeahplusStream = async (channelId: string, signal: AbortSign
   }
 
   let entry = resolvedStreamCache.get(channelId);
+  if (entry && entry.settled && entry.expiresAt <= now) {
+    resolvedStreamCache.delete(channelId);
+    entry = undefined;
+  }
+  if (entry) {
+    // Déplacer l'entrée en fin de Map pour conserver les résultats récemment utilisés.
+    resolvedStreamCache.delete(channelId);
+    resolvedStreamCache.set(channelId, entry);
+  }
   if (!entry) {
     const controller = new AbortController();
     const target = `${PLAY_ORIGIN}${encodeURIComponent(channelId)}`;
@@ -223,7 +246,8 @@ export const resolveNeahplusStream = async (channelId: string, signal: AbortSign
       })
       .then((url) => {
         created.settled = true;
-        created.expiresAt = Date.now() + RESOLVED_STREAM_CACHE_TTL_MS;
+        created.expiresAt = resolvedStreamExpiry(url, Date.now());
+        if (created.expiresAt <= Date.now()) throw new NeahplusError('Autorisation du flux expirée', 502);
         return url;
       })
       .catch((error: unknown) => {
