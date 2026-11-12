@@ -98,7 +98,7 @@ const NeahplusFlow = ({
       aria-label="NEAHPLUS Flow, navigation verticale des chaînes"
     >
       <div className={`pointer-events-none absolute inset-x-0 top-0 z-20 bg-gradient-to-b from-black/90 via-black/55 to-transparent px-3 pb-12 pt-[max(env(safe-area-inset-top),12px)] transition-opacity duration-300 ${controlsVisible ? 'opacity-100' : 'opacity-0'}`}>
-        <div className="pointer-events-auto flex items-center justify-between gap-2" onClick={stopSurfaceClick}>
+        <div className={`flex items-center justify-between gap-2 ${controlsVisible ? 'pointer-events-auto' : 'pointer-events-none'}`} onClick={stopSurfaceClick}>
           <div className="flex min-w-0 items-center gap-2">
             {logo ? <img src={logo} alt="" className="h-8 w-8 rounded-lg bg-white/10 object-contain p-1" /> : <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#20c7c7]/15 text-[10px] font-black text-[#70e5e5]">{channelName.slice(0, 2).toUpperCase()}</span>}
             <span className="truncate text-sm font-black tracking-wide">NEAHPLUS <span className="text-[#55dddd]">FLOW</span></span>
@@ -106,7 +106,7 @@ const NeahplusFlow = ({
           <button type="button" onClick={onClose} aria-label="Quitter NEAHPLUS Flow" className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-white/20 bg-black/45 text-white/90 backdrop-blur-md"><X className="h-5 w-5" /></button>
         </div>
 
-        <div className="pointer-events-auto mt-3 flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none]" onClick={stopSurfaceClick}>
+        <div className={`mt-3 flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] ${controlsVisible ? 'pointer-events-auto' : 'pointer-events-none'}`} onClick={stopSurfaceClick}>
           {NEAHPLUS_FLOW_CATEGORIES.map((category) => (
             <button
               key={category.id}
@@ -120,7 +120,7 @@ const NeahplusFlow = ({
           ))}
         </div>
 
-        <div className="pointer-events-auto relative mt-3" onClick={stopSurfaceClick}>
+        <div className={`relative mt-3 ${controlsVisible ? 'pointer-events-auto' : 'pointer-events-none'}`} onClick={stopSurfaceClick}>
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/45" />
           <input
             type="search"
@@ -151,7 +151,7 @@ const NeahplusFlow = ({
       </div>
 
       <div className={`pointer-events-none absolute inset-x-0 bottom-0 z-20 bg-gradient-to-t from-black/95 via-black/70 to-transparent px-4 pb-[max(env(safe-area-inset-bottom),20px)] pt-16 transition-opacity duration-300 ${controlsVisible ? 'opacity-100' : 'opacity-0'}`}>
-        <div className="pointer-events-auto flex items-end justify-between gap-3" onClick={stopSurfaceClick}>
+        <div className={`flex items-end justify-between gap-3 ${controlsVisible ? 'pointer-events-auto' : 'pointer-events-none'}`} onClick={stopSurfaceClick}>
           <div className="min-w-0 flex-1">
             <div className="mb-2 inline-flex items-center gap-1.5 rounded-full border border-[#55dddd]/30 bg-[#20c7c7]/15 px-2.5 py-1 text-[9px] font-black tracking-[0.12em] text-[#8af0f0]">
               <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[#55dddd]" /> EN DIRECT
