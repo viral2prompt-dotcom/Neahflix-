@@ -14,7 +14,7 @@ interface NeahplusHomeProps {
   now: number;
   query: string;
   onQueryChange: (value: string) => void;
-  onSelectChannel: (channel: NeahplusChannel) => void;
+  onSelectChannel: (channel: NeahplusChannel, categoryId?: string) => void;
   onPreparePlayback: () => void;
   displayNamesByChannelId: ReadonlyMap<string, string>;
   isFavorite: (channel: NeahplusChannel) => boolean;
@@ -63,7 +63,7 @@ const NeahplusHome = ({ channels, now, query, onQueryChange, onSelectChannel, on
     if (row) row.scrollBy({ left: row.clientWidth * direction * 0.85, behavior: 'smooth' });
   };
 
-  const renderChannelCard = (channel: NeahplusChannel) => {
+  const renderChannelCard = (channel: NeahplusChannel, categoryId = 'all') => {
     const program = currentProgram(channel, now);
     const displayName = displayNamesByChannelId.get(channel.id) ?? channel.name;
     const favorited = isFavorite(channel);
@@ -100,7 +100,7 @@ const NeahplusHome = ({ channels, now, query, onQueryChange, onSelectChannel, on
         delete button.dataset.neahplusMoved;
         if (!moved) {
           button.dataset.neahplusPointerHandled = 'true';
-          onSelectChannel(channel);
+          onSelectChannel(channel, categoryId);
         } else {
           clearPressed(button);
         }
@@ -124,7 +124,7 @@ const NeahplusHome = ({ channels, now, query, onQueryChange, onSelectChannel, on
         event.preventDefault();
         return;
       }
-      onSelectChannel(channel);
+      onSelectChannel(channel, categoryId);
     };
     return (
       <article key={channel.id} data-neahplus-channel-id={channel.id} className="group w-[calc(50vw-2.25rem)] max-w-[230px] shrink-0 snap-start overflow-visible rounded-xl border border-white/10 bg-[#102027] transition-[border-color,box-shadow,transform,outline] duration-75 hover:border-[#20c7c7]/50 sm:w-[190px]">
@@ -195,7 +195,7 @@ const NeahplusHome = ({ channels, now, query, onQueryChange, onSelectChannel, on
                 </div>
                 <NeahplusVirtualizedRow
                   channels={rowChannels}
-                  renderCard={renderChannelCard}
+                  renderCard={(channel) => renderChannelCard(channel, category.id)}
                   label={`Chaînes de la catégorie ${category.title}, défilement horizontal`}
                   setRowElement={(element) => { rowRefs.current[category.id] = element; }}
                   className="flex gap-3 overflow-x-auto overscroll-x-contain pb-3 [scrollbar-width:thin] [scrollbar-color:rgba(32,199,199,.35)_transparent] snap-x snap-mandatory [touch-action:pan-x_pan-y] sm:gap-4"
