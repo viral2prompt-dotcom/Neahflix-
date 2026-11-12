@@ -77,6 +77,7 @@ const NeahplusPlayer = ({
   const warmupHlsRefs = useRef<Array<Hls | null>>([null, null]);
   const warmupChannelIdsRef = useRef<Array<string | null>>([null, null]);
   const warmupSegmentReadyRef = useRef<boolean[]>([false, false]);
+  const warmupTimeoutRefs = useRef<Array<number | null>>([null, null]);
   const currentChannelIdRef = useRef(channelId);
   const currentNeighborsRef = useRef({ previous: previousChannelId, next: nextChannelId });
   currentChannelIdRef.current = channelId;
@@ -293,6 +294,10 @@ const NeahplusPlayer = ({
         warmupChannelIdsRef.current[warmedIndex] = null;
         if (warmedHls && transferData) {
           const hadWarmedSegment = warmupSegmentReadyRef.current[warmedIndex];
+          if (warmupTimeoutRefs.current[warmedIndex] !== null) {
+            window.clearTimeout(warmupTimeoutRefs.current[warmedIndex]!);
+            warmupTimeoutRefs.current[warmedIndex] = null;
+          }
           updateDiagnostics({ manifestMs: elapsedMs(), stage: 'Manifeste préchargé réutilisé' });
           candidateHls = warmedHls;
           hlsInstances[targetSlot] = warmedHls;
@@ -433,13 +438,23 @@ const NeahplusPlayer = ({
           if (typeof data.frag?.sn !== 'number') return;
           warmupSegmentReadyRef.current[slot] = true;
           instance.off(HlsLib.Events.FRAG_BUFFERED, stopAfterFirstFragment);
+          if (warmupTimeoutRefs.current[slot] !== null) {
+            window.clearTimeout(warmupTimeoutRefs.current[slot]!);
+            warmupTimeoutRefs.current[slot] = null;
+          }
           instance.stopLoad();
         };
-        const warmupTimeout = window.setTimeout(() => instance.stopLoad(), 6000);
+        warmupTimeoutRefs.current[slot] = window.setTimeout(() => {
+          warmupTimeoutRefs.current[slot] = null;
+          instance.stopLoad();
+        }, 6000);
         instance.on(HlsLib.Events.FRAG_BUFFERED, stopAfterFirstFragment);
         instance.on(HlsLib.Events.ERROR, (_event, data) => {
           if (!data.fatal) return;
-          window.clearTimeout(warmupTimeout);
+          if (warmupTimeoutRefs.current[slot] !== null) {
+            window.clearTimeout(warmupTimeoutRefs.current[slot]!);
+            warmupTimeoutRefs.current[slot] = null;
+          }
           if (warmupHlsRefs.current[slot] === instance) {
             warmupHlsRefs.current[slot] = null;
             warmupChannelIdsRef.current[slot] = null;
@@ -484,6 +499,10 @@ const NeahplusPlayer = ({
         const isStillNeighbor = warmChannelId === currentNeighborsRef.current.next ||
           warmChannelId === currentNeighborsRef.current.previous;
         if (instance && ((isCurrentChannel && !candidateAlreadyActive) || isStillNeighbor)) return;
+        if (warmupTimeoutRefs.current[slot] !== null) {
+          window.clearTimeout(warmupTimeoutRefs.current[slot]!);
+          warmupTimeoutRefs.current[slot] = null;
+        }
         instance?.destroy();
         warmupHlsRefs.current[slot] = null;
         warmupChannelIdsRef.current[slot] = null;
@@ -560,6 +579,16 @@ const NeahplusPlayer = ({
         video.removeAttribute('src');
         video.load();
       }
+    });
+    warmupHlsRefs.current.forEach((instance, slot) => {
+      if (warmupTimeoutRefs.current[slot] !== null) {
+        window.clearTimeout(warmupTimeoutRefs.current[slot]!);
+        warmupTimeoutRefs.current[slot] = null;
+      }
+      instance?.destroy();
+      warmupHlsRefs.current[slot] = null;
+      warmupChannelIdsRef.current[slot] = null;
+      warmupSegmentReadyRef.current[slot] = false;
     });
   }, []);
 
