@@ -292,6 +292,8 @@ const NeahplusPlayer = ({
     if (!fullScreen || (!previousChannelId && !nextChannelId)) return undefined;
     let cancelled = false;
     const controllers = [new AbortController(), new AbortController()];
+    // Le sens "suivant" est prioritaire : on lui réserve d'abord le réseau,
+    // puis on amorce la chaîne précédente sans concurrencer le premier buffer.
     const targets = [nextChannelId, previousChannelId].filter((id): id is string => Boolean(id && id !== channelId));
 
     const warmChannel = async (slot: number, targetChannelId: string, controller: AbortController) => {
@@ -320,32 +322,47 @@ const NeahplusPlayer = ({
           autoStartLoad: true,
           startFragPrefetch: true,
           startLevel: 0,
-          maxBufferLength: 3,
-          maxMaxBufferLength: 4,
-          maxBufferSize: 4 * 1024 * 1024,
+          maxBufferLength: 5,
+          maxMaxBufferLength: 6,
+          maxBufferSize: 6 * 1024 * 1024,
           backBufferLength: 0,
           lowLatencyMode: false,
         });
         warmupHlsRefs.current[slot] = instance;
-        instance.on(HlsLib.Events.ERROR, (_event, data) => {
-          if (data.fatal) {
+
+        // Le suivant reçoit jusqu'à 5 s de buffer ou une fenêtre de 4,5 s.
+        // On libère ensuite le réseau pour amorcer le précédent à son tour.
+        await new Promise<void>((resolve) => {
+          let settled = false;
+          const finishPriorityWindow = () => {
+            if (settled) return;
+            settled = true;
+            window.clearTimeout(priorityTimer);
+            instance.off(HlsLib.Events.BUFFER_APPENDED, checkBufferedAhead);
             instance.stopLoad();
+            resolve();
+          };
+          const checkBufferedAhead = () => {
+            if (video.buffered.length > 0 &&
+              video.buffered.end(video.buffered.length - 1) - video.currentTime >= 5) {
+              finishPriorityWindow();
+            }
+          };
+          const priorityTimer = window.setTimeout(finishPriorityWindow, 4500);
+
+          instance.on(HlsLib.Events.ERROR, (_event, data) => {
+            if (!data.fatal) return;
+            finishPriorityWindow();
             if (warmupHlsRefs.current[slot] === instance) {
               warmupHlsRefs.current[slot] = null;
               warmupChannelIdsRef.current[slot] = null;
               instance.destroy();
             }
-          }
+          });
+          instance.on(HlsLib.Events.BUFFER_APPENDED, checkBufferedAhead);
+          instance.attachMedia(video);
+          instance.loadSource(streamUrl);
         });
-        instance.on(HlsLib.Events.BUFFER_APPENDED, () => {
-          if (video.buffered.length > 0 && video.buffered.end(video.buffered.length - 1) - video.currentTime >= 2.5) {
-            // Garder environ 2,5 s en mémoire : assez pour amorcer le zapping,
-            // sans télécharger plusieurs minutes de deux chaînes en parallèle.
-            instance.stopLoad();
-          }
-        });
-        instance.attachMedia(video);
-        instance.loadSource(streamUrl);
       } catch {
         if (warmupChannelIdsRef.current[slot] === targetChannelId) warmupChannelIdsRef.current[slot] = null;
         // Un préchargement raté ne doit jamais bloquer la chaîne sélectionnée.
@@ -361,7 +378,12 @@ const NeahplusPlayer = ({
       if (slot < 0) break;
       assignments.push({ slot, channelId: target, controller: controllers[slot] });
     }
-    void Promise.all(assignments.map(({ slot, channelId: target, controller }) => warmChannel(slot, target, controller)));
+    void (async () => {
+      for (const assignment of assignments) {
+        if (cancelled) break;
+        await warmChannel(assignment.slot, assignment.channelId, assignment.controller);
+      }
+    })();
     return () => {
       cancelled = true;
       controllers.forEach((controller) => controller.abort());
