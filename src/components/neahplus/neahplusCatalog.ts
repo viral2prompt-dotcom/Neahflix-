@@ -209,6 +209,11 @@ const waitForStreamOrAbort = (entry: ResolvedStreamEntry, signal: AbortSignal): 
   });
 };
 
+export const invalidateNeahplusStream = (channelId: string): void => {
+  const entry = resolvedStreamCache.get(channelId);
+  if (entry?.settled) resolvedStreamCache.delete(channelId);
+};
+
 export const resolveNeahplusStream = async (channelId: string, signal: AbortSignal): Promise<string> => {
   if (signal.aborted) throw new DOMException('Aborted', 'AbortError');
 
