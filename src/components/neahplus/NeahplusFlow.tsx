@@ -55,6 +55,7 @@ interface NeahplusFlowProps {
   onSelectGroup: (group: ChannelGroup) => void;
   onClose: () => void;
   controlsVisible: boolean;
+  activityToken: number;
   onControlsVisibleChange: (visible: boolean) => void;
 }
 
@@ -72,6 +73,7 @@ const NeahplusFlow = ({
   onSelectGroup,
   onClose,
   controlsVisible,
+  activityToken,
   onControlsVisibleChange,
 }: NeahplusFlowProps) => {
   const [search, setSearch] = useState('');
@@ -87,7 +89,7 @@ const NeahplusFlow = ({
     if (!controlsVisible || searchFocused) return undefined;
     const timer = window.setTimeout(() => onControlsVisibleChange(false), 4200);
     return () => window.clearTimeout(timer);
-  }, [controlsVisible, searchFocused, selectedGroup.key, categoryId, onControlsVisibleChange]);
+  }, [controlsVisible, searchFocused, selectedGroup.key, categoryId, activityToken, onControlsVisibleChange]);
 
   const stopSurfaceClick = (event: MouseEvent) => event.stopPropagation();
 
