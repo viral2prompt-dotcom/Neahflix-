@@ -68,7 +68,9 @@ const NeahplusPlayer = ({
   const warmupHlsRefs = useRef<Array<Hls | null>>([null, null]);
   const warmupChannelIdsRef = useRef<Array<string | null>>([null, null]);
   const currentChannelIdRef = useRef(channelId);
+  const currentNeighborsRef = useRef({ previous: previousChannelId, next: nextChannelId });
   currentChannelIdRef.current = channelId;
+  currentNeighborsRef.current = { previous: previousChannelId, next: nextChannelId };
   const activeSlotRef = useRef(0);
   const generationRef = useRef(0);
   const [activeSlot, setActiveSlot] = useState(0);
@@ -359,7 +361,11 @@ const NeahplusPlayer = ({
       warmupHlsRefs.current.forEach((instance, slot) => {
         // Conserver le lecteur correspondant à la chaîne qui vient d'être choisie :
         // l'effet principal va récupérer son MediaSource juste après ce nettoyage.
-        if (warmupChannelIdsRef.current[slot] === currentChannelIdRef.current && instance) return;
+        const warmChannelId = warmupChannelIdsRef.current[slot];
+        const isStillUseful = warmChannelId === currentChannelIdRef.current ||
+          warmChannelId === currentNeighborsRef.current.next ||
+          warmChannelId === currentNeighborsRef.current.previous;
+        if (isStillUseful && instance) return;
         instance?.destroy();
         warmupHlsRefs.current[slot] = null;
         warmupChannelIdsRef.current[slot] = null;
