@@ -49,6 +49,8 @@ interface NeahplusFlowProps {
   onSelectGroup: (group: ChannelGroup) => void;
   onSwipe: (direction: 1 | -1) => void;
   onClose: () => void;
+  controlsVisible: boolean;
+  onControlsVisibleChange: (visible: boolean) => void;
 }
 
 const NeahplusFlow = ({
@@ -65,8 +67,9 @@ const NeahplusFlow = ({
   onSelectGroup,
   onSwipe,
   onClose,
+  controlsVisible,
+  onControlsVisibleChange,
 }: NeahplusFlowProps) => {
-  const [controlsVisible, setControlsVisible] = useState(true);
   const [search, setSearch] = useState('');
   const [searchFocused, setSearchFocused] = useState(false);
 
@@ -78,9 +81,9 @@ const NeahplusFlow = ({
 
   useEffect(() => {
     if (!controlsVisible || searchFocused) return undefined;
-    const timer = window.setTimeout(() => setControlsVisible(false), 4200);
+    const timer = window.setTimeout(() => onControlsVisibleChange(false), 4200);
     return () => window.clearTimeout(timer);
-  }, [controlsVisible, searchFocused, selectedGroup.key, categoryId]);
+  }, [controlsVisible, searchFocused, selectedGroup.key, categoryId, onControlsVisibleChange]);
 
   const stopSurfaceClick = (event: MouseEvent) => event.stopPropagation();
 
@@ -104,7 +107,7 @@ const NeahplusFlow = ({
             <button
               key={category.id}
               type="button"
-              onClick={() => { setSearch(''); onCategoryChange(category.id); setControlsVisible(true); }}
+              onClick={() => { setSearch(''); onCategoryChange(category.id); onControlsVisibleChange(true); }}
               aria-pressed={categoryId === category.id}
               className={`shrink-0 rounded-full border px-3.5 py-2 text-[11px] font-bold transition ${categoryId === category.id ? 'border-[#55dddd]/70 bg-[#20c7c7]/25 text-white shadow-[0_0_18px_rgba(32,199,199,.18)]' : 'border-white/15 bg-black/35 text-white/70'}`}
             >
