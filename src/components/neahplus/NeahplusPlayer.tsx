@@ -80,6 +80,7 @@ const NeahplusPlayer = ({
   const transitionTimerRef = useRef<number | null>(null);
   const transitionFrameRef = useRef<number | null>(null);
   const [hasActiveStream, setHasActiveStream] = useState(false);
+  const [activePlayingChannelId, setActivePlayingChannelId] = useState<string | null>(null);
   const hasActiveStreamRef = useRef(false);
   hasActiveStreamRef.current = hasActiveStream;
   const [status, setStatus] = useState<PlayerStatus>('resolving');
@@ -171,6 +172,7 @@ const NeahplusPlayer = ({
       setActiveSlot(targetSlot);
       hasActiveStreamRef.current = true;
       setHasActiveStream(true);
+      setActivePlayingChannelId(channelId);
       setStatus('playing');
       setMessage(null);
       onStreamReady();
@@ -286,11 +288,21 @@ const NeahplusPlayer = ({
     };
   }, [channelId, attempt, isActive, resolvedStreamUrl, onStreamReady]);
 
-  // En mode Flow, deux lecteurs muets préparent réellement les premiers segments
-  // des chaînes immédiatement voisine(s), sans toucher au lecteur visible.
+  // En mode Flow, la prélecture ne commence qu'après le démarrage réel
+  // de la chaîne sélectionnée. Elle se suspend si le lecteur visible tamponne.
   useEffect(() => {
-    if (!fullScreen || (!previousChannelId && !nextChannelId)) return undefined;
+    if (!fullScreen || activePlayingChannelId !== channelId || (!previousChannelId && !nextChannelId)) return undefined;
     let cancelled = false;
+    const activeVideo = videoRefs.current[activeSlotRef.current];
+    const pauseNeighborPreloads = () => {
+      warmupHlsRefs.current.forEach((instance) => instance?.stopLoad());
+    };
+    const resumeNeighborPreloads = () => {
+      warmupHlsRefs.current.forEach((instance) => instance?.startLoad());
+    };
+    activeVideo?.addEventListener('waiting', pauseNeighborPreloads);
+    activeVideo?.addEventListener('stalled', pauseNeighborPreloads);
+    activeVideo?.addEventListener('playing', resumeNeighborPreloads);
     const controllers = [new AbortController(), new AbortController()];
     // Le sens "suivant" est prioritaire : on lui réserve d'abord le réseau,
     // puis on amorce la chaîne précédente sans concurrencer le premier buffer.
@@ -386,6 +398,9 @@ const NeahplusPlayer = ({
     })();
     return () => {
       cancelled = true;
+      activeVideo?.removeEventListener('waiting', pauseNeighborPreloads);
+      activeVideo?.removeEventListener('stalled', pauseNeighborPreloads);
+      activeVideo?.removeEventListener('playing', resumeNeighborPreloads);
       controllers.forEach((controller) => controller.abort());
       warmupHlsRefs.current.forEach((instance, slot) => {
         // Conserver le lecteur correspondant à la chaîne qui vient d'être choisie :
@@ -407,7 +422,7 @@ const NeahplusPlayer = ({
         }
       });
     };
-  }, [channelId, fullScreen, nextChannelId, previousChannelId, activeSlot]);
+  }, [channelId, fullScreen, nextChannelId, previousChannelId, activeSlot, activePlayingChannelId]);
 
   useEffect(() => {
     if (!flowTransition) return undefined;
