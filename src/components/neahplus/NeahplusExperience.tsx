@@ -645,13 +645,15 @@ const NeahplusExperience = () => {
     setZappingDirection(directionOverride ?? (currentIndex >= 0 && targetIndex >= 0 && currentIndex !== targetIndex ? (targetIndex > currentIndex ? 'next' : 'previous') : null));
     setSelectedGroupKey(group.key);
     setActiveVariantIndex(0);
-    window.requestAnimationFrame(() => {
-      mainContentRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
-      playerSectionRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
-    });
+    if (!flowMode) {
+      window.requestAnimationFrame(() => {
+        mainContentRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+        playerSectionRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+      });
+    }
     // Déclencher la détection dès le toucher, même si la chaîne n'a qu'une seule source.
     if (group.variants.length > 0) void resolveBestVariant(group);
-  }, [resolveBestVariant, selectedGroupKey, carouselGroups]);
+  }, [resolveBestVariant, selectedGroupKey, carouselGroups, flowMode]);
 
   const cycleFlowChannel = useCallback((direction: 1 | -1) => {
     if (flowGroups.length === 0) return;
