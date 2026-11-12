@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import type { TouchEvent as ReactTouchEvent } from 'react';
 import { useLocation } from 'react-router-dom';
 import {
   AlertTriangle,
@@ -19,12 +20,14 @@ import {
   RotateCcw,
   Search,
   Settings as SettingsIcon,
+  Smartphone,
   Tv,
   Volume2,
   VolumeX,
   X,
 } from 'lucide-react';
 import NeahplusPlayer from './NeahplusPlayer';
+import NeahplusFlow, { filterNeahplusFlowGroups } from './NeahplusFlow';
 import { preloadNeahplusPlayer } from './neahplusPlayerLoader';
 import ChannelCarousel from './ChannelCarousel';
 import ProgramSynopsis from './ProgramSynopsis';
@@ -307,6 +310,10 @@ const NeahplusExperience = () => {
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const [selectedGroupKey, setSelectedGroupKey] = useState<string | null>(null);
   const [activeVariantIndex, setActiveVariantIndex] = useState(0);
+  const [flowMode, setFlowMode] = useState(false);
+  const [flowCategoryId, setFlowCategoryId] = useState('all');
+  const [flowControlsVisible, setFlowControlsVisible] = useState(true);
+  const flowTouchStartRef = useRef<{ x: number; y: number } | null>(null);
   const [favorites, setFavorites] = useState<Set<string>>(new Set());
   const [customNames, setCustomNames] = useState<Record<string, string>>({});
   const [showRenameDialog, setShowRenameDialog] = useState(false);
@@ -340,6 +347,7 @@ const NeahplusExperience = () => {
 
   const navigateTo = useCallback((next: Tab) => {
     setDrawerOpen(false);
+    setFlowMode(false);
     setHomePlayerStartDeferred(false);
     setSuppressPlayerEntranceAnimation(false);
     if (['home', 'favorites', 'countries', 'settings'].includes(next)) {
@@ -549,6 +557,12 @@ const NeahplusExperience = () => {
       .sort((a, b) => Number(b.countries.includes('France')) - Number(a.countries.includes('France')) || channelPriority(a.displayName) - channelPriority(b.displayName) || a.displayName.localeCompare(b.displayName, 'fr'));
   }, [allGroups]);
 
+  const flowGroups = useMemo(
+    () => filterNeahplusFlowGroups(carouselGroups, flowCategoryId, country),
+    [carouselGroups, flowCategoryId, country],
+  );
+  const flowNavigationGroups = flowMode ? flowGroups : carouselGroups;
+
   const quickListFilteredGroups = useMemo(() => {
     const needle = foldText(quickListQuery.trim());
     if (!needle) return carouselGroups;
@@ -562,11 +576,11 @@ const NeahplusExperience = () => {
     // Ne pas concurrencer la première résolution du flux sélectionné.
     if (homeNavigationPhase === 'entering' || !selectedGroupKey || resolvingKey === selectedGroupKey || carouselGroups.length < 2) return undefined;
     const controller = new AbortController();
-    const currentIndex = carouselGroups.findIndex((group) => group.key === selectedGroupKey);
+    const currentIndex = flowNavigationGroups.findIndex((group) => group.key === selectedGroupKey);
     if (currentIndex < 0) return undefined;
 
     const neighbors = [1, -1, 2, -2, 3, -3]
-      .map((offset) => carouselGroups[(currentIndex + offset + carouselGroups.length) % carouselGroups.length])
+      .map((offset) => flowNavigationGroups[(currentIndex + offset + flowNavigationGroups.length) % flowNavigationGroups.length])
       .filter((group, index, groups) => Boolean(group?.variants[0]) && groups.findIndex((item) => item.key === group.key) === index);
 
     const prefetchNeighbors = async () => {
@@ -588,7 +602,7 @@ const NeahplusExperience = () => {
 
     void prefetchNeighbors();
     return () => controller.abort();
-  }, [selectedGroupKey, carouselGroups, homeNavigationPhase, resolvingKey]);
+  }, [selectedGroupKey, flowNavigationGroups, homeNavigationPhase, resolvingKey]);
 
   useEffect(() => { setQuickListVisibleCount(80); }, [quickListQuery]);
 
@@ -639,6 +653,50 @@ const NeahplusExperience = () => {
     if (group.variants.length > 0) void resolveBestVariant(group);
   }, [resolveBestVariant, selectedGroupKey, carouselGroups]);
 
+  const cycleFlowChannel = useCallback((direction: 1 | -1) => {
+    if (flowGroups.length === 0) return;
+    const currentIndex = flowGroups.findIndex((group) => group.key === selectedGroupKey);
+    const startIndex = currentIndex < 0 ? (direction > 0 ? -1 : 0) : currentIndex;
+    const nextIndex = (startIndex + direction + flowGroups.length) % flowGroups.length;
+    handleSelectGroup(flowGroups[nextIndex], direction > 0 ? 'next' : 'previous');
+    setFlowControlsVisible(true);
+  }, [flowGroups, selectedGroupKey, handleSelectGroup]);
+
+  const handleFlowCategoryChange = useCallback((nextCategoryId: string) => {
+    const nextGroups = filterNeahplusFlowGroups(carouselGroups, nextCategoryId, country);
+    setFlowCategoryId(nextCategoryId);
+    setFlowControlsVisible(true);
+    if (nextGroups.length === 0) return;
+    if (!nextGroups.some((group) => group.key === selectedGroupKey)) {
+      handleSelectGroup(nextGroups[0]);
+    }
+  }, [carouselGroups, country, selectedGroupKey, handleSelectGroup]);
+
+  const handleFlowTouchStart = useCallback((event: ReactTouchEvent<HTMLDivElement>) => {
+    if (!flowMode || event.touches.length !== 1) {
+      flowTouchStartRef.current = null;
+      return;
+    }
+    const target = event.target as HTMLElement;
+    if (target.closest('button, input, textarea, select')) {
+      flowTouchStartRef.current = null;
+      return;
+    }
+    const touch = event.touches[0];
+    flowTouchStartRef.current = { x: touch.clientX, y: touch.clientY };
+  }, [flowMode]);
+
+  const handleFlowTouchEnd = useCallback((event: ReactTouchEvent<HTMLDivElement>) => {
+    const start = flowTouchStartRef.current;
+    flowTouchStartRef.current = null;
+    if (!flowMode || !start || event.changedTouches.length !== 1) return;
+    const touch = event.changedTouches[0];
+    const deltaX = touch.clientX - start.x;
+    const deltaY = touch.clientY - start.y;
+    if (Math.abs(deltaY) < 48 || Math.abs(deltaY) < Math.abs(deltaX) * 1.2) return;
+    cycleFlowChannel(deltaY < 0 ? 1 : -1);
+  }, [flowMode, cycleFlowChannel]);
+
   // À l'ouverture de « Mon espace », sélectionner une chaîne favorite par défaut.
   // Une chaîne choisie depuis « Plus » reste toutefois sélectionnée même si elle
   // n'est pas favorite : elle est temporairement lisible sans être enregistrée.
@@ -682,7 +740,7 @@ const NeahplusExperience = () => {
     }
   }, [groupByChannelId, resolveBestVariant, carouselGroups, selectedGroupKey]);
 
-  const openChannelFromHome = useCallback((channel: NeahplusChannel) => {
+  const openChannelFromHome = useCallback((channel: NeahplusChannel, categoryId = 'all') => {
     if (homeSelectionLock.current) return;
     const group = groupByChannelId.get(channel.id);
     if (!group) return;
@@ -695,6 +753,7 @@ const NeahplusExperience = () => {
 
     // Sélectionner et afficher le lecteur immédiatement, sans lancer le réseau.
     handleSelectChannel(channel, false, false);
+    setFlowCategoryId(categoryId);
     setSuppressPlayerEntranceAnimation(true);
     setHomePlayerStartDeferred(true);
     pendingViewerScroll.current = true;
@@ -797,6 +856,8 @@ const NeahplusExperience = () => {
 
   type KeyboardContext = {
     drawerOpen: boolean;
+    flowMode: boolean;
+    cycleFlowChannel: (direction: 1 | -1) => void;
     showInfoPanel: boolean;
     showQuickSearch: boolean;
     tab: Tab;
@@ -811,6 +872,8 @@ const NeahplusExperience = () => {
 
   const keyboardContextRef = useRef<KeyboardContext>({
     drawerOpen: false,
+    flowMode: false,
+    cycleFlowChannel: () => undefined,
     showInfoPanel: false,
     showQuickSearch: false,
     tab: 'home',
@@ -825,6 +888,8 @@ const NeahplusExperience = () => {
 
   keyboardContextRef.current = {
     drawerOpen,
+    flowMode,
+    cycleFlowChannel,
     showInfoPanel,
     showQuickSearch,
     tab,
@@ -840,6 +905,12 @@ const NeahplusExperience = () => {
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
       const context = keyboardContextRef.current;
+      if (context.flowMode) {
+        if (e.key === 'Escape') { e.preventDefault(); setFlowMode(false); return; }
+        if (e.key === 'ArrowUp' || e.key === 'PageDown' || e.key === 'ChannelDown') { e.preventDefault(); context.cycleFlowChannel(1); return; }
+        if (e.key === 'ArrowDown' || e.key === 'PageUp' || e.key === 'ChannelUp') { e.preventDefault(); context.cycleFlowChannel(-1); return; }
+        return;
+      }
       if (context.showInfoPanel || context.showQuickSearch) return;
 
       const target = e.target as HTMLElement;
@@ -1113,6 +1184,10 @@ const NeahplusExperience = () => {
                 </div>
                 <NeahplusPlayer
                   isActive={Boolean(selectedGroupKey) && !homePlayerStartDeferred}
+                  fullScreen={flowMode}
+                  onSurfaceTap={flowMode ? () => setFlowControlsVisible(true) : undefined}
+                  onTouchStart={flowMode ? handleFlowTouchStart : undefined}
+                  onTouchEnd={flowMode ? handleFlowTouchEnd : undefined}
                   streamUrl={null}
                   direction={zappingDirection}
                   onStreamReady={handlePlayerStreamReady}
@@ -1122,6 +1197,7 @@ const NeahplusExperience = () => {
                   volume={playerVolume}
                   onAudioStateChange={handlePlayerAudioStateChange}
                 />
+                {flowMode && <span className="sr-only">Mode NEAHPLUS Flow activé</span>}
               </div>
 
               {/* Channel info bar */}
@@ -1162,6 +1238,16 @@ const NeahplusExperience = () => {
                     title="Volume"
                     className="h-1 w-16 cursor-pointer appearance-none rounded-full bg-white/25 accent-[#55dddd]"
                   />
+                  <button
+                    type="button"
+                    onClick={() => { setFlowMode(true); setFlowControlsVisible(true); setShowChannelList(false); }}
+                    aria-label="Ouvrir NEAHPLUS Flow"
+                    title="Navigation verticale NEAHPLUS Flow"
+                    className="inline-flex h-9 items-center justify-center gap-1.5 rounded-xl border border-[#20c7c7]/30 bg-[#20c7c7]/10 px-2.5 text-[10px] font-black tracking-wide text-[#8af0f0] transition hover:border-[#55dddd]/70 hover:bg-[#20c7c7]/20 hover:text-white"
+                  >
+                    <Smartphone className="h-4 w-4" />
+                    FLOW
+                  </button>
                   <button
                     type="button"
                     onClick={() => navigateTo('guide')}
@@ -1461,6 +1547,25 @@ const NeahplusExperience = () => {
       </footer>
 
       {/* Overlays */}
+      {flowMode && activeVariant && selectedGroup && (
+        <NeahplusFlow
+          groups={flowGroups}
+          selectedGroup={selectedGroup}
+          categoryId={flowCategoryId}
+          channelName={selectedGroup.displayName}
+          programTitle={activeProgram?.title ?? null}
+          programTime={activeProgram ? `${formatTime(activeProgram.start)} – ${formatTime(activeProgram.end)}` : null}
+          logo={activeVariant.logo}
+          isFavorite={favorites.has(selectedGroup.key)}
+          onToggleFavorite={() => toggleFavorite(selectedGroup.key)}
+          onCategoryChange={handleFlowCategoryChange}
+          onSelectGroup={(group) => handleSelectGroup(group)}
+          onSwipe={cycleFlowChannel}
+          onClose={() => { setFlowMode(false); setFlowControlsVisible(true); }}
+          controlsVisible={flowControlsVisible}
+          onControlsVisibleChange={setFlowControlsVisible}
+        />
+      )}
       {showSpaceRenameDialog && (
         <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/75 p-4 backdrop-blur-sm" onClick={() => setShowSpaceRenameDialog(false)}>
           <form className="w-full max-w-sm rounded-2xl border border-[#20c7c7]/20 bg-[#0b2028] p-5 shadow-2xl" onClick={(event) => event.stopPropagation()} onSubmit={(event) => { event.preventDefault(); saveSpaceName(); }}>
