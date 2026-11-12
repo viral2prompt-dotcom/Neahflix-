@@ -73,7 +73,11 @@ const NeahplusPlayer = ({
   const [message, setMessage] = useState<string | null>(null);
   const [attempt, setAttempt] = useState(0);
   const audioSettingsRef = useRef({ muted, volume });
+  const fullScreenRef = useRef(fullScreen);
+  const directionRef = useRef(direction);
   audioSettingsRef.current = { muted, volume };
+  fullScreenRef.current = fullScreen;
+  directionRef.current = direction;
 
   useEffect(() => {
     if (!isActive) return undefined;
@@ -130,12 +134,12 @@ const NeahplusPlayer = ({
       const previousVideo = videoRefs.current[previousSlot];
       video.muted = audioSettingsRef.current.muted;
       video.volume = audioSettingsRef.current.volume;
-      if (fullScreen && direction && previousVideo) {
+      if (fullScreenRef.current && directionRef.current && previousVideo) {
         previousVideo.muted = true;
         setFlowTransition({
           enteringSlot: targetSlot,
           exitingSlot: previousSlot,
-          direction,
+          direction: directionRef.current,
           phase: 'prepare',
         });
       }
@@ -147,7 +151,7 @@ const NeahplusPlayer = ({
       setMessage(null);
       onStreamReady();
 
-      if (previousVideo && !(fullScreen && direction)) {
+      if (previousVideo && !(fullScreenRef.current && directionRef.current)) {
         previousVideo.pause();
         hlsInstances[previousSlot]?.destroy();
         hlsInstances[previousSlot] = null;
@@ -222,7 +226,7 @@ const NeahplusPlayer = ({
         video.load();
       }
     };
-  }, [channelId, attempt, isActive, resolvedStreamUrl, onStreamReady, fullScreen, direction]);
+  }, [channelId, attempt, isActive, resolvedStreamUrl, onStreamReady]);
 
   useEffect(() => {
     if (!flowTransition) return undefined;
