@@ -190,7 +190,14 @@ const NeahplusPlayer = ({
       if (aborted || generation !== generationRef.current) return;
 
       if (HlsLib.isSupported()) {
-        const instance = new HlsLib({ enableWorker: true, autoStartLoad: true });
+        const instance = new HlsLib({
+          enableWorker: true,
+          autoStartLoad: true,
+          startFragPrefetch: true,
+          maxBufferLength: 8,
+          maxMaxBufferLength: 16,
+          backBufferLength: 5,
+        });
         candidateHls = instance;
         hlsInstances[targetSlot] = instance;
         instance.on(HlsLib.Events.ERROR, (_event, data) => {
