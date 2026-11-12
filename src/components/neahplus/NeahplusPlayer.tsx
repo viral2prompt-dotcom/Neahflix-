@@ -328,6 +328,11 @@ const NeahplusPlayer = ({
         instance.on(HlsLib.Events.ERROR, (_event, data) => {
           if (data.fatal) {
             instance.stopLoad();
+            if (warmupHlsRefs.current[slot] === instance) {
+              warmupHlsRefs.current[slot] = null;
+              warmupChannelIdsRef.current[slot] = null;
+              instance.destroy();
+            }
           }
         });
         instance.on(HlsLib.Events.BUFFER_APPENDED, () => {
