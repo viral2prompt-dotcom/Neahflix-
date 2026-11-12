@@ -38,6 +38,8 @@ interface NeahplusPlayerProps {
   onStreamReady: () => void;
   onAudioStateChange: (muted: boolean, volume: number) => void;
   fullScreen?: boolean;
+  previousChannelId?: string | null;
+  nextChannelId?: string | null;
   onSurfaceTap?: () => void;
   onTouchStart?: TouchEventHandler<HTMLDivElement>;
   onTouchEnd?: TouchEventHandler<HTMLDivElement>;
@@ -54,12 +56,16 @@ const NeahplusPlayer = ({
   onStreamReady,
   onAudioStateChange,
   fullScreen = false,
+  previousChannelId = null,
+  nextChannelId = null,
   onSurfaceTap,
   onTouchStart,
   onTouchEnd,
 }: NeahplusPlayerProps) => {
   const videoRefs = useRef<Array<HTMLVideoElement | null>>([null, null]);
   const hlsRefs = useRef<Array<Hls | null>>([null, null]);
+  const warmupVideoRefs = useRef<Array<HTMLVideoElement | null>>([null, null]);
+  const warmupHlsRefs = useRef<Array<Hls | null>>([null, null]);
   const activeSlotRef = useRef(0);
   const generationRef = useRef(0);
   const [activeSlot, setActiveSlot] = useState(0);
@@ -248,6 +254,76 @@ const NeahplusPlayer = ({
     };
   }, [channelId, attempt, isActive, resolvedStreamUrl, onStreamReady]);
 
+  // En mode Flow, deux lecteurs muets préparent réellement les premiers segments
+  // des chaînes immédiatement voisine(s), sans toucher au lecteur visible.
+  useEffect(() => {
+    if (!fullScreen || (!previousChannelId && !nextChannelId)) return undefined;
+    let cancelled = false;
+    const controllers = [new AbortController(), new AbortController()];
+    const targets = [nextChannelId, previousChannelId];
+
+    const warmChannel = async (slot: number, targetChannelId: string | null) => {
+      const video = warmupVideoRefs.current[slot];
+      if (!targetChannelId || targetChannelId === channelId || !video) return;
+      try {
+        const streamUrl = await resolveNeahplusStream(targetChannelId, controllers[slot].signal);
+        if (cancelled || controllers[slot].signal.aborted) return;
+        const { default: HlsLib } = await loadHlsModule();
+        if (cancelled || controllers[slot].signal.aborted || !HlsLib.isSupported()) return;
+
+        video.muted = true;
+        video.volume = 0;
+        const instance = new HlsLib({
+          enableWorker: true,
+          autoStartLoad: true,
+          startFragPrefetch: true,
+          startLevel: 0,
+          maxBufferLength: 3,
+          maxMaxBufferLength: 4,
+          maxBufferSize: 4 * 1024 * 1024,
+          backBufferLength: 0,
+          lowLatencyMode: false,
+        });
+        warmupHlsRefs.current[slot] = instance;
+        instance.on(HlsLib.Events.ERROR, (_event, data) => {
+          if (data.fatal) {
+            instance.stopLoad();
+          }
+        });
+        instance.on(HlsLib.Events.BUFFER_APPENDED, () => {
+          if (video.buffered.length > 0 && video.buffered.end(video.buffered.length - 1) - video.currentTime >= 2.5) {
+            // Garder environ 2,5 s en mémoire : assez pour amorcer le zapping,
+            // sans télécharger plusieurs minutes de deux chaînes en parallèle.
+            instance.stopLoad();
+          }
+        });
+        instance.on(HlsLib.Events.MANIFEST_PARSED, () => {
+          void video.play().catch(() => undefined);
+        });
+        instance.attachMedia(video);
+        instance.loadSource(streamUrl);
+      } catch {
+        // Un préchargement raté ne doit jamais bloquer la chaîne sélectionnée.
+      }
+    };
+
+    void Promise.all(targets.map((target, slot) => warmChannel(slot, target)));
+    return () => {
+      cancelled = true;
+      controllers.forEach((controller) => controller.abort());
+      warmupHlsRefs.current.forEach((instance, slot) => {
+        instance?.destroy();
+        warmupHlsRefs.current[slot] = null;
+      });
+      warmupVideoRefs.current.forEach((video) => {
+        if (!video) return;
+        video.pause();
+        video.removeAttribute('src');
+        video.load();
+      });
+    };
+  }, [channelId, fullScreen, nextChannelId, previousChannelId]);
+
   useEffect(() => {
     if (!flowTransition) return undefined;
     if (flowTransition.phase === 'prepare') {
@@ -324,6 +400,19 @@ const NeahplusPlayer = ({
       onTouchStart={onTouchStart}
       onTouchEnd={onTouchEnd}
       style={fullScreen ? { touchAction: 'none' } : undefined}>
+      {fullScreen && [0, 1].map((slot) => (
+        <video
+          key={`flow-warmup-${slot}`}
+          ref={(element) => { warmupVideoRefs.current[slot] = element; }}
+          muted
+          playsInline
+          autoPlay
+          preload="auto"
+          aria-hidden="true"
+          tabIndex={-1}
+          className="pointer-events-none absolute left-0 top-0 h-px w-px opacity-0"
+        />
+      ))}
       {[0, 1].map((slot) => (
         <video
           key={slot}
