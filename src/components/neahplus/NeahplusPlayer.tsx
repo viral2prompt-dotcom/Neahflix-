@@ -66,6 +66,9 @@ const NeahplusPlayer = ({
   const hlsRefs = useRef<Array<Hls | null>>([null, null]);
   const warmupVideoRefs = useRef<Array<HTMLVideoElement | null>>([null, null]);
   const warmupHlsRefs = useRef<Array<Hls | null>>([null, null]);
+  const warmupChannelIdsRef = useRef<Array<string | null>>([null, null]);
+  const currentChannelIdRef = useRef(channelId);
+  currentChannelIdRef.current = channelId;
   const activeSlotRef = useRef(0);
   const generationRef = useRef(0);
   const [activeSlot, setActiveSlot] = useState(0);
@@ -205,6 +208,28 @@ const NeahplusPlayer = ({
       if (aborted || generation !== generationRef.current) return;
       setStatus('loading');
 
+      // Si le lecteur d'attente a déjà amorcé cette chaîne, transférer son
+      // MediaSource et ses SourceBuffers au lecteur visible : aucun redémarrage
+      // du manifeste ni re-téléchargement du premier segment.
+      const warmedIndex = warmupChannelIdsRef.current.findIndex((id, index) =>
+        id === channelId && Boolean(warmupHlsRefs.current[index]?.media)
+      );
+      if (warmedIndex >= 0) {
+        const warmedHls = warmupHlsRefs.current[warmedIndex];
+        const transferData = warmedHls?.transferMedia();
+        warmupHlsRefs.current[warmedIndex] = null;
+        warmupChannelIdsRef.current[warmedIndex] = null;
+        if (warmedHls && transferData) {
+          candidateHls = warmedHls;
+          hlsInstances[targetSlot] = warmedHls;
+          warmedHls.attachMedia({ media: video, ...transferData });
+          warmedHls.startLoad();
+          if (video.readyState >= HTMLMediaElement.HAVE_FUTURE_DATA) startPlayback();
+          return;
+        }
+        warmedHls?.destroy();
+      }
+
       const { default: HlsLib } = await loadHlsModule();
       if (aborted || generation !== generationRef.current) return;
 
@@ -260,16 +285,17 @@ const NeahplusPlayer = ({
     if (!fullScreen || (!previousChannelId && !nextChannelId)) return undefined;
     let cancelled = false;
     const controllers = [new AbortController(), new AbortController()];
-    const targets = [nextChannelId, previousChannelId];
+    const targets = [nextChannelId, previousChannelId].filter((id): id is string => Boolean(id && id !== channelId));
 
-    const warmChannel = async (slot: number, targetChannelId: string | null) => {
+    const warmChannel = async (slot: number, targetChannelId: string, controller: AbortController) => {
       const video = warmupVideoRefs.current[slot];
-      if (!targetChannelId || targetChannelId === channelId || !video) return;
+      if (!video) return;
+      warmupChannelIdsRef.current[slot] = targetChannelId;
       try {
-        const streamUrl = await resolveNeahplusStream(targetChannelId, controllers[slot].signal);
-        if (cancelled || controllers[slot].signal.aborted) return;
+        const streamUrl = await resolveNeahplusStream(targetChannelId, controller.signal);
+        if (cancelled || controller.signal.aborted) return;
         const { default: HlsLib } = await loadHlsModule();
-        if (cancelled || controllers[slot].signal.aborted) return;
+        if (cancelled || controller.signal.aborted) return;
 
         video.muted = true;
         video.volume = 0;
@@ -312,26 +338,40 @@ const NeahplusPlayer = ({
         instance.attachMedia(video);
         instance.loadSource(streamUrl);
       } catch {
+        if (warmupChannelIdsRef.current[slot] === targetChannelId) warmupChannelIdsRef.current[slot] = null;
         // Un préchargement raté ne doit jamais bloquer la chaîne sélectionnée.
       }
     };
 
-    void Promise.all(targets.map((target, slot) => warmChannel(slot, target)));
+    const assignments: Array<{ slot: number; channelId: string; controller: AbortController }> = [];
+    for (const target of targets) {
+      if (warmupChannelIdsRef.current.includes(target)) continue;
+      const slot = warmupChannelIdsRef.current.findIndex((id, index) =>
+        id === null && warmupHlsRefs.current[index] === null
+      );
+      if (slot < 0) break;
+      assignments.push({ slot, channelId: target, controller: controllers[slot] });
+    }
+    void Promise.all(assignments.map(({ slot, channelId: target, controller }) => warmChannel(slot, target, controller)));
     return () => {
       cancelled = true;
       controllers.forEach((controller) => controller.abort());
       warmupHlsRefs.current.forEach((instance, slot) => {
+        // Conserver le lecteur correspondant à la chaîne qui vient d'être choisie :
+        // l'effet principal va récupérer son MediaSource juste après ce nettoyage.
+        if (warmupChannelIdsRef.current[slot] === currentChannelIdRef.current) return;
         instance?.destroy();
         warmupHlsRefs.current[slot] = null;
-      });
-      warmupVideoRefs.current.forEach((video) => {
-        if (!video) return;
-        video.pause();
-        video.removeAttribute('src');
-        video.load();
+        warmupChannelIdsRef.current[slot] = null;
+        const video = warmupVideoRefs.current[slot];
+        if (video) {
+          video.pause();
+          video.removeAttribute('src');
+          video.load();
+        }
       });
     };
-  }, [channelId, fullScreen, nextChannelId, previousChannelId]);
+  }, [channelId, fullScreen, nextChannelId, previousChannelId, activeSlot]);
 
   useEffect(() => {
     if (!flowTransition) return undefined;
