@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import type { TouchEventHandler } from 'react';
 import { AlertTriangle, FastForward, Loader2, Rewind, RotateCcw } from 'lucide-react';
 import type Hls from 'hls.js';
 import { safePlay } from '@/utils/safePlay';
@@ -37,6 +38,9 @@ interface NeahplusPlayerProps {
   onStreamReady: () => void;
   onAudioStateChange: (muted: boolean, volume: number) => void;
   fullScreen?: boolean;
+  onSurfaceTap?: () => void;
+  onTouchStart?: TouchEventHandler<HTMLDivElement>;
+  onTouchEnd?: TouchEventHandler<HTMLDivElement>;
 }
 
 const NeahplusPlayer = ({
@@ -50,6 +54,9 @@ const NeahplusPlayer = ({
   onStreamReady,
   onAudioStateChange,
   fullScreen = false,
+  onSurfaceTap,
+  onTouchStart,
+  onTouchEnd,
 }: NeahplusPlayerProps) => {
   const videoRefs = useRef<Array<HTMLVideoElement | null>>([null, null]);
   const hlsRefs = useRef<Array<Hls | null>>([null, null]);
@@ -235,7 +242,11 @@ const NeahplusPlayer = ({
   return (
     <div className={fullScreen
       ? 'relative h-full w-full max-h-none aspect-auto overflow-hidden rounded-none bg-black'
-      : `relative mx-auto aspect-video w-full max-h-[42vh] overflow-hidden rounded-xl bg-black transition-shadow duration-300 lg:max-h-[46vh] ${status === 'resolving' || status === 'loading' ? 'ring-2 ring-[#20c7c7]/55 shadow-[0_0_28px_rgba(32,199,199,.16)]' : 'ring-1 ring-[#20c7c7]/20'}`}>
+      : `relative mx-auto aspect-video w-full max-h-[42vh] overflow-hidden rounded-xl bg-black transition-shadow duration-300 lg:max-h-[46vh] ${status === 'resolving' || status === 'loading' ? 'ring-2 ring-[#20c7c7]/55 shadow-[0_0_28px_rgba(32,199,199,.16)]' : 'ring-1 ring-[#20c7c7]/20'}`}
+      onClick={onSurfaceTap}
+      onTouchStart={onTouchStart}
+      onTouchEnd={onTouchEnd}
+      style={fullScreen ? { touchAction: 'none' } : undefined}>
       {[0, 1].map((slot) => (
         <video
           key={slot}
