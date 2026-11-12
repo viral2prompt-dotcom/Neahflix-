@@ -567,6 +567,13 @@ const NeahplusExperience = () => {
     [carouselGroups, flowCategoryId, country],
   );
   const flowNavigationGroups = flowMode ? flowGroups : carouselGroups;
+  const flowCurrentIndex = flowGroups.findIndex((group) => group.key === selectedGroupKey);
+  const flowNextChannelId = flowCurrentIndex >= 0 && flowGroups.length > 1
+    ? flowGroups[(flowCurrentIndex + 1) % flowGroups.length]?.variants[0]?.id ?? null
+    : null;
+  const flowPreviousChannelId = flowCurrentIndex >= 0 && flowGroups.length > 1
+    ? flowGroups[(flowCurrentIndex - 1 + flowGroups.length) % flowGroups.length]?.variants[0]?.id ?? null
+    : null;
 
   const quickListFilteredGroups = useMemo(() => {
     const needle = foldText(quickListQuery.trim());
@@ -1192,6 +1199,8 @@ const NeahplusExperience = () => {
                 <NeahplusPlayer
                   isActive={Boolean(selectedGroupKey) && !homePlayerStartDeferred}
                   fullScreen={flowMode}
+                  previousChannelId={flowPreviousChannelId}
+                  nextChannelId={flowNextChannelId}
                   onSurfaceTap={flowMode ? () => handleFlowControlsChange(true) : undefined}
                   onTouchStart={flowMode ? handleFlowTouchStart : undefined}
                   onTouchEnd={flowMode ? handleFlowTouchEnd : undefined}
