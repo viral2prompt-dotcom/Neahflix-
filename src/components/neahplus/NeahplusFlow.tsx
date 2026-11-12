@@ -3,6 +3,7 @@ import type { MouseEvent } from 'react';
 import { Heart, Search, X } from 'lucide-react';
 import type { ChannelGroup } from './neahplusTvUtils';
 import { foldText, groupMatchesCountry } from './neahplusTvUtils';
+import { getNeahplusChannelPriority } from './neahplusBranding';
 
 export const NEAHPLUS_FLOW_CATEGORIES = [
   { id: 'all', label: 'Tout' },
@@ -33,7 +34,12 @@ export const filterNeahplusFlowGroups = (
   return group.variants.some((variant) =>
     matcher.test(foldText([group.displayName, variant.name, ...variant.categories].join(' ')))
   );
-});
+}).sort((a, b) =>
+  Number(b.countries.includes('France')) - Number(a.countries.includes('France')) ||
+  getNeahplusChannelPriority(a.variants[0]?.name ?? a.displayName, 'Tout') -
+    getNeahplusChannelPriority(b.variants[0]?.name ?? b.displayName, 'Tout') ||
+  a.displayName.localeCompare(b.displayName, 'fr')
+);
 
 interface NeahplusFlowProps {
   groups: ChannelGroup[];
