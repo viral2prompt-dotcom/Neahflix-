@@ -165,7 +165,7 @@ const NeahplusFlow = ({
           </div>
           <button
             type="button"
-            onClick={onToggleFavorite}
+            onClick={() => { onToggleFavorite(); onControlsVisibleChange(true); }}
             aria-label={isFavorite ? 'Retirer des favoris' : 'Ajouter aux favoris'}
             aria-pressed={isFavorite}
             className={`mb-1 flex h-11 w-11 shrink-0 items-center justify-center rounded-full border backdrop-blur-md ${isFavorite ? 'border-[#d6ad55]/80 bg-[#d6ad55]/20 text-red-400' : 'border-white/20 bg-black/45 text-white/80'}`}
