@@ -269,10 +269,19 @@ const NeahplusPlayer = ({
         const streamUrl = await resolveNeahplusStream(targetChannelId, controllers[slot].signal);
         if (cancelled || controllers[slot].signal.aborted) return;
         const { default: HlsLib } = await loadHlsModule();
-        if (cancelled || controllers[slot].signal.aborted || !HlsLib.isSupported()) return;
+        if (cancelled || controllers[slot].signal.aborted) return;
 
         video.muted = true;
         video.volume = 0;
+        if (!HlsLib.isSupported()) {
+          // Safari/iOS peut lire HLS nativement sans MediaSource.
+          if (video.canPlayType('application/vnd.apple.mpegurl')) {
+            video.src = streamUrl;
+            video.load();
+            void video.play().catch(() => undefined);
+          }
+          return;
+        }
         const instance = new HlsLib({
           enableWorker: true,
           autoStartLoad: true,
