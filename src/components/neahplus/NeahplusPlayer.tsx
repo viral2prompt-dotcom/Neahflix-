@@ -133,6 +133,7 @@ const NeahplusPlayer = ({
         setMessage(errorMessage(error));
         setStatus('error');
       } else {
+        setFlowTransition(null);
         setStatus('playing');
         onStreamReady();
       }
