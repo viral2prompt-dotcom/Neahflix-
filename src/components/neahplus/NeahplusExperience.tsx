@@ -313,6 +313,11 @@ const NeahplusExperience = () => {
   const [flowMode, setFlowMode] = useState(false);
   const [flowCategoryId, setFlowCategoryId] = useState('all');
   const [flowControlsVisible, setFlowControlsVisible] = useState(true);
+  const [flowControlsActivity, setFlowControlsActivity] = useState(0);
+  const handleFlowControlsChange = useCallback((visible: boolean) => {
+    setFlowControlsVisible(visible);
+    if (visible) setFlowControlsActivity((value) => value + 1);
+  }, []);
   const flowTouchStartRef = useRef<{ x: number; y: number } | null>(null);
   const [favorites, setFavorites] = useState<Set<string>>(new Set());
   const [customNames, setCustomNames] = useState<Record<string, string>>({});
@@ -661,18 +666,18 @@ const NeahplusExperience = () => {
     const startIndex = currentIndex < 0 ? (direction > 0 ? -1 : 0) : currentIndex;
     const nextIndex = (startIndex + direction + flowGroups.length) % flowGroups.length;
     handleSelectGroup(flowGroups[nextIndex], direction > 0 ? 'next' : 'previous');
-    setFlowControlsVisible(true);
-  }, [flowGroups, selectedGroupKey, handleSelectGroup]);
+    handleFlowControlsChange(true);
+  }, [flowGroups, selectedGroupKey, handleSelectGroup, handleFlowControlsChange]);
 
   const handleFlowCategoryChange = useCallback((nextCategoryId: string) => {
     const nextGroups = filterNeahplusFlowGroups(carouselGroups, nextCategoryId, country);
     setFlowCategoryId(nextCategoryId);
-    setFlowControlsVisible(true);
+    handleFlowControlsChange(true);
     if (nextGroups.length === 0) return;
     if (!nextGroups.some((group) => group.key === selectedGroupKey)) {
       handleSelectGroup(nextGroups[0]);
     }
-  }, [carouselGroups, country, selectedGroupKey, handleSelectGroup]);
+  }, [carouselGroups, country, selectedGroupKey, handleSelectGroup, handleFlowControlsChange]);
 
   const handleFlowTouchStart = useCallback((event: ReactTouchEvent<HTMLDivElement>) => {
     if (!flowMode || event.touches.length !== 1) {
@@ -1187,7 +1192,7 @@ const NeahplusExperience = () => {
                 <NeahplusPlayer
                   isActive={Boolean(selectedGroupKey) && !homePlayerStartDeferred}
                   fullScreen={flowMode}
-                  onSurfaceTap={flowMode ? () => setFlowControlsVisible(true) : undefined}
+                  onSurfaceTap={flowMode ? () => handleFlowControlsChange(true) : undefined}
                   onTouchStart={flowMode ? handleFlowTouchStart : undefined}
                   onTouchEnd={flowMode ? handleFlowTouchEnd : undefined}
                   streamUrl={null}
@@ -1242,7 +1247,7 @@ const NeahplusExperience = () => {
                   />
                   <button
                     type="button"
-                    onClick={() => { setFlowMode(true); setFlowControlsVisible(true); setShowChannelList(false); }}
+                    onClick={() => { setFlowMode(true); handleFlowControlsChange(true); setShowChannelList(false); }}
                     aria-label="Ouvrir NEAHPLUS Flow"
                     title="Navigation verticale NEAHPLUS Flow"
                     className="inline-flex h-9 items-center justify-center gap-1.5 rounded-xl border border-[#20c7c7]/30 bg-[#20c7c7]/10 px-2.5 text-[10px] font-black tracking-wide text-[#8af0f0] transition hover:border-[#55dddd]/70 hover:bg-[#20c7c7]/20 hover:text-white"
@@ -1564,7 +1569,8 @@ const NeahplusExperience = () => {
           onSelectGroup={(group) => handleSelectGroup(group)}
           onClose={() => { setFlowMode(false); setFlowControlsVisible(true); }}
           controlsVisible={flowControlsVisible}
-          onControlsVisibleChange={setFlowControlsVisible}
+          activityToken={flowControlsActivity}
+          onControlsVisibleChange={handleFlowControlsChange}
         />
       )}
       {showSpaceRenameDialog && (
