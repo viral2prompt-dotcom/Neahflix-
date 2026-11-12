@@ -63,6 +63,9 @@ const NeahplusPlayer = ({
   const activeSlotRef = useRef(0);
   const generationRef = useRef(0);
   const [activeSlot, setActiveSlot] = useState(0);
+  const [flowTransition, setFlowTransition] = useState<{ enteringSlot: number; exitingSlot: number; direction: Exclude<ZappingDirection, null>; phase: 'prepare' | 'animate' } | null>(null);
+  const transitionTimerRef = useRef<number | null>(null);
+  const transitionFrameRef = useRef<number | null>(null);
   const [hasActiveStream, setHasActiveStream] = useState(false);
   const hasActiveStreamRef = useRef(false);
   hasActiveStreamRef.current = hasActiveStream;
@@ -75,6 +78,11 @@ const NeahplusPlayer = ({
   useEffect(() => {
     if (!isActive) return undefined;
     const hlsInstances = hlsRefs.current;
+    if (transitionTimerRef.current !== null) window.clearTimeout(transitionTimerRef.current);
+    if (transitionFrameRef.current !== null) window.cancelAnimationFrame(transitionFrameRef.current);
+    transitionTimerRef.current = null;
+    transitionFrameRef.current = null;
+    setFlowTransition(null);
     const generation = ++generationRef.current;
     const targetSlot = 1 - activeSlotRef.current;
     const video = videoRefs.current[targetSlot];
@@ -122,6 +130,15 @@ const NeahplusPlayer = ({
       const previousVideo = videoRefs.current[previousSlot];
       video.muted = audioSettingsRef.current.muted;
       video.volume = audioSettingsRef.current.volume;
+      if (fullScreen && direction && previousVideo) {
+        previousVideo.muted = true;
+        setFlowTransition({
+          enteringSlot: targetSlot,
+          exitingSlot: previousSlot,
+          direction,
+          phase: 'prepare',
+        });
+      }
       activeSlotRef.current = targetSlot;
       setActiveSlot(targetSlot);
       hasActiveStreamRef.current = true;
@@ -130,7 +147,7 @@ const NeahplusPlayer = ({
       setMessage(null);
       onStreamReady();
 
-      if (previousVideo) {
+      if (previousVideo && !(fullScreen && direction)) {
         previousVideo.pause();
         hlsInstances[previousSlot]?.destroy();
         hlsInstances[previousSlot] = null;
@@ -205,7 +222,36 @@ const NeahplusPlayer = ({
         video.load();
       }
     };
-  }, [channelId, attempt, isActive, resolvedStreamUrl, onStreamReady]);
+  }, [channelId, attempt, isActive, resolvedStreamUrl, onStreamReady, fullScreen, direction]);
+
+  useEffect(() => {
+    if (!flowTransition) return undefined;
+    if (flowTransition.phase === 'prepare') {
+      transitionFrameRef.current = window.requestAnimationFrame(() => {
+        setFlowTransition((current) => current ? { ...current, phase: 'animate' } : null);
+      });
+      return () => {
+        if (transitionFrameRef.current !== null) window.cancelAnimationFrame(transitionFrameRef.current);
+      };
+    }
+
+    transitionTimerRef.current = window.setTimeout(() => {
+      const { exitingSlot } = flowTransition;
+      const oldVideo = videoRefs.current[exitingSlot];
+      oldVideo?.pause();
+      hlsRefs.current[exitingSlot]?.destroy();
+      hlsRefs.current[exitingSlot] = null;
+      if (oldVideo) {
+        oldVideo.removeAttribute('src');
+        oldVideo.load();
+      }
+      setFlowTransition(null);
+      transitionTimerRef.current = null;
+    }, 300);
+    return () => {
+      if (transitionTimerRef.current !== null) window.clearTimeout(transitionTimerRef.current);
+    };
+  }, [flowTransition]);
 
   useEffect(() => {
     const cleanups: Array<() => void> = [];
@@ -225,6 +271,8 @@ const NeahplusPlayer = ({
   }, [muted, volume, activeSlot, onAudioStateChange]);
 
   useEffect(() => () => {
+    if (transitionTimerRef.current !== null) window.clearTimeout(transitionTimerRef.current);
+    if (transitionFrameRef.current !== null) window.cancelAnimationFrame(transitionFrameRef.current);
     generationRef.current += 1;
     videoRefs.current.forEach((video, slot) => {
       video?.pause();
@@ -251,10 +299,18 @@ const NeahplusPlayer = ({
         <video
           key={slot}
           ref={(element) => { videoRefs.current[slot] = element; }}
-          className={`h-full w-full bg-black object-contain ${slot === activeSlot ? 'block' : 'hidden'}`}
+          className={`h-full w-full bg-black object-contain ${flowTransition ? 'absolute inset-0' : slot === activeSlot ? 'block' : 'hidden'}`}
+          style={flowTransition && (slot === flowTransition.enteringSlot || slot === flowTransition.exitingSlot) ? {
+            transform: slot === flowTransition.enteringSlot
+              ? flowTransition.phase === 'prepare' ? `translate3d(0, ${flowTransition.direction === 'next' ? '100%' : '-100%'}, 0)` : 'translate3d(0, 0, 0)'
+              : flowTransition.phase === 'prepare' ? 'translate3d(0, 0, 0)' : `translate3d(0, ${flowTransition.direction === 'next' ? '-100%' : '100%'}, 0)`,
+            transition: flowTransition.phase === 'animate' ? 'transform 280ms cubic-bezier(0.22, 1, 0.36, 1)' : 'none',
+            zIndex: slot === flowTransition.enteringSlot ? 2 : 1,
+            willChange: 'transform',
+          } : undefined}
           controls={slot === activeSlot}
           playsInline
-          preload="none"
+          preload={fullScreen ? 'auto' : 'none'}
           aria-label={`Lecteur ${channelName}`}
         />
       ))}
