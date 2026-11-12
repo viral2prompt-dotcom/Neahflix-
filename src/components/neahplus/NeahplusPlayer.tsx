@@ -249,8 +249,11 @@ const NeahplusPlayer = ({
 
     const handlePlaying = () => {
       activateCandidate();
-      if (typeof video.requestVideoFrameCallback === 'function') {
-        video.requestVideoFrameCallback(() => recordFirstFrame());
+      const videoWithFrameCallback = video as HTMLVideoElement & {
+        requestVideoFrameCallback?: (callback: () => void) => number;
+      };
+      if (typeof videoWithFrameCallback.requestVideoFrameCallback === 'function') {
+        videoWithFrameCallback.requestVideoFrameCallback(() => recordFirstFrame());
       } else {
         recordFirstFrame();
       }
