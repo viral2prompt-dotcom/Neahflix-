@@ -10,6 +10,15 @@ import { loadHlsModule } from './neahplusPlayerLoader';
 type PlayerStatus = 'resolving' | 'loading' | 'playing' | 'paused' | 'error';
 type ZappingDirection = 'next' | 'previous' | null;
 
+interface PlaybackDiagnostics {
+  channelName: string;
+  stage: string;
+  urlMs: number | null;
+  manifestMs: number | null;
+  segmentMs: number | null;
+  firstFrameMs: number | null;
+}
+
 const STATUS_LABEL: Record<Exclude<PlayerStatus, 'paused'>, string> = {
   resolving: 'Connexion à la chaîne',
   loading: 'Chargement du direct…',
@@ -86,6 +95,7 @@ const NeahplusPlayer = ({
   const [status, setStatus] = useState<PlayerStatus>('resolving');
   const [message, setMessage] = useState<string | null>(null);
   const [attempt, setAttempt] = useState(0);
+  const [playbackDiagnostics, setPlaybackDiagnostics] = useState<PlaybackDiagnostics | null>(null);
   const audioSettingsRef = useRef({ muted, volume });
   const fullScreenRef = useRef(fullScreen);
   const directionRef = useRef(direction);
@@ -102,6 +112,42 @@ const NeahplusPlayer = ({
     transitionFrameRef.current = null;
     setFlowTransition(null);
     const generation = ++generationRef.current;
+    const diagnosticStartAt = performance.now();
+    let segmentRecorded = false;
+    let firstFrameRecorded = false;
+    const updateDiagnostics = (patch: Partial<PlaybackDiagnostics>) => {
+      if (!fullScreenRef.current) return;
+      setPlaybackDiagnostics((current) => ({
+        channelName,
+        stage: current?.channelName === channelName ? current.stage : 'Préparation',
+        urlMs: current?.channelName === channelName ? current.urlMs : null,
+        manifestMs: current?.channelName === channelName ? current.manifestMs : null,
+        segmentMs: current?.channelName === channelName ? current.segmentMs : null,
+        firstFrameMs: current?.channelName === channelName ? current.firstFrameMs : null,
+        ...patch,
+      }));
+    };
+    const elapsedMs = () => Math.round(performance.now() - diagnosticStartAt);
+    const recordFirstSegment = () => {
+      if (segmentRecorded) return;
+      segmentRecorded = true;
+      updateDiagnostics({ segmentMs: elapsedMs(), stage: 'Premier segment reçu' });
+    };
+    const recordFirstFrame = () => {
+      if (firstFrameRecorded) return;
+      firstFrameRecorded = true;
+      updateDiagnostics({ firstFrameMs: elapsedMs(), stage: 'Nouvelle chaîne en lecture' });
+    };
+    if (fullScreenRef.current) {
+      setPlaybackDiagnostics({
+        channelName,
+        stage: 'Résolution de la source',
+        urlMs: null,
+        manifestMs: null,
+        segmentMs: null,
+        firstFrameMs: null,
+      });
+    }
     const targetSlot = 1 - activeSlotRef.current;
     if (fullScreenRef.current && directionRef.current && hasActiveStreamRef.current) {
       setFlowTransition({
@@ -201,8 +247,19 @@ const NeahplusPlayer = ({
       });
     };
 
-    const handlePlaying = () => activateCandidate();
+    const handlePlaying = () => {
+      activateCandidate();
+      if (typeof video.requestVideoFrameCallback === 'function') {
+        video.requestVideoFrameCallback(() => recordFirstFrame());
+      } else {
+        recordFirstFrame();
+      }
+    };
     const handleCandidateError = () => fail(new Error('Lecture du flux impossible'));
+    const handleNativeMetadata = () => updateDiagnostics({ manifestMs: elapsedMs(), stage: 'Métadonnées du flux reçues' });
+    const handleNativeData = () => recordFirstSegment();
+    video.addEventListener('loadedmetadata', handleNativeMetadata);
+    video.addEventListener('loadeddata', handleNativeData);
     video.addEventListener('playing', handlePlaying);
     video.addEventListener('error', handleCandidateError);
     video.addEventListener('canplay', startPlayback, { once: true });
@@ -210,6 +267,10 @@ const NeahplusPlayer = ({
     const start = async () => {
       const streamUrl = resolvedStreamUrl ?? await resolveNeahplusStream(channelId, controller.signal);
       if (aborted || generation !== generationRef.current) return;
+      updateDiagnostics({
+        urlMs: elapsedMs(),
+        stage: resolvedStreamUrl ? 'URL déjà disponible' : 'URL de la chaîne obtenue',
+      });
       setStatus('loading');
       const { default: HlsLib } = await loadHlsModule();
       if (aborted || generation !== generationRef.current) return;
@@ -226,8 +287,12 @@ const NeahplusPlayer = ({
         warmupHlsRefs.current[warmedIndex] = null;
         warmupChannelIdsRef.current[warmedIndex] = null;
         if (warmedHls && transferData) {
+          updateDiagnostics({ manifestMs: elapsedMs(), stage: 'Manifeste déjà préchargé' });
           candidateHls = warmedHls;
           hlsInstances[targetSlot] = warmedHls;
+          warmedHls.on(HlsLib.Events.BUFFER_APPENDED, recordFirstSegment);
+          const warmedVideo = warmupVideoRefs.current[warmedIndex];
+          if (warmedVideo?.buffered.length) recordFirstSegment();
           warmedHls.on(HlsLib.Events.ERROR, (_event, data) => {
             if (data.fatal) fail(new Error(data.details));
           });
@@ -256,7 +321,11 @@ const NeahplusPlayer = ({
         instance.on(HlsLib.Events.ERROR, (_event, data) => {
           if (data.fatal) fail(new Error(data.details));
         });
-        instance.on(HlsLib.Events.MANIFEST_PARSED, startPlayback);
+        instance.on(HlsLib.Events.MANIFEST_PARSED, () => {
+          updateDiagnostics({ manifestMs: elapsedMs(), stage: 'Manifeste HLS analysé' });
+          startPlayback();
+        });
+        instance.on(HlsLib.Events.BUFFER_APPENDED, recordFirstSegment);
         instance.loadSource(streamUrl);
         instance.attachMedia(video);
       } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
@@ -277,6 +346,8 @@ const NeahplusPlayer = ({
       controller.abort();
       video.removeEventListener('playing', handlePlaying);
       video.removeEventListener('error', handleCandidateError);
+      video.removeEventListener('loadedmetadata', handleNativeMetadata);
+      video.removeEventListener('loadeddata', handleNativeData);
       video.removeEventListener('canplay', startPlayback);
       if (activeSlotRef.current !== targetSlot) {
         candidateHls?.destroy();
@@ -531,6 +602,23 @@ const NeahplusPlayer = ({
           aria-label={`Lecteur ${channelName}`}
         />
       ))}
+
+      {fullScreen && playbackDiagnostics && (
+        <div className="pointer-events-none absolute bottom-3 left-3 z-40 max-w-[min(92vw,300px)] rounded-lg border border-white/15 bg-black/80 px-3 py-2 text-[10px] leading-4 text-white/85 shadow-xl backdrop-blur-sm">
+          <div className="mb-1 flex items-center justify-between gap-3">
+            <span className="font-black tracking-[0.14em] text-[#70e5e5]">DIAGNOSTIC LECTEUR</span>
+            <span className="text-white/45">TEMPORAIRE</span>
+          </div>
+          <p className="mb-1 truncate font-semibold text-white">{playbackDiagnostics.channelName}</p>
+          <p className="mb-1 text-[#70e5e5]">{playbackDiagnostics.stage}</p>
+          <div className="grid grid-cols-2 gap-x-3 gap-y-0.5 text-white/65">
+            <span>1. URL : {playbackDiagnostics.urlMs === null ? '…' : `${playbackDiagnostics.urlMs} ms`}</span>
+            <span>2. Manifeste : {playbackDiagnostics.manifestMs === null ? '…' : `${playbackDiagnostics.manifestMs} ms`}</span>
+            <span>3. Segment : {playbackDiagnostics.segmentMs === null ? '…' : `${playbackDiagnostics.segmentMs} ms`}</span>
+            <span>4. Image : {playbackDiagnostics.firstFrameMs === null ? '…' : `${playbackDiagnostics.firstFrameMs} ms`}</span>
+          </div>
+        </div>
+      )}
 
       {direction && hasActiveStream && (
         <div className="pointer-events-none absolute right-3 top-3 z-20 flex h-9 w-9 items-center justify-center rounded-full border border-white/20 bg-black/65 text-white shadow-lg" role="status" aria-label={direction === 'next' ? 'Chaîne suivante' : 'Chaîne précédente'}>
