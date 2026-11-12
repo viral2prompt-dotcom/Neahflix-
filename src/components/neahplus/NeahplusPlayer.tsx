@@ -222,6 +222,9 @@ const NeahplusPlayer = ({
         if (warmedHls && transferData) {
           candidateHls = warmedHls;
           hlsInstances[targetSlot] = warmedHls;
+          warmedHls.config.maxBufferLength = 8;
+          warmedHls.config.maxMaxBufferLength = 16;
+          warmedHls.config.backBufferLength = 5;
           warmedHls.attachMedia({ media: video, ...transferData });
           warmedHls.startLoad();
           if (video.readyState >= HTMLMediaElement.HAVE_FUTURE_DATA) startPlayback();
@@ -332,9 +335,6 @@ const NeahplusPlayer = ({
             instance.stopLoad();
           }
         });
-        instance.on(HlsLib.Events.MANIFEST_PARSED, () => {
-          void video.play().catch(() => undefined);
-        });
         instance.attachMedia(video);
         instance.loadSource(streamUrl);
       } catch {
@@ -359,7 +359,7 @@ const NeahplusPlayer = ({
       warmupHlsRefs.current.forEach((instance, slot) => {
         // Conserver le lecteur correspondant à la chaîne qui vient d'être choisie :
         // l'effet principal va récupérer son MediaSource juste après ce nettoyage.
-        if (warmupChannelIdsRef.current[slot] === currentChannelIdRef.current) return;
+        if (warmupChannelIdsRef.current[slot] === currentChannelIdRef.current && instance) return;
         instance?.destroy();
         warmupHlsRefs.current[slot] = null;
         warmupChannelIdsRef.current[slot] = null;
@@ -455,7 +455,6 @@ const NeahplusPlayer = ({
           ref={(element) => { warmupVideoRefs.current[slot] = element; }}
           muted
           playsInline
-          autoPlay
           preload="auto"
           aria-hidden="true"
           tabIndex={-1}
