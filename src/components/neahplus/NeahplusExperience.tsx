@@ -707,9 +707,20 @@ const NeahplusExperience = () => {
     const touch = event.changedTouches[0];
     const deltaX = touch.clientX - start.x;
     const deltaY = touch.clientY - start.y;
-    if (Math.abs(deltaY) < 48 || Math.abs(deltaY) < Math.abs(deltaX) * 1.2) return;
+    const absX = Math.abs(deltaX);
+    const absY = Math.abs(deltaY);
+
+    // Un contact bref, quelle que soit sa position sur l'écran, affiche
+    // les commandes. Il ne doit jamais être interprété comme un zapping.
+    if (absX < 18 && absY < 18) {
+      handleFlowControlsChange(true);
+      return;
+    }
+
+    // Seul un vrai glissement vertical change de chaîne.
+    if (absY < 48 || absY < absX * 1.2) return;
     cycleFlowChannel(deltaY < 0 ? 1 : -1);
-  }, [flowMode, cycleFlowChannel]);
+  }, [flowMode, cycleFlowChannel, handleFlowControlsChange]);
 
   // À l'ouverture de « Mon espace », sélectionner une chaîne favorite par défaut.
   // Une chaîne choisie depuis « Plus » reste toutefois sélectionnée même si elle
