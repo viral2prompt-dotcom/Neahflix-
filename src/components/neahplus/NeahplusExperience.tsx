@@ -574,7 +574,7 @@ const NeahplusExperience = () => {
   useEffect(() => {
     // Prioriser le flux choisi depuis l'accueil avant les préchargements voisins.
     // Ne pas concurrencer la première résolution du flux sélectionné.
-    if (homeNavigationPhase === 'entering' || !selectedGroupKey || resolvingKey === selectedGroupKey || carouselGroups.length < 2) return undefined;
+    if (homeNavigationPhase === 'entering' || !selectedGroupKey || resolvingKey === selectedGroupKey || flowNavigationGroups.length < 2) return undefined;
     const controller = new AbortController();
     const currentIndex = flowNavigationGroups.findIndex((group) => group.key === selectedGroupKey);
     if (currentIndex < 0) return undefined;
@@ -1175,13 +1175,13 @@ const NeahplusExperience = () => {
         {showChannelList && <button type="button" aria-label="Fermer la liste des chaînes" onClick={() => setShowChannelList(false)} className="absolute inset-0 z-30 bg-black/55 lg:hidden" />}
         
                 {/* Left: Player + info */}
-        <section ref={playerSectionRef} className={`${homeNavigationPhase === 'entering' || suppressPlayerEntranceAnimation ? '' : 'motion-safe:animate-[neahplus-player-in_420ms_cubic-bezier(0.22,1,0.36,1)_both]'} flex min-h-max w-full flex-none touch-pan-y flex-col gap-3 overflow-visible p-3 lg:min-h-0 lg:max-h-full lg:w-[42%] lg:max-w-[720px] lg:overflow-y-auto lg:overscroll-y-contain lg:p-4 ${['home', 'countries', 'settings'].includes(tab) ? 'hidden' : ''}`} style={{ WebkitOverflowScrolling: 'touch' }}>
+        <section ref={playerSectionRef} className={`${flowMode || homeNavigationPhase === 'entering' || suppressPlayerEntranceAnimation ? '' : 'motion-safe:animate-[neahplus-player-in_420ms_cubic-bezier(0.22,1,0.36,1)_both]'} flex min-h-max w-full flex-none touch-pan-y flex-col gap-3 overflow-visible p-3 lg:min-h-0 lg:max-h-full lg:w-[42%] lg:max-w-[720px] lg:overflow-y-auto lg:overscroll-y-contain lg:p-4 ${['home', 'countries', 'settings'].includes(tab) ? 'hidden' : ''}`} style={{ WebkitOverflowScrolling: 'touch' }}>
           {activeVariant && selectedGroup ? (
             <>
               <div className={flowMode ? "fixed inset-0 z-[1000] h-dvh w-full max-w-none bg-black" : "group relative mx-auto w-full max-w-[720px]"}>
-                <div className="mb-2 flex items-center justify-end gap-1.5">
+                {!flowMode && <div className="mb-2 flex items-center justify-end gap-1.5">
                   <button type="button" onClick={() => showChannelList ? setShowChannelList(false) : openChannelList()} aria-expanded={showChannelList} aria-controls="neahplus-quick-channel-list" className={`inline-flex items-center gap-2 rounded-lg border px-3 py-1.5 text-[11px] font-semibold transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#55dddd] ${showChannelList ? 'border-[#55dddd] bg-[#20c7c7]/20 text-[#a5ffff] shadow-[0_0_16px_rgba(32,199,199,.18)]' : 'border-[#20c7c7]/35 text-white/80 hover:border-[#55dddd] hover:bg-[#20c7c7]/15 hover:text-white active:border-[#55dddd] active:bg-[#20c7c7]/25'}`}><ListVideo className="h-3.5 w-3.5" /> Liste des chaînes</button>
-                </div>
+                </div>}
                 <NeahplusPlayer
                   isActive={Boolean(selectedGroupKey) && !homePlayerStartDeferred}
                   fullScreen={flowMode}
@@ -1560,7 +1560,6 @@ const NeahplusExperience = () => {
           onToggleFavorite={() => toggleFavorite(selectedGroup.key)}
           onCategoryChange={handleFlowCategoryChange}
           onSelectGroup={(group) => handleSelectGroup(group)}
-          onSwipe={cycleFlowChannel}
           onClose={() => { setFlowMode(false); setFlowControlsVisible(true); }}
           controlsVisible={flowControlsVisible}
           onControlsVisibleChange={setFlowControlsVisible}
