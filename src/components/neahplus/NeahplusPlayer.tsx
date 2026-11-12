@@ -422,7 +422,7 @@ const NeahplusPlayer = ({
         }
       });
     };
-  }, [channelId, fullScreen, nextChannelId, previousChannelId, activeSlot, activePlayingChannelId]);
+  }, [channelId, fullScreen, nextChannelId, previousChannelId, activePlayingChannelId]);
 
   useEffect(() => {
     if (!flowTransition) return undefined;
