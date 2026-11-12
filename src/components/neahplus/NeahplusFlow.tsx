@@ -47,7 +47,6 @@ interface NeahplusFlowProps {
   onToggleFavorite: () => void;
   onCategoryChange: (categoryId: string) => void;
   onSelectGroup: (group: ChannelGroup) => void;
-  onSwipe: (direction: 1 | -1) => void;
   onClose: () => void;
   controlsVisible: boolean;
   onControlsVisibleChange: (visible: boolean) => void;
@@ -65,7 +64,6 @@ const NeahplusFlow = ({
   onToggleFavorite,
   onCategoryChange,
   onSelectGroup,
-  onSwipe,
   onClose,
   controlsVisible,
   onControlsVisibleChange,
@@ -121,7 +119,7 @@ const NeahplusFlow = ({
           <input
             type="search"
             value={search}
-            onFocus={() => { setSearchFocused(true); setControlsVisible(true); }}
+            onFocus={() => { setSearchFocused(true); onControlsVisibleChange(true); }}
             onBlur={() => setSearchFocused(false)}
             onChange={(event) => setSearch(event.target.value)}
             placeholder="Rechercher une chaîne…"
@@ -134,7 +132,7 @@ const NeahplusFlow = ({
                 <button
                   key={group.key}
                   type="button"
-                  onClick={() => { onSelectGroup(group); setSearch(''); setSearchFocused(false); setControlsVisible(true); }}
+                  onClick={() => { onSelectGroup(group); setSearch(''); setSearchFocused(false); onControlsVisibleChange(true); }}
                   className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-xs transition ${group.key === selectedGroup.key ? 'bg-[#20c7c7]/15 text-[#9af5f5]' : 'text-white/80 hover:bg-white/10'}`}
                 >
                   <span className="min-w-0 flex-1 truncate font-semibold">{group.displayName}</span>
