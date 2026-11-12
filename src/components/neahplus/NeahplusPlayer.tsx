@@ -64,6 +64,8 @@ const NeahplusPlayer = ({
   const generationRef = useRef(0);
   const [activeSlot, setActiveSlot] = useState(0);
   const [flowTransition, setFlowTransition] = useState<{ enteringSlot: number; exitingSlot: number; direction: Exclude<ZappingDirection, null>; phase: 'prepare' | 'animate' } | null>(null);
+  const flowTransitionRef = useRef(flowTransition);
+  flowTransitionRef.current = flowTransition;
   const transitionTimerRef = useRef<number | null>(null);
   const transitionFrameRef = useRef<number | null>(null);
   const [hasActiveStream, setHasActiveStream] = useState(false);
@@ -89,6 +91,14 @@ const NeahplusPlayer = ({
     setFlowTransition(null);
     const generation = ++generationRef.current;
     const targetSlot = 1 - activeSlotRef.current;
+    if (fullScreenRef.current && directionRef.current && hasActiveStreamRef.current) {
+      setFlowTransition({
+        enteringSlot: targetSlot,
+        exitingSlot: activeSlotRef.current,
+        direction: directionRef.current,
+        phase: 'prepare',
+      });
+    }
     const video = videoRefs.current[targetSlot];
     if (!video) return undefined;
 
@@ -136,12 +146,14 @@ const NeahplusPlayer = ({
       video.volume = audioSettingsRef.current.volume;
       if (fullScreenRef.current && directionRef.current && previousVideo) {
         previousVideo.muted = true;
-        setFlowTransition({
-          enteringSlot: targetSlot,
-          exitingSlot: previousSlot,
-          direction: directionRef.current,
-          phase: 'prepare',
-        });
+        if (!flowTransitionRef.current) {
+          setFlowTransition({
+            enteringSlot: targetSlot,
+            exitingSlot: previousSlot,
+            direction: directionRef.current,
+            phase: 'prepare',
+          });
+        }
       }
       activeSlotRef.current = targetSlot;
       setActiveSlot(targetSlot);
@@ -246,6 +258,10 @@ const NeahplusPlayer = ({
       };
     }
 
+    // L'ancienne vidéo reste disponible pendant que la nouvelle source se prépare.
+    // On ne la libère qu'après le premier rendu de la nouvelle chaîne.
+    if (activeSlot !== flowTransition.enteringSlot) return undefined;
+
     transitionTimerRef.current = window.setTimeout(() => {
       const { exitingSlot } = flowTransition;
       const oldVideo = videoRefs.current[exitingSlot];
@@ -258,11 +274,11 @@ const NeahplusPlayer = ({
       }
       setFlowTransition(null);
       transitionTimerRef.current = null;
-    }, 300);
+    }, 280);
     return () => {
       if (transitionTimerRef.current !== null) window.clearTimeout(transitionTimerRef.current);
     };
-  }, [flowTransition]);
+  }, [flowTransition, activeSlot]);
 
   useEffect(() => {
     const cleanups: Array<() => void> = [];
@@ -297,6 +313,7 @@ const NeahplusPlayer = ({
   }, []);
 
   const overlayStatus = hasActiveStream || status === 'paused' || status === 'playing' ? null : status;
+  const showFlowLoading = Boolean(flowTransition && activeSlot !== flowTransition.enteringSlot);
 
   return (
     <div className={fullScreen
@@ -329,6 +346,23 @@ const NeahplusPlayer = ({
       {direction && hasActiveStream && (
         <div className="pointer-events-none absolute right-3 top-3 z-20 flex h-9 w-9 items-center justify-center rounded-full border border-white/20 bg-black/65 text-white shadow-lg" role="status" aria-label={direction === 'next' ? 'Chaîne suivante' : 'Chaîne précédente'}>
           {direction === 'next' ? <FastForward className="h-5 w-5" /> : <Rewind className="h-5 w-5" />}
+        </div>
+      )}
+
+      {showFlowLoading && flowTransition && (
+        <div
+          className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center bg-black"
+          style={{
+            transform: flowTransition.phase === 'prepare'
+              ? `translate3d(0, ${flowTransition.direction === 'next' ? '100%' : '-100%'}, 0)`
+              : 'translate3d(0, 0, 0)',
+            transition: flowTransition.phase === 'animate' ? 'transform 280ms cubic-bezier(0.22, 1, 0.36, 1)' : 'none',
+          }}
+        >
+          <div className="flex flex-col items-center gap-3 text-white/75">
+            <Loader2 className="h-7 w-7 animate-spin text-[#55dddd]" />
+            <span className="text-[10px] font-semibold tracking-[0.18em]">CONNEXION À LA CHAÎNE</span>
+          </div>
         </div>
       )}
 
