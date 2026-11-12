@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { MouseEvent } from 'react';
 import { Heart, Search, X } from 'lucide-react';
 import type { ChannelGroup } from './neahplusTvUtils';
