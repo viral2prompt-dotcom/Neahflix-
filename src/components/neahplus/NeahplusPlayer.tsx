@@ -105,6 +105,7 @@ const NeahplusPlayer = ({
   const warmupHlsRefs = useRef<Array<Hls | null>>([null, null]);
   const warmupChannelIdsRef = useRef<Array<string | null>>([null, null]);
   const mainChannelIdsRef = useRef<Array<string | null>>([null, null]);
+  const lastPreloadPolicyKeyRef = useRef<string | null>(null);
   const warmupSegmentReadyRef = useRef<boolean[]>([false, false]);
   const warmupTimeoutRefs = useRef<Array<number | null>>([null, null]);
   const currentChannelIdRef = useRef(channelId);
@@ -474,6 +475,9 @@ const NeahplusPlayer = ({
       ? (navigator as Navigator & { connection?: NetworkInfoLike }).connection
       : undefined;
     const policy = getZappingPolicy(zappingMode, connection);
+    const policyKey = [zappingMode, connection?.type ?? 'unknown', connection?.effectiveType ?? 'unknown', connection?.saveData ? 'save-data' : 'normal'].join(':');
+    const policyChanged = lastPreloadPolicyKeyRef.current !== null && lastPreloadPolicyKeyRef.current !== policyKey;
+    lastPreloadPolicyKeyRef.current = policyKey;
     // Le prochain flux est prioritaire. Le nombre de chaînes et la durée
     // préchargée dépendent du mode choisi et du réseau détecté.
     const targets = [nextChannelId, previousChannelId]
@@ -484,7 +488,7 @@ const NeahplusPlayer = ({
     // prélecture ne doit continuer si elle n'est plus autorisée par la policy.
     warmupHlsRefs.current.forEach((instance, slot) => {
       const warmChannelId = warmupChannelIdsRef.current[slot];
-      if (!warmChannelId || targets.includes(warmChannelId)) return;
+      if (!warmChannelId || warmChannelId === channelId || (!policyChanged && targets.includes(warmChannelId))) return;
       if (warmupTimeoutRefs.current[slot] !== null) {
         window.clearTimeout(warmupTimeoutRefs.current[slot]!);
         warmupTimeoutRefs.current[slot] = null;
