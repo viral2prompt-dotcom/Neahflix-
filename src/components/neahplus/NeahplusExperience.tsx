@@ -61,6 +61,7 @@ import {
 } from './neahplusTvUtils';
 
 type Tab = 'home' | 'all' | 'guide' | 'favorites' | 'countries' | 'settings' | 'world';
+type ZappingMode = 'auto' | 'economy' | 'balanced' | 'performance';
 type GuidePeriod = 'all' | 'morning' | 'afternoon' | 'early-evening' | 'evening' | 'night';
 
 const TABS: { id: 'home' | 'favorites' | 'countries' | 'settings'; label: string; description: string; icon: typeof HomeIcon }[] = [
@@ -311,6 +312,12 @@ const NeahplusExperience = () => {
   const [selectedGroupKey, setSelectedGroupKey] = useState<string | null>(null);
   const [activeVariantIndex, setActiveVariantIndex] = useState(0);
   const [flowMode, setFlowMode] = useState(false);
+  const [zappingMode, setZappingMode] = useState<ZappingMode>(() => {
+    try {
+      const saved = localStorage.getItem('neahplus:zapping-mode');
+      return saved === 'economy' || saved === 'balanced' || saved === 'performance' ? saved : 'auto';
+    } catch { return 'auto'; }
+  });
   const [flowCategoryId, setFlowCategoryId] = useState('all');
   const [flowControlsVisible, setFlowControlsVisible] = useState(true);
   const [flowControlsActivity, setFlowControlsActivity] = useState(0);
@@ -413,6 +420,10 @@ const NeahplusExperience = () => {
   useEffect(() => {
     try { localStorage.setItem('neahplus:country', country); } catch { /* stockage local indisponible */ }
   }, [country]);
+
+  useEffect(() => {
+    try { localStorage.setItem('neahplus:zapping-mode', zappingMode); } catch { /* stockage local indisponible */ }
+  }, [zappingMode]);
 
   useEffect(() => {
     try { localStorage.setItem('neahplus:space-name', spaceName); } catch { /* stockage local indisponible */ }
@@ -1212,6 +1223,7 @@ const NeahplusExperience = () => {
                   fullScreen={flowMode}
                   previousChannelId={flowPreviousChannelId}
                   nextChannelId={flowNextChannelId}
+                  zappingMode={zappingMode}
                   onSurfaceTap={flowMode ? () => handleFlowControlsChange(true) : undefined}
                   onTouchStart={flowMode ? handleFlowTouchStart : undefined}
                   onTouchEnd={flowMode ? handleFlowTouchEnd : undefined}
@@ -1494,6 +1506,7 @@ const NeahplusExperience = () => {
               <div className="mx-auto w-full max-w-3xl space-y-5 pb-6">
                 <div><p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#d6ad55]">Votre expérience</p><h1 className="mt-1 text-2xl font-black text-white">Paramètres</h1><p className="mt-1 text-sm text-white/45">Quelques réglages simples pour organiser votre télévision.</p></div>
                 <section className="rounded-2xl border border-white/10 bg-white/[0.035] p-4 sm:p-5"><div className="flex items-center gap-2"><Globe2 className="h-4 w-4 text-[#55dddd]"/><h2 className="text-sm font-bold text-white">Pays affiché</h2></div><p className="mt-1 text-xs text-white/45">Définissez le catalogue utilisé par défaut dans l’accueil.</p><div className="mt-3 flex flex-wrap items-center gap-2"><select value={country} onChange={(event) => setCountry(event.target.value)} className="min-w-0 flex-1 rounded-xl border border-white/10 bg-[#0b2028] px-3 py-3 text-sm text-white outline-none focus:border-[#20c7c7]/60"><option value="">Tous les pays</option>{catalog.countries.map((item) => <option key={item.name} value={item.name}>{item.name}</option>)}</select><button type="button" onClick={() => setCountry(catalog.countries.some((item) => item.name === 'France') ? 'France' : '')} className="rounded-xl border border-[#20c7c7]/25 bg-[#20c7c7]/10 px-3 py-3 text-xs font-bold text-[#75e6e6] transition hover:bg-[#20c7c7]/20">France par défaut</button></div></section>
+                <section className="rounded-2xl border border-[#20c7c7]/20 bg-gradient-to-br from-[#0c252e] to-[#101a22] p-4 sm:p-5"><div className="flex items-center gap-2"><Tv className="h-4 w-4 text-[#55dddd]"/><h2 className="text-sm font-bold text-white">Vitesse de zapping et consommation</h2></div><p className="mt-1 text-xs leading-5 text-white/50">Choisissez comment NEAHPLUS prépare les chaînes voisines. Le mode automatique adapte le préchargement au réseau détecté et limite les téléchargements sur les connexions lentes.</p><div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">{([{id:"auto",label:"Automatique",detail:"Adapte le préchargement au Wi-Fi ou au réseau mobile."},{id:"economy",label:"Économie",detail:"Aucun segment vidéo préchargé pour les chaînes voisines."},{id:"balanced",label:"Équilibré",detail:"Prépare légèrement la chaîne suivante."},{id:"performance",label:"Performance",detail:"Prépare les deux chaînes voisines avec un tampon plus important."}] as const).map((option) => <button key={option.id} type="button" onClick={() => setZappingMode(option.id)} aria-pressed={zappingMode === option.id} className={`rounded-xl border p-3 text-left transition ${zappingMode === option.id ? "border-[#55dddd]/60 bg-[#20c7c7]/15 ring-1 ring-[#20c7c7]/25" : "border-white/10 bg-black/15 hover:border-white/25 hover:bg-white/[0.04]"}`}><span className="flex items-center justify-between gap-2"><span className="text-xs font-bold text-white">{option.label}</span>{zappingMode === option.id && <span className="rounded-full bg-[#20c7c7]/20 px-2 py-0.5 text-[9px] font-bold text-[#8af0f0]">Actif</span>}</span><span className="mt-1 block text-[10px] leading-4 text-white/45">{option.detail}</span></button>)}</div><p className="mt-3 text-[10px] leading-4 text-white/35">Le mode automatique utilise les informations réseau disponibles dans le navigateur. Si elles ne sont pas accessibles, il applique un préchargement mobile modéré.</p></section>
                 <section className="rounded-2xl border border-white/10 bg-white/[0.035] p-4 sm:p-5"><div className="flex items-center gap-2"><Info className="h-4 w-4 text-[#55dddd]"/><h2 className="text-sm font-bold text-white">Comment utiliser NEAHPLUS</h2></div><div className="mt-3 grid gap-3 sm:grid-cols-2"><div className="rounded-xl bg-black/15 p-3"><p className="text-xs font-bold text-white">Accueil</p><p className="mt-1 text-xs leading-5 text-white/45">Parcourez les chaînes par catégorie et lancez un direct.</p></div><div className="rounded-xl bg-black/15 p-3"><p className="text-xs font-bold text-white">Mon espace</p><p className="mt-1 text-xs leading-5 text-white/45">Ajoutez vos chaînes avec le cœur pour les retrouver rapidement.</p></div><div className="rounded-xl bg-black/15 p-3"><p className="text-xs font-bold text-white">Liste des pays</p><p className="mt-1 text-xs leading-5 text-white/45">Choisissez un pays pour afficher son catalogue de chaînes.</p></div><div className="rounded-xl bg-black/15 p-3"><p className="text-xs font-bold text-white">Paramètres</p><p className="mt-1 text-xs leading-5 text-white/45">Modifiez le pays affiché et retrouvez ces conseils.</p></div></div></section>
                 <section className="rounded-2xl border border-white/10 bg-gradient-to-br from-[#0c3037] to-[#101a22] p-4 sm:p-5"><p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#70e5e5]">À propos</p><h2 className="mt-1 text-sm font-bold text-white">NEAHPLUS TV</h2><p className="mt-1 text-xs leading-5 text-white/50">Guide TV indépendant qui organise les chaînes et leurs sources disponibles. Sans affiliation à CANAL+.</p></section>
               </div>
