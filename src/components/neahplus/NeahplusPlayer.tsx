@@ -109,6 +109,7 @@ const NeahplusPlayer = ({
   const mainChannelIdsRef = useRef<Array<string | null>>([null, null]);
   const lastPreloadPolicyKeyRef = useRef<string | null>(null);
   const warmupSegmentReadyRef = useRef<boolean[]>([false, false]);
+  const warmupManifestOnlyRef = useRef<boolean[]>([false, false]);
   const warmupTimeoutRefs = useRef<Array<number | null>>([null, null]);
   const currentChannelIdRef = useRef(channelId);
   const currentNeighborsRef = useRef({ previous: previousChannelId, next: nextChannelId });
@@ -462,11 +463,13 @@ const NeahplusPlayer = ({
     let cancelled = false;
     const activeVideo = videoRefs.current[activeSlotRef.current];
     const pauseNeighborPreloads = () => {
-      warmupHlsRefs.current.forEach((instance) => instance?.stopLoad());
+      warmupHlsRefs.current.forEach((instance, slot) => {
+        if (!warmupManifestOnlyRef.current[slot]) instance?.stopLoad();
+      });
     };
     const resumeNeighborPreloads = () => {
       warmupHlsRefs.current.forEach((instance, slot) => {
-        if (!warmupSegmentReadyRef.current[slot]) instance?.startLoad();
+        if (!warmupSegmentReadyRef.current[slot] && !warmupManifestOnlyRef.current[slot]) instance?.startLoad();
       });
     };
     activeVideo?.addEventListener('waiting', pauseNeighborPreloads);
@@ -499,6 +502,7 @@ const NeahplusPlayer = ({
       warmupHlsRefs.current[slot] = null;
       warmupChannelIdsRef.current[slot] = null;
       warmupSegmentReadyRef.current[slot] = false;
+      warmupManifestOnlyRef.current[slot] = false;
       const warmVideo = warmupVideoRefs.current[slot];
       warmVideo?.pause();
       warmVideo?.removeAttribute('src');
@@ -510,6 +514,7 @@ const NeahplusPlayer = ({
       if (!video) return;
       warmupChannelIdsRef.current[slot] = targetChannelId;
       warmupSegmentReadyRef.current[slot] = false;
+      warmupManifestOnlyRef.current[slot] = policy.bufferSeconds <= 0;
       try {
         const streamUrl = await resolveNeahplusStream(targetChannelId, controller.signal);
         if (cancelled || controller.signal.aborted) return;
@@ -561,10 +566,12 @@ const NeahplusPlayer = ({
           }
           instance.stopLoad();
         };
-        warmupTimeoutRefs.current[slot] = window.setTimeout(() => {
-          warmupTimeoutRefs.current[slot] = null;
-          instance.stopLoad();
-        }, policy.maxPreloadMs);
+        if (policy.bufferSeconds > 0) {
+          warmupTimeoutRefs.current[slot] = window.setTimeout(() => {
+            warmupTimeoutRefs.current[slot] = null;
+            instance.stopLoad();
+          }, policy.maxPreloadMs);
+        }
         instance.on(HlsLib.Events.FRAG_BUFFERED, stopAfterTargetBuffer);
         instance.on(HlsLib.Events.ERROR, (_event, data) => {
           if (!data.fatal) return;
@@ -576,6 +583,7 @@ const NeahplusPlayer = ({
             warmupHlsRefs.current[slot] = null;
             warmupChannelIdsRef.current[slot] = null;
             warmupSegmentReadyRef.current[slot] = false;
+            warmupManifestOnlyRef.current[slot] = false;
             instance.destroy();
           }
         });
@@ -624,6 +632,7 @@ const NeahplusPlayer = ({
         warmupHlsRefs.current[slot] = null;
         warmupChannelIdsRef.current[slot] = null;
         warmupSegmentReadyRef.current[slot] = false;
+        warmupManifestOnlyRef.current[slot] = false;
         const video = warmupVideoRefs.current[slot];
         if (video) {
           video.pause();
@@ -704,6 +713,7 @@ const NeahplusPlayer = ({
       warmupHlsRefs.current[slot] = null;
       warmupChannelIdsRef.current[slot] = null;
       warmupSegmentReadyRef.current[slot] = false;
+      warmupManifestOnlyRef.current[slot] = false;
     });
   }, []);
 
