@@ -322,7 +322,17 @@ const NeahplusPlayer = ({
 
     const start = async () => {
       if (reusingCachedSlot) {
+        const { default: HlsLib } = await loadHlsModule();
+        if (aborted || generation !== generationRef.current) return;
         candidateHls = hlsInstances[targetSlot];
+        if (candidateHls) {
+          const onCachedFragmentBuffered = () => recordFirstSegment();
+          candidateHls.on(HlsLib.Events.FRAG_BUFFERED, onCachedFragmentBuffered);
+          detachCandidateFragmentListener = () => candidateHls?.off(HlsLib.Events.FRAG_BUFFERED, onCachedFragmentBuffered);
+          candidateHls.on(HlsLib.Events.ERROR, (_event, data) => {
+            if (data.fatal) fail(new Error(data.details));
+          });
+        }
         updateDiagnostics({ urlMs: elapsedMs(), manifestMs: elapsedMs(), stage: 'Lecteur précédent réutilisé' });
         if (video.buffered.length > 0) recordFirstSegment();
         candidateHls?.startLoad();
@@ -469,6 +479,25 @@ const NeahplusPlayer = ({
     const targets = [nextChannelId, previousChannelId]
       .filter((id): id is string => Boolean(id && id !== channelId))
       .slice(0, policy.neighborCount);
+
+    // Appliquer immédiatement un changement de mode : aucune ancienne
+    // prélecture ne doit continuer si elle n'est plus autorisée par la policy.
+    warmupHlsRefs.current.forEach((instance, slot) => {
+      const warmChannelId = warmupChannelIdsRef.current[slot];
+      if (!warmChannelId || targets.includes(warmChannelId)) return;
+      if (warmupTimeoutRefs.current[slot] !== null) {
+        window.clearTimeout(warmupTimeoutRefs.current[slot]!);
+        warmupTimeoutRefs.current[slot] = null;
+      }
+      instance?.destroy();
+      warmupHlsRefs.current[slot] = null;
+      warmupChannelIdsRef.current[slot] = null;
+      warmupSegmentReadyRef.current[slot] = false;
+      const warmVideo = warmupVideoRefs.current[slot];
+      warmVideo?.pause();
+      warmVideo?.removeAttribute('src');
+      warmVideo?.load();
+    });
 
     const warmChannel = async (slot: number, targetChannelId: string, controller: AbortController) => {
       const video = warmupVideoRefs.current[slot];
