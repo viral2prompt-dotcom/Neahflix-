@@ -33,7 +33,9 @@ const getZappingPolicy = (mode: ZappingMode, network?: NetworkInfoLike): Zapping
     return { neighborCount: 0, bufferSeconds: 0, maxPreloadMs: 0 };
   }
   if (network?.type === 'wifi') return { neighborCount: 2, bufferSeconds: 2, maxPreloadMs: 6000 };
-  return { neighborCount: 1, bufferSeconds: 0.8, maxPreloadMs: 4000 };
+  // Sur données mobiles ou réseau non identifiable : manifeste seulement,
+  // car un seul segment HLS peut représenter plusieurs secondes de vidéo.
+  return { neighborCount: 1, bufferSeconds: 0, maxPreloadMs: 4500 };
 };
 
 interface PlaybackDiagnostics {
@@ -527,8 +529,8 @@ const NeahplusPlayer = ({
         }
         const instance = new HlsLib({
           enableWorker: true,
-          autoStartLoad: true,
-          startFragPrefetch: true,
+          autoStartLoad: policy.bufferSeconds > 0,
+          startFragPrefetch: policy.bufferSeconds > 0,
           startLevel: 0,
           maxBufferLength: Math.max(1, policy.bufferSeconds + 0.5),
           maxMaxBufferLength: Math.max(1.5, policy.bufferSeconds + 1),
