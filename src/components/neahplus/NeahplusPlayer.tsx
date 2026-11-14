@@ -379,6 +379,7 @@ const NeahplusPlayer = ({
           detachCandidateFragmentListener = () => warmedHls.off(HlsLib.Events.FRAG_BUFFERED, onTransferredFragment);
           if (hadWarmedSegment) recordFirstSegment();
           warmupSegmentReadyRef.current[warmedIndex] = false;
+          warmupManifestOnlyRef.current[warmedIndex] = false;
           const warmedVideo = warmupVideoRefs.current[warmedIndex];
           warmedVideo?.pause();
           warmedVideo?.removeAttribute('src');
