@@ -9,6 +9,32 @@ import { loadHlsModule } from './neahplusPlayerLoader';
 
 type PlayerStatus = 'resolving' | 'loading' | 'playing' | 'paused' | 'error';
 type ZappingDirection = 'next' | 'previous' | null;
+type ZappingMode = 'auto' | 'economy' | 'balanced' | 'performance';
+
+interface NetworkInfoLike {
+  type?: string;
+  effectiveType?: string;
+  saveData?: boolean;
+  addEventListener?: (type: 'change', listener: () => void) => void;
+  removeEventListener?: (type: 'change', listener: () => void) => void;
+}
+
+interface ZappingPolicy {
+  neighborCount: number;
+  bufferSeconds: number;
+  maxPreloadMs: number;
+}
+
+const getZappingPolicy = (mode: ZappingMode, network?: NetworkInfoLike): ZappingPolicy => {
+  if (mode === 'economy') return { neighborCount: 0, bufferSeconds: 0, maxPreloadMs: 0 };
+  if (mode === 'performance') return { neighborCount: 2, bufferSeconds: 2.5, maxPreloadMs: 6500 };
+  if (mode === 'balanced') return { neighborCount: 1, bufferSeconds: 1.25, maxPreloadMs: 4500 };
+  if (network?.saveData || network?.effectiveType === 'slow-2g' || network?.effectiveType === '2g') {
+    return { neighborCount: 0, bufferSeconds: 0, maxPreloadMs: 0 };
+  }
+  if (network?.type === 'wifi') return { neighborCount: 2, bufferSeconds: 2, maxPreloadMs: 6000 };
+  return { neighborCount: 1, bufferSeconds: 0.8, maxPreloadMs: 4000 };
+};
 
 interface PlaybackDiagnostics {
   channelName: string;
@@ -49,6 +75,7 @@ interface NeahplusPlayerProps {
   fullScreen?: boolean;
   previousChannelId?: string | null;
   nextChannelId?: string | null;
+  zappingMode?: ZappingMode;
   onSurfaceTap?: () => void;
   onTouchStart?: TouchEventHandler<HTMLDivElement>;
   onTouchEnd?: TouchEventHandler<HTMLDivElement>;
@@ -67,6 +94,7 @@ const NeahplusPlayer = ({
   fullScreen = false,
   previousChannelId = null,
   nextChannelId = null,
+  zappingMode = 'auto',
   onSurfaceTap,
   onTouchStart,
   onTouchEnd,
@@ -76,6 +104,7 @@ const NeahplusPlayer = ({
   const warmupVideoRefs = useRef<Array<HTMLVideoElement | null>>([null, null]);
   const warmupHlsRefs = useRef<Array<Hls | null>>([null, null]);
   const warmupChannelIdsRef = useRef<Array<string | null>>([null, null]);
+  const mainChannelIdsRef = useRef<Array<string | null>>([null, null]);
   const warmupSegmentReadyRef = useRef<boolean[]>([false, false]);
   const warmupTimeoutRefs = useRef<Array<number | null>>([null, null]);
   const currentChannelIdRef = useRef(channelId);
@@ -98,12 +127,22 @@ const NeahplusPlayer = ({
   const [message, setMessage] = useState<string | null>(null);
   const [attempt, setAttempt] = useState(0);
   const [playbackDiagnostics, setPlaybackDiagnostics] = useState<PlaybackDiagnostics | null>(null);
+  const [networkRevision, setNetworkRevision] = useState(0);
   const audioSettingsRef = useRef({ muted, volume });
   const fullScreenRef = useRef(fullScreen);
   const directionRef = useRef(direction);
   audioSettingsRef.current = { muted, volume };
   fullScreenRef.current = fullScreen;
   directionRef.current = direction;
+
+  useEffect(() => {
+    if (typeof navigator === 'undefined') return undefined;
+    const connection = (navigator as Navigator & { connection?: NetworkInfoLike }).connection;
+    if (!connection?.addEventListener) return undefined;
+    const handleNetworkChange = () => setNetworkRevision((value) => value + 1);
+    connection.addEventListener('change', handleNetworkChange);
+    return () => connection.removeEventListener?.('change', handleNetworkChange);
+  }, []);
 
   useEffect(() => {
     if (!isActive) return undefined;
@@ -166,12 +205,20 @@ const NeahplusPlayer = ({
     let aborted = false;
     let failed = false;
     let candidateHls: Hls | null = null;
+    let detachCandidateFragmentListener: (() => void) | null = null;
     let playRequested = false;
-    hlsInstances[targetSlot]?.destroy();
-    hlsInstances[targetSlot] = null;
-    video.pause();
-    video.removeAttribute('src');
-    video.load();
+    const reusingCachedSlot = mainChannelIdsRef.current[targetSlot] === channelId &&
+      Boolean(hlsInstances[targetSlot] || video.currentSrc || video.src);
+    if (!reusingCachedSlot) {
+      hlsInstances[targetSlot]?.destroy();
+      hlsInstances[targetSlot] = null;
+      mainChannelIdsRef.current[targetSlot] = null;
+      video.pause();
+      video.removeAttribute('src');
+      video.load();
+    } else {
+      video.pause();
+    }
 
     if (!hasActiveStreamRef.current) setStatus('resolving');
     setMessage(null);
@@ -179,9 +226,12 @@ const NeahplusPlayer = ({
     const fail = (error: unknown) => {
       if (aborted || failed || generation !== generationRef.current) return;
       failed = true;
+      detachCandidateFragmentListener?.();
+      detachCandidateFragmentListener = null;
       candidateHls?.destroy();
       candidateHls = null;
       hlsInstances[targetSlot] = null;
+      mainChannelIdsRef.current[targetSlot] = null;
       video.pause();
       video.removeAttribute('src');
       video.load();
@@ -271,6 +321,14 @@ const NeahplusPlayer = ({
     video.addEventListener('canplay', startPlayback, { once: true });
 
     const start = async () => {
+      if (reusingCachedSlot) {
+        candidateHls = hlsInstances[targetSlot];
+        updateDiagnostics({ urlMs: elapsedMs(), manifestMs: elapsedMs(), stage: 'Lecteur précédent réutilisé' });
+        if (video.buffered.length > 0) recordFirstSegment();
+        candidateHls?.startLoad();
+        startPlayback();
+        return;
+      }
       const streamUrl = resolvedStreamUrl ?? await resolveNeahplusStream(channelId, controller.signal);
       if (aborted || generation !== generationRef.current) return;
       updateDiagnostics({
@@ -301,7 +359,10 @@ const NeahplusPlayer = ({
           updateDiagnostics({ manifestMs: elapsedMs(), stage: 'Manifeste préchargé réutilisé' });
           candidateHls = warmedHls;
           hlsInstances[targetSlot] = warmedHls;
-          warmedHls.on(HlsLib.Events.FRAG_BUFFERED, recordFirstSegment);
+          mainChannelIdsRef.current[targetSlot] = channelId;
+          const onTransferredFragment = () => recordFirstSegment();
+          warmedHls.on(HlsLib.Events.FRAG_BUFFERED, onTransferredFragment);
+          detachCandidateFragmentListener = () => warmedHls.off(HlsLib.Events.FRAG_BUFFERED, onTransferredFragment);
           if (hadWarmedSegment) recordFirstSegment();
           warmupSegmentReadyRef.current[warmedIndex] = false;
           const warmedVideo = warmupVideoRefs.current[warmedIndex];
@@ -333,6 +394,7 @@ const NeahplusPlayer = ({
         });
         candidateHls = instance;
         hlsInstances[targetSlot] = instance;
+        mainChannelIdsRef.current[targetSlot] = channelId;
         instance.on(HlsLib.Events.ERROR, (_event, data) => {
           if (data.fatal) fail(new Error(data.details));
         });
@@ -340,10 +402,13 @@ const NeahplusPlayer = ({
           updateDiagnostics({ manifestMs: elapsedMs(), stage: 'Manifeste HLS analysé' });
           startPlayback();
         });
-        instance.on(HlsLib.Events.FRAG_BUFFERED, recordFirstSegment);
+        const onMainFragmentBuffered = () => recordFirstSegment();
+        instance.on(HlsLib.Events.FRAG_BUFFERED, onMainFragmentBuffered);
+        detachCandidateFragmentListener = () => instance.off(HlsLib.Events.FRAG_BUFFERED, onMainFragmentBuffered);
         instance.loadSource(streamUrl);
         instance.attachMedia(video);
       } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+        mainChannelIdsRef.current[targetSlot] = channelId;
         video.src = streamUrl;
         video.load();
       } else {
@@ -364,9 +429,12 @@ const NeahplusPlayer = ({
       video.removeEventListener('loadedmetadata', handleNativeMetadata);
       video.removeEventListener('loadeddata', handleNativeData);
       video.removeEventListener('canplay', startPlayback);
+      detachCandidateFragmentListener?.();
+      detachCandidateFragmentListener = null;
       if (activeSlotRef.current !== targetSlot) {
         candidateHls?.destroy();
         if (hlsInstances[targetSlot] === candidateHls) hlsInstances[targetSlot] = null;
+        if (mainChannelIdsRef.current[targetSlot] === channelId) mainChannelIdsRef.current[targetSlot] = null;
         video.pause();
         video.removeAttribute('src');
         video.load();
@@ -392,9 +460,15 @@ const NeahplusPlayer = ({
     activeVideo?.addEventListener('stalled', pauseNeighborPreloads);
     activeVideo?.addEventListener('playing', resumeNeighborPreloads);
     const controllers = [new AbortController(), new AbortController()];
-    // Le sens "suivant" est prioritaire : on lui réserve d'abord le réseau,
-    // puis on amorce la chaîne précédente sans concurrencer le premier buffer.
-    const targets = [nextChannelId, previousChannelId].filter((id): id is string => Boolean(id && id !== channelId));
+    const connection = typeof navigator !== 'undefined'
+      ? (navigator as Navigator & { connection?: NetworkInfoLike }).connection
+      : undefined;
+    const policy = getZappingPolicy(zappingMode, connection);
+    // Le prochain flux est prioritaire. Le nombre de chaînes et la durée
+    // préchargée dépendent du mode choisi et du réseau détecté.
+    const targets = [nextChannelId, previousChannelId]
+      .filter((id): id is string => Boolean(id && id !== channelId))
+      .slice(0, policy.neighborCount);
 
     const warmChannel = async (slot: number, targetChannelId: string, controller: AbortController) => {
       const video = warmupVideoRefs.current[slot];
@@ -423,9 +497,9 @@ const NeahplusPlayer = ({
           autoStartLoad: true,
           startFragPrefetch: true,
           startLevel: 0,
-          maxBufferLength: 5,
-          maxMaxBufferLength: 6,
-          maxBufferSize: 6 * 1024 * 1024,
+          maxBufferLength: Math.max(1, policy.bufferSeconds + 0.5),
+          maxMaxBufferLength: Math.max(1.5, policy.bufferSeconds + 1),
+          maxBufferSize: 4 * 1024 * 1024,
           backBufferLength: 0,
           lowLatencyMode: false,
         });
@@ -434,10 +508,18 @@ const NeahplusPlayer = ({
         // Chaque chaîne voisine reçoit son premier vrai fragment vidéo.
         // On arrête ensuite son téléchargement jusqu'à sa sélection, afin de
         // conserver un départ rapide sans concurrencer inutilement le direct.
-        const stopAfterFirstFragment = (_event: string, data: { frag?: { sn?: number | string } }) => {
-          if (typeof data.frag?.sn !== 'number') return;
+        const bufferedFragmentKeys = new Set<string>();
+        let bufferedSeconds = 0;
+        const stopAfterTargetBuffer = (_event: string, data: { frag?: { sn?: number | string; duration?: number; type?: string } }) => {
+          const frag = data.frag;
+          if (typeof frag?.sn !== 'number' || (frag.type && frag.type !== 'main')) return;
+          const fragmentKey = `${frag.type ?? 'main'}:${frag.sn}`;
+          if (bufferedFragmentKeys.has(fragmentKey)) return;
+          bufferedFragmentKeys.add(fragmentKey);
+          bufferedSeconds += Math.max(0, Number(frag.duration) || 0);
+          if (bufferedSeconds < policy.bufferSeconds) return;
           warmupSegmentReadyRef.current[slot] = true;
-          instance.off(HlsLib.Events.FRAG_BUFFERED, stopAfterFirstFragment);
+          instance.off(HlsLib.Events.FRAG_BUFFERED, stopAfterTargetBuffer);
           if (warmupTimeoutRefs.current[slot] !== null) {
             window.clearTimeout(warmupTimeoutRefs.current[slot]!);
             warmupTimeoutRefs.current[slot] = null;
@@ -447,8 +529,8 @@ const NeahplusPlayer = ({
         warmupTimeoutRefs.current[slot] = window.setTimeout(() => {
           warmupTimeoutRefs.current[slot] = null;
           instance.stopLoad();
-        }, 6000);
-        instance.on(HlsLib.Events.FRAG_BUFFERED, stopAfterFirstFragment);
+        }, policy.maxPreloadMs);
+        instance.on(HlsLib.Events.FRAG_BUFFERED, stopAfterTargetBuffer);
         instance.on(HlsLib.Events.ERROR, (_event, data) => {
           if (!data.fatal) return;
           if (warmupTimeoutRefs.current[slot] !== null) {
@@ -515,7 +597,7 @@ const NeahplusPlayer = ({
         }
       });
     };
-  }, [channelId, fullScreen, nextChannelId, previousChannelId, activePlayingChannelId]);
+  }, [channelId, fullScreen, nextChannelId, previousChannelId, activePlayingChannelId, zappingMode, networkRevision]);
 
   useEffect(() => {
     if (!flowTransition) return undefined;
@@ -536,12 +618,9 @@ const NeahplusPlayer = ({
       const { exitingSlot } = flowTransition;
       const oldVideo = videoRefs.current[exitingSlot];
       oldVideo?.pause();
-      hlsRefs.current[exitingSlot]?.destroy();
-      hlsRefs.current[exitingSlot] = null;
-      if (oldVideo) {
-        oldVideo.removeAttribute('src');
-        oldVideo.load();
-      }
+      // Conserver le dernier lecteur quitté en mémoire : un retour immédiat
+      // peut reprendre son MediaSource et son buffer sans reconstruire HLS.
+      hlsRefs.current[exitingSlot]?.stopLoad();
       setFlowTransition(null);
       transitionTimerRef.current = null;
     }, 280);
@@ -575,6 +654,7 @@ const NeahplusPlayer = ({
       video?.pause();
       hlsRefs.current[slot]?.destroy();
       hlsRefs.current[slot] = null;
+      mainChannelIdsRef.current[slot] = null;
       if (video) {
         video.removeAttribute('src');
         video.load();
