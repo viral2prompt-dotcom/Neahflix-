@@ -541,14 +541,16 @@ const NeahplusExperience = () => {
     const needle = foldText(query.trim());
     const base = tab === 'favorites'
       ? allGroups.filter((g) => favorites.has(g.key))
-      : allGroups;
+      : tab === 'all'
+        ? filterNeahplusFlowGroups(allGroups, selectedCategoryId, country)
+        : allGroups;
 
     return base.filter((g) => {
       if (country && tab !== 'world' && !groupMatchesCountry(g, country)) return false;
       if (needle && !foldText(g.displayName).includes(needle) && !g.variants.some((variant) => foldText(variant.name).includes(needle))) return false;
       return true;
     }).sort((a, b) => Number(b.countries.includes('France')) - Number(a.countries.includes('France')) || channelPriority(a.displayName) - channelPriority(b.displayName) || a.displayName.localeCompare(b.displayName, 'fr'));
-  }, [allGroups, country, query, tab, favorites]);
+  }, [allGroups, country, query, tab, favorites, selectedCategoryId]);
 
   const visibleGroups = useMemo(
     () => filteredGroups.slice(0, visibleCount),
