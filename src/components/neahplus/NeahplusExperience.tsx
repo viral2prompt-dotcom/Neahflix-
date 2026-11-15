@@ -597,9 +597,9 @@ const NeahplusExperience = () => {
 
   const quickListFilteredGroups = useMemo(() => {
     const needle = foldText(quickListQuery.trim());
-    if (!needle) return carouselGroups;
-    return carouselGroups.filter((group) => foldText(group.displayName).includes(needle) || group.variants.some((variant) => foldText(variant.name).includes(needle)));
-  }, [carouselGroups, quickListQuery]);
+    if (!needle) return viewerGroups;
+    return viewerGroups.filter((group) => foldText(group.displayName).includes(needle) || group.variants.some((variant) => foldText(variant.name).includes(needle)));
+  }, [viewerGroups, quickListQuery]);
 
   // Précharger progressivement les trois chaînes voisines de chaque côté.
   // Le cache du résolveur déduplique les demandes déjà lancées par le lecteur.
@@ -868,13 +868,13 @@ const NeahplusExperience = () => {
 
   const openChannelList = useCallback(() => {
     setQuickListQuery('');
-    const selectedIndex = carouselGroups.findIndex((group) => group.key === selectedGroupKey);
+    const selectedIndex = viewerGroups.findIndex((group) => group.key === selectedGroupKey);
     setQuickListVisibleCount((count) => Math.max(count, selectedIndex + 1, 80));
     setShowChannelList(true);
     window.requestAnimationFrame(() => {
       channelListRef.current?.querySelector<HTMLButtonElement>('[aria-current="true"]')?.focus();
     });
-  }, [carouselGroups, selectedGroupKey]);
+  }, [viewerGroups, selectedGroupKey]);
 
   const cycleVariant = useCallback((direction: 1 | -1) => {
     if (!selectedGroup || selectedGroup.variants.length <= 1) return;
