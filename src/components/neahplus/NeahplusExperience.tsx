@@ -27,7 +27,7 @@ import {
   X,
 } from 'lucide-react';
 import NeahplusPlayer from './NeahplusPlayer';
-import NeahplusFlow, { filterNeahplusFlowGroups } from './NeahplusFlow';
+import NeahplusFlow, { filterNeahplusFlowGroups, NEAHPLUS_FLOW_CATEGORIES } from './NeahplusFlow';
 import { preloadNeahplusPlayer } from './neahplusPlayerLoader';
 import ChannelCarousel from './ChannelCarousel';
 import ProgramSynopsis from './ProgramSynopsis';
@@ -318,6 +318,7 @@ const NeahplusExperience = () => {
       return saved === 'economy' || saved === 'balanced' || saved === 'performance' ? saved : 'auto';
     } catch { return 'auto'; }
   });
+  const [selectedCategoryId, setSelectedCategoryId] = useState('all');
   const [flowCategoryId, setFlowCategoryId] = useState('all');
   const [flowControlsVisible, setFlowControlsVisible] = useState(true);
   const [flowControlsActivity, setFlowControlsActivity] = useState(0);
@@ -577,13 +578,21 @@ const NeahplusExperience = () => {
     () => filterNeahplusFlowGroups(carouselGroups, flowCategoryId, country),
     [carouselGroups, flowCategoryId, country],
   );
-  const flowNavigationGroups = flowMode ? flowGroups : carouselGroups;
-  const flowCurrentIndex = flowGroups.findIndex((group) => group.key === selectedGroupKey);
-  const flowNextChannelId = flowCurrentIndex >= 0 && flowGroups.length > 1
-    ? flowGroups[(flowCurrentIndex + 1) % flowGroups.length]?.variants[0]?.id ?? null
+  const categoryGroups = useMemo(
+    () => filterNeahplusFlowGroups(carouselGroups, selectedCategoryId, country),
+    [carouselGroups, selectedCategoryId, country],
+  );
+  const viewerGroups = tab === 'favorites'
+    ? carouselGroups.filter((group) => favorites.has(group.key))
+    : categoryGroups;
+  const playerNavigationGroups = flowMode ? flowGroups : viewerGroups;
+  const flowNavigationGroups = playerNavigationGroups;
+  const flowCurrentIndex = playerNavigationGroups.findIndex((group) => group.key === selectedGroupKey);
+  const flowNextChannelId = flowCurrentIndex >= 0 && playerNavigationGroups.length > 1
+    ? playerNavigationGroups[(flowCurrentIndex + 1) % playerNavigationGroups.length]?.variants[0]?.id ?? null
     : null;
-  const flowPreviousChannelId = flowCurrentIndex >= 0 && flowGroups.length > 1
-    ? flowGroups[(flowCurrentIndex - 1 + flowGroups.length) % flowGroups.length]?.variants[0]?.id ?? null
+  const flowPreviousChannelId = flowCurrentIndex >= 0 && playerNavigationGroups.length > 1
+    ? playerNavigationGroups[(flowCurrentIndex - 1 + playerNavigationGroups.length) % playerNavigationGroups.length]?.variants[0]?.id ?? null
     : null;
 
   const quickListFilteredGroups = useMemo(() => {
@@ -663,8 +672,8 @@ const NeahplusExperience = () => {
 
   const handleSelectGroup = useCallback((group: ChannelGroup, directionOverride?: 'next' | 'previous' | null) => {
     setSuppressPlayerEntranceAnimation(false);
-    const currentIndex = carouselGroups.findIndex((item) => item.key === selectedGroupKey);
-    const targetIndex = carouselGroups.findIndex((item) => item.key === group.key);
+    const currentIndex = playerNavigationGroups.findIndex((item) => item.key === selectedGroupKey);
+    const targetIndex = playerNavigationGroups.findIndex((item) => item.key === group.key);
     setZappingDirection(directionOverride ?? (currentIndex >= 0 && targetIndex >= 0 && currentIndex !== targetIndex ? (targetIndex > currentIndex ? 'next' : 'previous') : null));
     setSelectedGroupKey(group.key);
     setActiveVariantIndex(0);
@@ -676,7 +685,7 @@ const NeahplusExperience = () => {
     }
     // Déclencher la détection dès le toucher, même si la chaîne n'a qu'une seule source.
     if (group.variants.length > 0) void resolveBestVariant(group);
-  }, [resolveBestVariant, selectedGroupKey, carouselGroups, flowMode]);
+  }, [resolveBestVariant, selectedGroupKey, playerNavigationGroups, flowMode]);
 
   const cycleFlowChannel = useCallback((direction: 1 | -1) => {
     if (flowGroups.length === 0) return;
@@ -690,6 +699,7 @@ const NeahplusExperience = () => {
   const handleFlowCategoryChange = useCallback((nextCategoryId: string) => {
     const nextGroups = filterNeahplusFlowGroups(carouselGroups, nextCategoryId, country);
     setFlowCategoryId(nextCategoryId);
+    setSelectedCategoryId(nextCategoryId);
     handleFlowControlsChange(true);
     if (nextGroups.length === 0) return;
     if (!nextGroups.some((group) => group.key === selectedGroupKey)) {
@@ -744,12 +754,12 @@ const NeahplusExperience = () => {
 
   // Navigation matérielle PageUp/PageDown entre les chaînes disponibles.
   const cycleChannel = useCallback((direction: 1 | -1) => {
-    if (carouselGroups.length === 0) return;
-    const currentIndex = carouselGroups.findIndex((group) => group.key === selectedGroupKey);
+    if (viewerGroups.length === 0) return;
+    const currentIndex = viewerGroups.findIndex((group) => group.key === selectedGroupKey);
     const startIndex = currentIndex < 0 ? (direction > 0 ? -1 : 0) : currentIndex;
-    const nextIndex = (startIndex + direction + carouselGroups.length) % carouselGroups.length;
-    handleSelectGroup(carouselGroups[nextIndex], direction > 0 ? 'next' : 'previous');
-  }, [carouselGroups, selectedGroupKey, handleSelectGroup]);
+    const nextIndex = (startIndex + direction + viewerGroups.length) % viewerGroups.length;
+    handleSelectGroup(viewerGroups[nextIndex], direction > 0 ? 'next' : 'previous');
+  }, [viewerGroups, selectedGroupKey, handleSelectGroup]);
 
   const handleSelectChannel = useCallback((channel: NeahplusChannel, scrollToTop = true, resolveStream = true) => {
     setSuppressPlayerEntranceAnimation(false);
@@ -759,6 +769,8 @@ const NeahplusExperience = () => {
     const currentIndex = carouselGroups.findIndex((item) => item.key === selectedGroupKey);
     const targetIndex = carouselGroups.findIndex((item) => item.key === group.key);
     setZappingDirection(currentIndex >= 0 && targetIndex >= 0 && currentIndex !== targetIndex ? (targetIndex > currentIndex ? 'next' : 'previous') : null);
+    setSelectedCategoryId('all');
+    setFlowCategoryId('all');
     setSelectedGroupKey(group.key);
     setActiveVariantIndex(vIdx >= 0 ? vIdx : 0);
     if (resolveStream) {
@@ -789,6 +801,7 @@ const NeahplusExperience = () => {
 
     // Sélectionner et afficher le lecteur immédiatement, sans lancer le réseau.
     handleSelectChannel(channel, false, false);
+    setSelectedCategoryId(categoryId);
     setFlowCategoryId(categoryId);
     setSuppressPlayerEntranceAnimation(true);
     setHomePlayerStartDeferred(true);
@@ -1279,7 +1292,7 @@ const NeahplusExperience = () => {
                   />
                   <button
                     type="button"
-                    onClick={() => { setFlowMode(true); handleFlowControlsChange(true); setShowChannelList(false); }}
+                    onClick={() => { setFlowCategoryId(selectedCategoryId); setFlowMode(true); handleFlowControlsChange(true); setShowChannelList(false); }}
                     aria-label="Ouvrir NEAHPLUS Flow"
                     title="Navigation verticale NEAHPLUS Flow"
                     className="inline-flex h-9 items-center justify-center gap-1.5 rounded-xl border border-[#20c7c7]/30 bg-[#20c7c7]/10 px-2.5 text-[10px] font-black tracking-wide text-[#8af0f0] transition hover:border-[#55dddd]/70 hover:bg-[#20c7c7]/20 hover:text-white"
@@ -1379,9 +1392,7 @@ const NeahplusExperience = () => {
 
           {/* Channel carousel: favorites only in Mon espace, full catalog elsewhere */}
           <ChannelCarousel
-            groups={tab === 'favorites'
-              ? carouselGroups.filter((group) => favorites.has(group.key))
-              : carouselGroups}
+            groups={viewerGroups}
             selectedKey={selectedGroupKey}
             favoritedKeys={favorites}
             onSelectGroup={handleSelectGroup}
