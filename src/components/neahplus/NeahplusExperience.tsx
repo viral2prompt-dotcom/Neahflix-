@@ -1390,7 +1390,29 @@ const NeahplusExperience = () => {
             </div>
           )}
 
-          {/* Channel carousel: favorites only in Mon espace, full catalog elsewhere */}
+          {!flowMode && tab !== 'favorites' && (
+            <div className="space-y-2">
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-[9px] font-black uppercase tracking-[0.16em] text-white/40">Catégorie des chaînes</span>
+                <span className="text-[10px] tabular-nums text-white/35">{viewerGroups.length} chaîne{viewerGroups.length > 1 ? 's' : ''}</span>
+              </div>
+              <div className="flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                {NEAHPLUS_FLOW_CATEGORIES.map((category) => (
+                  <button
+                    key={category.id}
+                    type="button"
+                    onClick={() => handleFlowCategoryChange(category.id)}
+                    aria-pressed={selectedCategoryId === category.id}
+                    className={`shrink-0 rounded-full border px-3 py-2 text-[10px] font-bold transition ${selectedCategoryId === category.id ? 'border-[#55dddd]/60 bg-[#20c7c7]/20 text-[#a5ffff]' : 'border-white/10 bg-white/[0.035] text-white/55 hover:border-white/25 hover:text-white/80'}`}
+                  >
+                    {category.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Channel carousel: favorites only in Mon espace, category-scoped elsewhere */}
           <ChannelCarousel
             groups={viewerGroups}
             selectedKey={selectedGroupKey}
