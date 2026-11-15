@@ -10,9 +10,13 @@ interface ChannelCarouselProps {
   onSelectGroup: (group: ChannelGroup) => void;
   onToggleFavorite: (key: string) => void;
   onOpenMore?: () => void;
+  categories?: Array<{ id: string; label: string }>;
+  selectedCategoryId?: string;
+  onCategoryChange?: (categoryId: string) => void;
+  countLabel?: string;
 }
 
-const ChannelCarousel = ({ groups, selectedKey, favoritedKeys, onSelectGroup, onToggleFavorite, onOpenMore }: ChannelCarouselProps) => {
+const ChannelCarousel = ({ groups, selectedKey, favoritedKeys, onSelectGroup, onToggleFavorite, onOpenMore, categories, selectedCategoryId, onCategoryChange, countLabel }: ChannelCarouselProps) => {
   const scrollerRef = useRef<HTMLDivElement>(null);
   const cardRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
   const focusKey = useRef<string | null>(null);
@@ -44,9 +48,27 @@ const ChannelCarousel = ({ groups, selectedKey, favoritedKeys, onSelectGroup, on
 
   return (
     <div className="relative flex flex-col gap-2">
-      <div className="flex items-center justify-between px-1">
-        <h4 className="text-xs font-bold uppercase tracking-wider text-white/40">Chaînes</h4>
-        <div className="flex items-center gap-1">
+      <div className="flex min-h-7 items-center justify-between gap-2 px-1">
+        <div className="flex min-w-0 items-center gap-2">
+          {categories?.length && onCategoryChange ? (
+            <label className="relative inline-flex min-w-0 items-center">
+              <span className="sr-only">Filtrer les chaînes par catégorie</span>
+              <select
+                value={selectedCategoryId ?? 'all'}
+                onChange={(event) => onCategoryChange(event.target.value)}
+                aria-label="Catégorie des chaînes"
+                className="max-w-[170px] appearance-none rounded-lg border border-[#20c7c7]/30 bg-[#20c7c7]/[0.08] py-1.5 pl-2.5 pr-7 text-[10px] font-bold text-[#a5ffff] outline-none transition focus:border-[#55dddd]/70 focus:ring-1 focus:ring-[#55dddd]/25"
+              >
+                {categories.map((category) => <option key={category.id} value={category.id} className="bg-[#10232b] text-white">{category.label}</option>)}
+              </select>
+              <span className="pointer-events-none absolute right-2 text-[9px] text-[#8af0f0]">▾</span>
+            </label>
+          ) : (
+            <h4 className="text-xs font-bold uppercase tracking-wider text-white/40">Chaînes</h4>
+          )}
+          {countLabel && <span className="truncate text-[9px] tabular-nums text-white/35">{countLabel}</span>}
+        </div>
+        <div className="flex shrink-0 items-center gap-1">
           <button type="button" onClick={() => scrollBy(-1)} aria-label="Faire défiler à gauche" className="flex h-7 w-7 items-center justify-center rounded-lg bg-white/5 text-white/50 transition hover:bg-white/10 hover:text-white">
             <ChevronLeft className="h-4 w-4" />
           </button>
