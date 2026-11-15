@@ -582,9 +582,10 @@ const NeahplusExperience = () => {
     () => filterNeahplusFlowGroups(carouselGroups, selectedCategoryId, country),
     [carouselGroups, selectedCategoryId, country],
   );
-  const viewerGroups = tab === 'favorites'
-    ? carouselGroups.filter((group) => favorites.has(group.key))
-    : categoryGroups;
+  const viewerGroups = useMemo(
+    () => tab === 'favorites' ? carouselGroups.filter((group) => favorites.has(group.key)) : categoryGroups,
+    [tab, carouselGroups, favorites, categoryGroups],
+  );
   const playerNavigationGroups = flowMode ? flowGroups : viewerGroups;
   const flowNavigationGroups = playerNavigationGroups;
   const flowCurrentIndex = playerNavigationGroups.findIndex((group) => group.key === selectedGroupKey);
