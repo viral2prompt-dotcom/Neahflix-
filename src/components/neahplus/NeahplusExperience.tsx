@@ -1292,7 +1292,7 @@ const NeahplusExperience = () => {
                   />
                   <button
                     type="button"
-                    onClick={() => { setFlowCategoryId(selectedCategoryId); setFlowMode(true); handleFlowControlsChange(true); setShowChannelList(false); }}
+                    onClick={() => { const currentIsInSelectedCategory = categoryGroups.some((group) => group.key === selectedGroup.key); const inferredCategory = NEAHPLUS_FLOW_CATEGORIES.slice(1).find((category) => filterNeahplusFlowGroups([selectedGroup], category.id, country).length > 0)?.id ?? "all"; setFlowCategoryId(selectedCategoryId !== "all" && currentIsInSelectedCategory ? selectedCategoryId : inferredCategory); setFlowMode(true); handleFlowControlsChange(true); setShowChannelList(false); }}
                     aria-label="Ouvrir NEAHPLUS Flow"
                     title="Navigation verticale NEAHPLUS Flow"
                     className="inline-flex h-9 items-center justify-center gap-1.5 rounded-xl border border-[#20c7c7]/30 bg-[#20c7c7]/10 px-2.5 text-[10px] font-black tracking-wide text-[#8af0f0] transition hover:border-[#55dddd]/70 hover:bg-[#20c7c7]/20 hover:text-white"
