@@ -701,10 +701,10 @@ const NeahplusExperience = () => {
 
   const handleFlowCategoryChange = useCallback((nextCategoryId: string) => {
     const nextGroups = filterNeahplusFlowGroups(carouselGroups, nextCategoryId, country);
+    if (nextGroups.length === 0) return;
     setFlowCategoryId(nextCategoryId);
     setSelectedCategoryId(nextCategoryId);
     handleFlowControlsChange(true);
-    if (nextGroups.length === 0) return;
     if (!nextGroups.some((group) => group.key === selectedGroupKey)) {
       handleSelectGroup(nextGroups[0]);
     }
@@ -1393,7 +1393,7 @@ const NeahplusExperience = () => {
             </div>
           )}
 
-          {!flowMode && tab !== 'favorites' && (
+          {!flowMode && tab === 'all' && (
             <div className="space-y-2">
               <div className="flex items-center justify-between gap-2">
                 <span className="text-[9px] font-black uppercase tracking-[0.16em] text-white/40">Catégorie des chaînes</span>
