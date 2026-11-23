@@ -20,7 +20,8 @@
     "app:publish": "node scripts/publish-app.mjs",
     "wasm:watchparty-sync:setup": "rustup target add wasm32-unknown-unknown && cargo install wasm-bindgen-cli",
     "wasm:watchparty-sync:build": "cargo build --manifest-path wasm/watchparty-sync/Cargo.toml --target wasm32-unknown-unknown --release && wasm-bindgen --target web --out-dir public/wasm/watchparty-sync wasm/watchparty-sync/target/wasm32-unknown-unknown/release/watchparty_sync.wasm",
-    "wasm:watchparty-sync:build:dev": "cargo build --manifest-path wasm/watchparty-sync/Cargo.toml --target wasm32-unknown-unknown && wasm-bindgen --target web --out-dir public/wasm/watchparty-sync wasm/watchparty-sync/target/wasm32-unknown-unknown/debug/watchparty_sync.wasm"
+    "wasm:watchparty-sync:build:dev": "cargo build --manifest-path wasm/watchparty-sync/Cargo.toml --target wasm32-unknown-unknown && wasm-bindgen --target web --out-dir public/wasm/watchparty-sync wasm/watchparty-sync/target/wasm32-unknown-unknown/debug/watchparty_sync.wasm",
+    "test:gateway": "node --test 'functions/api/[[path]].test.js'"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
