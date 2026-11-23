@@ -15,7 +15,7 @@ import { mountNeahplus } from '../../server/neahplusRoutes.js';
  */
 export const createCloudflareFetchTransport = ({
   fetchImpl = (...args) => fetch(...args),
-  blockedHost = '',
+  blockedHosts = [],
 } = {}) => async ({ url, method, headers, body, lookup, timeoutMs }) => {
   const hostname = url.hostname.toLowerCase().replace(/^\[|\]$/g, '');
 
@@ -23,7 +23,7 @@ export const createCloudflareFetchTransport = ({
     throw new NeahplusRefused('Destination IP directe non prise en charge par Cloudflare', 502);
   }
 
-  if (blockedHost && hostname === blockedHost.toLowerCase()) {
+  if (blockedHosts.some((blocked) => hostname === blocked || hostname.endsWith(`.${blocked}`))) {
     throw new NeahplusRefused('Destination NEAHPLUS correspondant au domaine du site refusée', 502);
   }
 
@@ -59,11 +59,16 @@ export const createNeahplusCloudflareHandler = ({
     });
   }
 
-  const requestHost = new URL(request.url).hostname;
+  const requestHost = new URL(request.url).hostname.toLowerCase();
+  const configuredBlockedHosts = String(env.NEAHPLUS_BLOCKED_HOSTS || '')
+    .split(',')
+    .map((value) => value.trim().toLowerCase())
+    .filter(Boolean);
+  const blockedHosts = [...new Set([requestHost, ...configuredBlockedHosts])];
   const bridge = createNeahplusBridge({
     secret,
     ...(resolveHost ? { resolveHost } : {}),
-    transport: createCloudflareFetchTransport({ fetchImpl, blockedHost: requestHost }),
+    transport: createCloudflareFetchTransport({ fetchImpl, blockedHosts }),
   });
 
   const app = new Hono();
