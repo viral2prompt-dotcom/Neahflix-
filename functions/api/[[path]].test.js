@@ -1,92 +1,123 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { createNeahplusCloudflareHandler, createCloudflareFetchTransport } from '../_lib/neahplusCloudflare.js';
 import { onRequest } from './[[path]].js';
 
 const ORIGIN = 'https://neahflix.cg';
-const TOKEN = 'test-gateway-token-with-at-least-32-characters';
-const BACKEND = 'https://neahplus-backend.example';
+const SECRET = 'test-neahplus-signing-secret-at-least-32-characters';
 
-const makeContext = ({ path = '/api/neahplus/live2/master.m3u8?x=1', method = 'GET', headers = {}, env = {} } = {}) => {
-  const request = new Request(`${ORIGIN}${path}`, { method, headers });
-  return {
-    request,
-    env,
-  };
-};
-
-test('NEAHPLUS returns 503 until its backend and gateway secret are configured', async () => {
-  const response = await onRequest(makeContext());
-  assert.equal(response.status, 503);
-  assert.match(await response.text(), /Backend NEAHPLUS non configuré/);
+const makeContext = ({ path = '/api/neahplus/live2/master.m3u8?x=1', method = 'GET', headers = {}, env = {} } = {}) => ({
+  request: new Request(`${ORIGIN}${path}`, { method, headers }),
+  env,
 });
 
-test('NEAHPLUS is proxied to the configured backend with a private gateway token', async () => {
-  const originalFetch = globalThis.fetch;
+const publicResolver = async () => [{ address: '1.1.1.1', family: 4 }];
+
+test('NEAHPLUS returns 503 until its signing secret is configured', async () => {
+  const handler = createNeahplusCloudflareHandler({ resolveHost: publicResolver });
+  const response = await handler(new Request(`${ORIGIN}/api/neahplus/live2/master.m3u8`), {});
+  assert.equal(response.status, 503);
+  assert.match(await response.text(), /Secret de signature NEAHPLUS non configuré/);
+});
+
+test('NEAHPLUS runs inside Pages and streams upstream responses without a separate backend', async () => {
   let receivedUrl;
   let receivedInit;
+  const handler = createNeahplusCloudflareHandler({
+    resolveHost: publicResolver,
+    fetchImpl: async (url, init) => {
+      receivedUrl = String(url);
+      receivedInit = init;
+      return new Response('video-segment', {
+        status: 206,
+        headers: { 'content-type': 'video/mp2t', 'content-range': 'bytes 0-13/100' },
+      });
+    },
+  });
 
-  globalThis.fetch = async (url, init) => {
-    receivedUrl = String(url);
-    receivedInit = init;
-    return new Response('video-segment', {
-      status: 206,
-      headers: { 'content-type': 'video/mp2t', 'content-range': 'bytes 0-13/100' },
-    });
-  };
+  const response = await handler(new Request(`${ORIGIN}/api/neahplus/live2/segment.ts`, {
+    headers: { Range: 'bytes=0-13' },
+  }), { NEAHPLUS_SIGNING_SECRET: SECRET });
 
-  try {
-    const response = await onRequest(makeContext({
-      headers: { Origin: ORIGIN, Referer: ORIGIN + '/', Range: 'bytes=0-13' },
-      env: {
-        NEAHPLUS_BACKEND_ORIGIN: BACKEND,
-        NEAHPLUS_GATEWAY_TOKEN: TOKEN,
-      },
-    }));
-
-    assert.equal(receivedUrl, BACKEND + '/api/neahplus/live2/master.m3u8?x=1');
-    assert.equal(receivedInit.headers.get('x-neahplus-gateway-token'), TOKEN);
-    assert.equal(receivedInit.headers.get('origin'), null);
-    assert.equal(receivedInit.headers.get('referer'), null);
-    assert.equal(receivedInit.headers.get('range'), 'bytes=0-13');
-    assert.equal(receivedInit.redirect, 'manual');
-    assert.equal(response.status, 206);
-    assert.equal(response.headers.get('access-control-allow-origin'), ORIGIN);
-    assert.equal(response.headers.get('cache-control'), 'no-store');
-    assert.equal(await response.text(), 'video-segment');
-  } finally {
-    globalThis.fetch = originalFetch;
-  }
+  assert.equal(receivedUrl, 'https://oha.to/live2/segment.ts');
+  assert.equal(receivedInit.redirect, 'manual');
+  assert.equal(receivedInit.headers.get('origin'), 'https://oha.to');
+  assert.equal(receivedInit.headers.get('referer'), 'https://oha.to/');
+  assert.equal(receivedInit.headers.get('range'), 'bytes=0-13');
+  assert.equal(response.status, 206);
+  assert.equal(response.headers.get('content-range'), 'bytes 0-13/100');
+  assert.equal(response.headers.get('cache-control'), 'no-store');
+  assert.equal(await response.text(), 'video-segment');
 });
 
-test('NEAHPLUS rejects a backend URL that is not HTTPS', async () => {
-  const response = await onRequest(makeContext({
-    env: {
-      NEAHPLUS_BACKEND_ORIGIN: 'http://neahplus-backend.example',
-      NEAHPLUS_GATEWAY_TOKEN: TOKEN,
+test('NEAHPLUS refuses DNS answers that include a private address before fetching', async () => {
+  let fetchCalls = 0;
+  const handler = createNeahplusCloudflareHandler({
+    resolveHost: async () => [{ address: '127.0.0.1', family: 4 }],
+    fetchImpl: async () => {
+      fetchCalls += 1;
+      return new Response('should not be reached');
     },
-  }));
-  assert.equal(response.status, 503);
+  });
+
+  const response = await handler(new Request(`${ORIGIN}/api/neahplus/live2/segment.ts`), {
+    NEAHPLUS_SIGNING_SECRET: SECRET,
+  });
+
+  assert.equal(response.status, 502);
+  assert.equal(fetchCalls, 0);
+});
+
+test('NEAHPLUS refuses requests that would call back into the same site host', async () => {
+  let fetchCalls = 0;
+  const handler = createNeahplusCloudflareHandler({
+    resolveHost: publicResolver,
+    fetchImpl: async () => {
+      fetchCalls += 1;
+      return new Response('should not be reached');
+    },
+  });
+
+  const response = await handler(new Request('https://oha.to/api/neahplus/live2/segment.ts'), {
+    NEAHPLUS_SIGNING_SECRET: SECRET,
+  });
+
+  assert.equal(response.status, 502);
+  assert.equal(fetchCalls, 0);
+});
+
+test('Cloudflare transport refuses IP-literal stream URLs', async () => {
+  const transport = createCloudflareFetchTransport({
+    fetchImpl: async () => new Response('should not be reached'),
+  });
+
+  await assert.rejects(
+    transport({
+      url: new URL('https://1.1.1.1/segment.ts'),
+      method: 'GET',
+      headers: new Headers(),
+      lookup: () => {},
+      timeoutMs: 1000,
+    }),
+    /IP directe non prise en charge/,
+  );
 });
 
 test('cross-origin requests are rejected unless explicitly allowed', async () => {
   const response = await onRequest(makeContext({
     headers: { Origin: 'https://untrusted.example' },
     env: {
-      NEAHPLUS_BACKEND_ORIGIN: BACKEND,
-      NEAHPLUS_GATEWAY_TOKEN: TOKEN,
+      NEAHPLUS_SIGNING_SECRET: SECRET,
     },
   }));
   assert.equal(response.status, 403);
 });
 
-test('preflight requests are answered by Pages without contacting the backend', async () => {
+test('preflight requests are answered by Pages without contacting NEAHPLUS', async () => {
   const response = await onRequest(makeContext({
     method: 'OPTIONS',
     headers: { Origin: ORIGIN },
-    env: {
-      NEAHPLUS_BACKEND_ORIGIN: BACKEND,
-      NEAHPLUS_GATEWAY_TOKEN: TOKEN,
-    },
+    env: {},
   }));
   assert.equal(response.status, 204);
   assert.equal(response.headers.get('access-control-allow-origin'), ORIGIN);
