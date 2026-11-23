@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createNeahplusCloudflareHandler, createCloudflareFetchTransport } from '../_lib/neahplusCloudflare.js';
+import { createNeahplusCloudflareHandler, createCloudflareFetchTransport, createCloudflareResolveHost } from '../_lib/neahplusCloudflare.js';
 import { onRequest } from './[[path]].js';
 
 const ORIGIN = 'https://neahflix.cg';
@@ -101,6 +101,40 @@ test('Cloudflare transport refuses IP-literal stream URLs', async () => {
     }),
     /IP directe non prise en charge/,
   );
+});
+
+
+test('Cloudflare DNS resolver uses supported A and AAAA resolution methods', async () => {
+  const resolveHost = createCloudflareResolveHost({
+    resolve4Impl: async (hostname) => {
+      assert.equal(hostname, 'oha.to');
+      return ['93.184.216.34'];
+    },
+    resolve6Impl: async (hostname) => {
+      assert.equal(hostname, 'oha.to');
+      return ['2606:4700:4700::1111'];
+    },
+  });
+
+  assert.deepEqual(await resolveHost('oha.to'), [
+    { address: '93.184.216.34', family: 4 },
+    { address: '2606:4700:4700::1111', family: 6 },
+  ]);
+});
+
+test('Cloudflare DNS resolver tolerates a hostname without an AAAA record', async () => {
+  const resolveHost = createCloudflareResolveHost({
+    resolve4Impl: async () => ['93.184.216.34'],
+    resolve6Impl: async () => {
+      const error = new Error('No AAAA record');
+      error.code = 'ENODATA';
+      throw error;
+    },
+  });
+
+  assert.deepEqual(await resolveHost('oha.to'), [
+    { address: '93.184.216.34', family: 4 },
+  ]);
 });
 
 test('cross-origin requests are rejected unless explicitly allowed', async () => {
