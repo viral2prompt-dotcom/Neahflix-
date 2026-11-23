@@ -5,7 +5,11 @@ export const SITE_URL = normalizeBaseUrl(import.meta.env.VITE_SITE_URL as string
 export const WATCHPARTY_API = normalizeBaseUrl(import.meta.env.VITE_WATCHPARTY_API as string) ||
   normalizeBaseUrl(import.meta.env.VITE_MAIN_API as string);
 
-export const MAIN_API = normalizeBaseUrl(import.meta.env.VITE_MAIN_API as string);
+// Par défaut, les appels API restent sur l'origine courante : cela permet aux
+// passerelles same-origin (Cloudflare Pages Functions ou serveur Hono) de les
+// traiter sans exposer l'API amont directement au navigateur.
+const CURRENT_ORIGIN = typeof window !== 'undefined' ? window.location.origin : '';
+export const MAIN_API = normalizeBaseUrl(import.meta.env.VITE_MAIN_API as string) || CURRENT_ORIGIN;
 export const PROXIES_EMBED_API = normalizeBaseUrl(import.meta.env.VITE_PROXIES_EMBED_API as string);
 export const BESTDEBRID_API_BASE = 'https://bestdebrid.com/api/v1';
 
