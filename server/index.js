@@ -1,3 +1,4 @@
+import { timingSafeEqual } from 'node:crypto';
 import { serve } from '@hono/node-server';
 import { serveStatic } from '@hono/node-server/serve-static';
 import { Hono } from 'hono';
@@ -21,6 +22,26 @@ if (!existsSync(DIST)) {
 }
 
 const app = new Hono();
+
+// NEAHPLUS is reached through the Cloudflare Pages gateway only.
+// The shared token is stored as a secret on both services, never in the frontend.
+const neahplusGatewayToken = process.env.NEAHPLUS_GATEWAY_TOKEN || '';
+const requireNeahplusGateway = async (c, next) => {
+  if (neahplusGatewayToken.length < 32) {
+    return c.text('Accès passerelle NEAHPLUS non configuré', 503);
+  }
+  const supplied = c.req.header('x-neahplus-gateway-token') || '';
+  const expectedBytes = Buffer.from(neahplusGatewayToken);
+  const suppliedBytes = Buffer.from(supplied);
+  if (expectedBytes.length !== suppliedBytes.length ||
+      !timingSafeEqual(expectedBytes, suppliedBytes)) {
+    return c.text('Accès passerelle NEAHPLUS refusé', 403);
+  }
+  await next();
+};
+
+app.use('/api/neahplus', requireNeahplusGateway);
+app.use('/api/neahplus/*', requireNeahplusGateway);
 
 // Médias et polices servis depuis public/ : leur nom ne porte pas de hash, on
 // ne peut donc pas les déclarer immuables — mais ils ne changent quasiment
