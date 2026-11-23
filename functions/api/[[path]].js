@@ -34,8 +34,6 @@ function getAllowedOrigins(env, requestUrl) {
     .map((value) => value.trim())
     .filter(Boolean);
 
-  // Same-origin requests are always valid. Cross-origin clients must be
-  // explicitly listed in the Cloudflare Pages environment variable.
   return new Set([requestUrl.origin, ...configured]);
 }
 
@@ -59,16 +57,80 @@ function jsonError(message, status, origin = '') {
   return new Response(JSON.stringify({ error: message }), { status, headers });
 }
 
+function getNeahplusBackend(env) {
+  const rawOrigin = String(env.NEAHPLUS_BACKEND_ORIGIN || '').trim();
+  const token = String(env.NEAHPLUS_GATEWAY_TOKEN || '');
+
+  if (!rawOrigin || token.length < 32) return null;
+
+  try {
+    const url = new URL(rawOrigin);
+    if (url.protocol !== 'https:' || url.username || url.password ||
+        url.pathname !== '/' || url.search || url.hash) return null;
+    return { origin: url.origin, token };
+  } catch {
+    return null;
+  }
+}
+
+async function proxyNeahplus(context, incomingUrl, origin) {
+  const { request, env } = context;
+  if (!['GET', 'HEAD', 'POST'].includes(request.method)) {
+    return jsonError('Méthode NEAHPLUS non autorisée', 405, origin);
+  }
+
+  const backend = getNeahplusBackend(env);
+  if (!backend) {
+    return jsonError('Backend NEAHPLUS non configuré', 503, origin);
+  }
+
+  const target = new URL(incomingUrl.pathname + incomingUrl.search, backend.origin);
+  const headers = new Headers(request.headers);
+  for (const name of HOP_BY_HOP_HEADERS) headers.delete(name);
+  headers.delete('origin');
+  headers.delete('referer');
+  headers.delete('accept-encoding');
+  headers.set('x-neahplus-gateway-token', backend.token);
+
+  const init = {
+    method: request.method,
+    headers,
+    redirect: 'manual',
+  };
+  if (!['GET', 'HEAD'].includes(request.method)) init.body = request.body;
+
+  try {
+    const upstream = await fetch(target.toString(), init);
+    if (upstream.status >= 300 && upstream.status < 400 && upstream.headers.has('location')) {
+      return jsonError('Redirection inattendue du backend NEAHPLUS', 502, origin);
+    }
+
+    const responseHeaders = new Headers(upstream.headers);
+    for (const name of HOP_BY_HOP_HEADERS) responseHeaders.delete(name);
+    applyCorsHeaders(responseHeaders, origin);
+    responseHeaders.set('Cache-Control', 'no-store');
+
+    const body = request.method === 'HEAD' || [204, 304].includes(upstream.status)
+      ? null
+      : upstream.body;
+
+    return new Response(body, {
+      status: upstream.status,
+      statusText: upstream.statusText,
+      headers: responseHeaders,
+    });
+  } catch (error) {
+    console.error('[NEAHPLUS Gateway] Backend request failed:', error?.message || error);
+    return jsonError('Backend NEAHPLUS temporairement indisponible', 502, origin);
+  }
+}
+
 export async function onRequest(context) {
   const { request, env } = context;
   const incomingUrl = new URL(request.url);
   const origin = request.headers.get('Origin') || '';
-
-  if (incomingUrl.pathname === '/api/neahplus' || incomingUrl.pathname.startsWith('/api/neahplus/')) {
-    // NEAHPLUS uses its own signed Hono bridge, not the public Movix API.
-    // Leave that route untouched rather than forwarding it to the wrong backend.
-    return context.next();
-  }
+  const isNeahplus = incomingUrl.pathname === '/api/neahplus' ||
+    incomingUrl.pathname.startsWith('/api/neahplus/');
 
   if (origin && !getAllowedOrigins(env, incomingUrl).has(origin)) {
     return jsonError('Origin non autorisée', 403);
@@ -80,15 +142,16 @@ export async function onRequest(context) {
     return new Response(null, { status: 204, headers });
   }
 
+  if (isNeahplus) {
+    return proxyNeahplus(context, incomingUrl, origin);
+  }
+
   if (!['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE'].includes(request.method)) {
     return jsonError('Méthode non autorisée', 405, origin);
   }
 
   const targetUrl = new URL(incomingUrl.pathname + incomingUrl.search, UPSTREAM_ORIGIN);
   const requestHeaders = new Headers(request.headers);
-
-  // Movix currently rejects browser Origin headers. The Pages Function makes
-  // the server-to-server request and adds the browser CORS response headers.
   for (const name of HOP_BY_HOP_HEADERS) requestHeaders.delete(name);
   requestHeaders.delete('origin');
   requestHeaders.delete('referer');
@@ -99,10 +162,7 @@ export async function onRequest(context) {
     headers: requestHeaders,
     redirect: 'follow',
   };
-
-  if (!['GET', 'HEAD'].includes(request.method)) {
-    init.body = request.body;
-  }
+  if (!['GET', 'HEAD'].includes(request.method)) init.body = request.body;
 
   try {
     const upstream = await fetch(targetUrl.toString(), init);
@@ -114,7 +174,7 @@ export async function onRequest(context) {
       responseHeaders.set('Cache-Control', 'no-store');
     }
 
-    const body = ['HEAD'].includes(request.method) || [204, 304].includes(upstream.status)
+    const body = request.method === 'HEAD' || [204, 304].includes(upstream.status)
       ? null
       : upstream.body;
 
