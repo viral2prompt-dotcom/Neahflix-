@@ -1,54 +1,69 @@
-# Déploiement Neahflix : Cloudflare Pages + backend Node.js
+# Déploiement Neahflix : Cloudflare Pages + NEAHPLUS natif
 
 Cette architecture concerne uniquement le nouveau dépôt Neahflix. Neahflix Legacy et son Worker Cloudflare `neahflix-shield` ne doivent jamais être modifiés ni réutilisés.
 
-## Architecture
+## Architecture retenue
 
-- Cloudflare Pages sert le frontend et exécute les Pages Functions.
-- `functions/api/[[path]].js` relaie les API Movix vers `https://api.movix.college`.
-- Les routes `/api/neahplus/*` sont relayées par Pages vers un service Node.js HTTPS séparé.
-- Le service Node.js conserve Hono, les signatures NEAHPLUS, la validation des destinations, le transport HTTP et la réécriture des playlists.
-- Un secret partagé entre Pages et Node.js protège l'accès au pont NEAHPLUS.
+- Cloudflare Pages sert le frontend.
+- Pages Functions relaie les API Movix vers `https://api.movix.college`.
+- Les routes `/api/neahplus/*` sont maintenant traitées directement par Pages Functions.
+- Le pont réutilise la logique NEAHPLUS existante : signatures HMAC, validation des destinations, réécriture des playlists, cookies et réponses Range.
+- Aucun service Node.js externe n'est requis pour le déploiement Cloudflare natif. Le serveur Hono/Docker reste dans le dépôt pour le développement local et une éventuelle solution de repli.
 
-Le pont Node.js n'est pas porté directement dans Workers : son transport utilise `node:http` avec l'option DNS personnalisée `lookup`, que l'implémentation Workers de `node:http` ne prend pas en charge. Le module `node:dns` Workers ne prend pas non plus en charge `lookup`/ `lookupService`.
+## Transport et sécurité réseau
+
+Le transport Node.js d'origine utilise `node:http` avec un DNS lookup personnalisé afin de pinner l'adresse IP de la connexion. Cloudflare indique que son implémentation de `node:http` ignore l'option `lookup`. Le runtime Workers permet toutefois la résolution DNS via `node:dns`.
+
+Le transport Cloudflare effectue donc une résolution préalable et vérifie que toutes les adresses retournées sont publiques avant chaque requête. Ensuite, `fetch()` passe par le proxy réseau Cloudflare, qui n'autorise que les destinations Internet publiques ou l'origine de la zone du Worker et bloque l'accès aux services internes/locaux. Le code refuse aussi de rappeler le même hôte que celui du site.
+
+Cette approche conserve une défense SSRF en profondeur, mais ce n'est pas un pinning de socket identique à celui du serveur Node.js : la connexion HTTP est établie par le réseau Cloudflare après la vérification DNS. Les URL de flux contenant une IP littérale sont refusées par ce transport, car Workers `fetch()` ne prend pas en charge les URL IP directes. Les flux utilisant des noms d'hôte, y compris les sous-domaines `*.tvfree.to`, restent pris en charge.
+
+Références techniques :
+- https://developers.cloudflare.com/workers/runtime-apis/nodejs/dns/
+- https://developers.cloudflare.com/workers/runtime-apis/nodejs/http/
+- https://developers.cloudflare.com/workers/reference/security-model/
+- https://developers.cloudflare.com/workers/platform/known-issues/
 
 ## Variables Cloudflare Pages
 
-Configurer ces variables dans les environnements Production et Preview si les deux doivent fonctionner :
+Configurer dans les environnements Production et Preview :
 
 | Nom | Type | Valeur |
 | --- | --- | --- |
-| `NEAHPLUS_BACKEND_ORIGIN` | Variable | URL HTTPS de base du service Node.js, sans chemin |
-| `NEAHPLUS_GATEWAY_TOKEN` | Secret | Jeton aléatoire d'au moins 32 caractères, identique côté backend |
+| `NEAHPLUS_SIGNING_SECRET` | Secret | Secret aléatoire d'au moins 32 caractères |
 | `MOVIX_API_ALLOWED_ORIGINS` | Variable facultative | Origines supplémentaires séparées par des virgules ; l'origine du site est déjà autorisée |
 
-Ne jamais mettre le jeton dans une variable `VITE_*` : les variables Vite sont intégrées au frontend et deviennent publiques.
+Le secret de signature ne doit jamais être placé dans une variable `VITE_*` : ces variables sont intégrées au frontend et deviennent publiques.
 
-## Variables du service Node.js
+Le secret `NEAHPLUS_SIGNING_SECRET` peut être distinct de celui du serveur local. Ne pas le communiquer dans le chat ni le committer dans Git.
 
-| Nom | Type | Valeur |
-| --- | --- | --- |
-| `NEAHPLUS_GATEWAY_TOKEN` | Secret | Exactement le même jeton que dans Cloudflare Pages |
-| `NEAHPLUS_SIGNING_SECRET` | Secret | Secret aléatoire d'au moins 32 caractères, distinct du jeton de passerelle |
-| `PORT` | Variable | Le fournisseur doit injecter le port d'écoute ; le serveur utilise 3001 par défaut |
+## Compatibilité Cloudflare
 
-Le service doit être déployé depuis la racine du dépôt avec le `Dockerfile` existant. Le contrôle de santé est `/health`. Le statut du pont est disponible sur `/health/neahplus`.
+Dans les paramètres du projet Pages, définir une Compatibility date égale ou postérieure au `2026-08-04`. Cette date active la compatibilité Node.js requise par les imports `node:crypto`, `node:net`, `node:dns`, `node:http` et `node:stream`.
 
 ## Configuration frontend
 
-Laisser `VITE_MAIN_API` vide pour que le frontend appelle l'origine courante et passe par Pages Functions. Ne pas inscrire l'URL du backend Node.js dans le frontend.
+Laisser `VITE_MAIN_API` vide pour que le frontend appelle l'origine courante et passe par Pages Functions. Ne jamais inscrire de secret dans le frontend.
 
 ## Vérifications avant mise en production
 
 1. `npm run build`
 2. `npm run test:gateway`
-3. Démarrer le backend Node.js avec les deux secrets configurés.
-4. Vérifier `/health` et `/health/neahplus` ; ce dernier doit indiquer `enabled: true`.
-5. Vérifier qu'un appel direct à `/api/neahplus` sur le backend, sans jeton de passerelle, retourne 403.
-6. Vérifier via le domaine Pages les API Movix, les playlists HLS, les segments vidéo, les redirections, les cookies et les différentes sources NEAHPLUS.
+3. Tester le runtime Pages avec Wrangler et la Compatibility date configurée.
+4. Tester les API Movix.
+5. Tester une chaîne NEAHPLUS réelle : résolution, playlist HLS, segments, redirections, cookies, requêtes Range et changement de source.
+6. Vérifier les flux provenant de domaines et confirmer qu'aucune URL de flux en IP littérale n'est nécessaire.
 
-Ne pas déployer le frontend en production avant que ces tests de lecture aient réussi.
+Les tests Node automatisés ne remplacent pas un test sur le runtime Workers hébergé. Ne pas basculer le domaine de production avant validation réelle de la lecture vidéo.
+
+## Limites de l'offre gratuite
+
+Les requêtes Pages Functions sont comptabilisées dans le quota Workers Free : 100 000 requêtes par jour, avec une limite CPU de 10 ms par invocation. Chaque appel de segment HLS qui passe par `/api/neahplus/*` déclenche une invocation. Le quota peut donc devenir le premier frein si beaucoup d'utilisateurs regardent longtemps.
+
+À titre indicatif, avec des segments de 10 secondes, un utilisateur qui regarde 2 heures génère environ 720 requêtes de segments, sans compter les playlists et autres appels. Le quota de 100 000 requêtes correspondrait alors à environ 138 journées-utilisateur de 2 heures, avant les autres appels. La durée réelle des segments et le trafic réel devront être mesurés.
+
+Source des limites : https://developers.cloudflare.com/workers/platform/limits/
 
 ## Coût et disponibilité
 
-Cloudflare Pages/Functions peut rester sur l'offre gratuite dans ses limites. Un service Node.js gratuit peut s'endormir après une période d'inactivité selon le fournisseur choisi : cela peut retarder la première lecture. Aucun fournisseur ne doit être activé avec une option payante sans validation explicite.
+Cette architecture évite Render et son endormissement après inactivité. Elle reste sur Cloudflare Free tant que l'usage respecte les quotas gratuits. Si le trafic dépasse ces limites, les requêtes dynamiques peuvent être refusées jusqu'à la remise à zéro quotidienne du quota. Les ressources statiques du frontend restent servies indépendamment des invocations Pages Functions.
