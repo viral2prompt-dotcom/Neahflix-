@@ -1,7 +1,43 @@
 import { isIP } from 'node:net';
+import { resolve4, resolve6 } from 'node:dns/promises';
 import { Hono } from 'hono';
 import { createNeahplusBridge, NeahplusRefused } from '../../server/neahplus.js';
 import { mountNeahplus } from '../../server/neahplusRoutes.js';
+
+/**
+ * Workers does not implement dns.lookup(). Use its supported DNS-over-HTTPS
+ * resolver methods and normalize the answers for createPinnedLookup().
+ */
+export const createCloudflareResolveHost = ({
+  resolve4Impl = resolve4,
+  resolve6Impl = resolve6,
+} = {}) => async (hostname) => {
+  const results = await Promise.allSettled([
+    resolve4Impl(hostname),
+    resolve6Impl(hostname),
+  ]);
+  const addresses = [];
+
+  for (const result of results) {
+    if (result.status === 'fulfilled') {
+      for (const address of result.value) {
+        addresses.push({
+          address: typeof address === 'string' ? address : address.address,
+          family: typeof address === 'string'
+            ? (address.includes(':') ? 6 : 4)
+            : (address.family || (String(address.address).includes(':') ? 6 : 4)),
+        });
+      }
+    }
+  }
+
+  if (addresses.length === 0) {
+    const failure = results.find((result) => result.status === 'rejected');
+    throw failure?.reason || new Error('Aucune adresse DNS pour la destination NEAHPLUS');
+  }
+
+  return addresses;
+};
 
 /**
  * Cloudflare's HTTP egress proxy only permits public Internet destinations
@@ -67,7 +103,7 @@ export const createNeahplusCloudflareHandler = ({
   const blockedHosts = [...new Set([requestHost, ...configuredBlockedHosts])];
   const bridge = createNeahplusBridge({
     secret,
-    ...(resolveHost ? { resolveHost } : {}),
+    resolveHost: resolveHost || createCloudflareResolveHost(),
     transport: createCloudflareFetchTransport({ fetchImpl, blockedHosts }),
   });
 
