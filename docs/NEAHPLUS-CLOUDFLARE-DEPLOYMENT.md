@@ -14,7 +14,7 @@ Cette architecture concerne uniquement le nouveau dépôt Neahflix. Neahflix Leg
 
 Le transport Node.js d'origine utilise `node:http` avec un DNS lookup personnalisé afin de pinner l'adresse IP de la connexion. Cloudflare indique que son implémentation de `node:http` ignore l'option `lookup`. Le runtime Workers permet toutefois la résolution DNS via `node:dns`.
 
-Le transport Cloudflare effectue donc une résolution préalable et vérifie que toutes les adresses retournées sont publiques avant chaque requête. Ensuite, `fetch()` passe par le proxy réseau Cloudflare, qui n'autorise que les destinations Internet publiques ou l'origine de la zone du Worker et bloque l'accès aux services internes/locaux. Le code refuse aussi de rappeler le même hôte que celui du site.
+Le transport Cloudflare effectue donc une résolution préalable et vérifie que toutes les adresses retournées sont publiques avant chaque requête. Ensuite, `fetch()` passe par le proxy réseau Cloudflare, qui n'autorise que les destinations Internet publiques ou l'origine de la zone du Worker et bloque l'accès aux services internes/locaux. Le code refuse aussi de rappeler le même hôte que celui du site et les hôtes supplémentaires déclarés dans `NEAHPLUS_BLOCKED_HOSTS` (ainsi que leurs sous-domaines).
 
 Cette approche conserve une défense SSRF en profondeur, mais ce n'est pas un pinning de socket identique à celui du serveur Node.js : la connexion HTTP est établie par le réseau Cloudflare après la vérification DNS. Les URL de flux contenant une IP littérale sont refusées par ce transport, car Workers `fetch()` ne prend pas en charge les URL IP directes. Les flux utilisant des noms d'hôte, y compris les sous-domaines `*.tvfree.to`, restent pris en charge.
 
@@ -31,7 +31,7 @@ Configurer dans les environnements Production et Preview :
 | Nom | Type | Valeur |
 | --- | --- | --- |
 | `NEAHPLUS_SIGNING_SECRET` | Secret | Secret aléatoire d'au moins 32 caractères |
-| `MOVIX_API_ALLOWED_ORIGINS` | Variable facultative | Origines supplémentaires séparées par des virgules ; l'origine du site est déjà autorisée |
+| `MOVIX_API_ALLOWED_ORIGINS` | Variable facultative | Origines supplémentaires séparées par des virgules ; l'origine du site est déjà autorisée |\n| `NEAHPLUS_BLOCKED_HOSTS` | Variable facultative | Noms d'hôtes du site à exclure du relais, séparés par des virgules (par exemple `neahflix.cg,www.neahflix.cg`) |
 
 Le secret de signature ne doit jamais être placé dans une variable `VITE_*` : ces variables sont intégrées au frontend et deviennent publiques.
 
